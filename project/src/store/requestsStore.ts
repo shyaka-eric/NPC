@@ -1,0 +1,128 @@
+import { create } from 'zustand';
+import { Request, RequestStatus, RequestType } from '../types';
+import { api } from '../api';
+import { useNotificationsStore } from './notificationsStore';
+import { useItemsStore } from './itemsStore';
+
+interface RequestsState {
+  requests: Request[];
+  isLoading: boolean;
+  error: string | null;
+  
+  // CRUD operations
+  fetchRequests: () => Promise<void>;
+  fetchUserRequests: (userId: string) => Promise<Request[]>;
+  addRequest: (request: Omit<Request, 'id' | 'requested_at' | 'status'>) => Promise<Request>;
+  updateRequest: (id: string, updates: Partial<Request>) => Promise<Request>;
+  deleteRequest: (id: string) => Promise<void>;
+  
+  // Additional operations
+  approveRequest: (id: string, approverId: string, modifiedQuantity?: number) => Promise<Request>;
+  denyRequest: (id: string, denierId: string, reason: string) => Promise<Request>;
+  issueRequest: (id: string, issuerId: string) => Promise<Request>;
+  getRequestById: (id: string) => Request | undefined;
+  getPendingRequests: () => Request[];
+  getRequestsByType: (type: RequestType) => Request[];
+  getRequestsByStatus: (status: RequestStatus) => Request[];
+}
+
+export const useRequestsStore = create<RequestsState>()((set, get) => ({
+  requests: [],
+  isLoading: false,
+  error: null,
+
+  fetchRequests: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get('requests/');
+      set({ requests: response.data, isLoading: false });
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+    }
+  },
+
+  fetchUserRequests: async (userId) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get('requests/', { params: { requested_by: userId } });
+      set({ requests: response.data, isLoading: false });
+      return response.data;
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+      return [];
+    }
+  },
+
+  addRequest: async (requestData) => {
+    console.log('addRequest called with:', requestData);
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.post('requests/', requestData);
+      set(state => ({ requests: [...state.requests, response.data], isLoading: false }));
+      return response.data;
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  updateRequest: async (id, updates) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.patch(`requests/${id}/`, updates);
+      set(state => ({
+        requests: state.requests.map(request => request.id === id ? response.data : request),
+        isLoading: false
+      }));
+      return response.data;
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  deleteRequest: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.delete(`requests/${id}/`);
+      set(state => ({
+        requests: state.requests.filter(request => request.id !== id),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  approveRequest: async (id, approverId, modifiedQuantity) => {
+    // Custom logic for approval, update status and optionally quantity
+    return get().updateRequest(id, { status: 'approved', quantity: modifiedQuantity });
+  },
+
+  denyRequest: async (id, denierId, reason) => {
+    // Custom logic for denial, update status and add reason
+    return get().updateRequest(id, { status: 'denied', denial_reason: reason });
+  },
+
+  issueRequest: async (id, issuerId) => {
+    // Custom logic for issuing, update status
+    return get().updateRequest(id, { status: 'issued' });
+  },
+
+  getRequestById: (id) => {
+    return get().requests.find(request => request.id === id);
+  },
+
+  getPendingRequests: () => {
+    return get().requests.filter(request => request.status === 'pending');
+  },
+
+  getRequestsByType: (type) => {
+    return get().requests.filter(request => request.type === type);
+  },
+
+  getRequestsByStatus: (status) => {
+    return get().requests.filter(request => request.status === status);
+  }
+}));

@@ -6,11 +6,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name', 'name', 'department', 'phone_number', 'is_active']
+        fields = [
+            'id', 'username', 'email', 'role', 'first_name', 'last_name', 'name',
+            'rank', 'birth_date', 'unit', 'department', 'phone_number', 'is_active', 'password'
+        ]
         extra_kwargs = {
             'username': {'required': True},
             'email': {'required': True},
             'role': {'required': True},
+            'password': {'write_only': True}
         }
 
     def get_name(self, obj):
@@ -28,10 +32,33 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('A user with that username already exists.')
         return value
 
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        user = super().create(validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
 class ItemSerializer(serializers.ModelSerializer):
+    assigned_to_id = serializers.PrimaryKeyRelatedField(source='assigned_to', read_only=True)
+    assigned_to = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, allow_null=True, write_only=True)
+    assigned_quantity = serializers.SerializerMethodField()
+    assigned_date = serializers.SerializerMethodField()
+
     class Meta:
         model = Item
-        fields = ['id', 'serial_number', 'name', 'category', 'quantity', 'expiration_date', 'last_updated']
+        fields = ['id', 'serial_number', 'name', 'category', 'quantity', 'status', 'expiration_date', 'last_updated', 'assigned_to_id', 'assigned_to', 'assigned_quantity', 'assigned_date']
+
+    def get_assigned_quantity(self, obj):
+        # Get the most recent issued request for this item
+        request = obj.requests.filter(status='issued').order_by('-requested_at').first()
+        return request.quantity if request else None
+
+    def get_assigned_date(self, obj):
+        # Get the most recent issued request for this item
+        request = obj.requests.filter(status='issued').order_by('-requested_at').first()
+        return request.requested_at if request else None
 
 class RequestSerializer(serializers.ModelSerializer):
     requested_by_name = serializers.SerializerMethodField()
@@ -39,6 +66,7 @@ class RequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Request
         fields = '__all__'
+        read_only_fields = ['requested_by']
 
     def get_requested_by_name(self, obj):
         user = obj.requested_by
@@ -49,9 +77,11 @@ class RequestSerializer(serializers.ModelSerializer):
         return getattr(user, 'username', None) or getattr(user, 'email', None) or str(user)
 
 class NotificationSerializer(serializers.ModelSerializer):
+    recipient = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
     class Meta:
         model = Notification
-        fields = '__all__'
+        fields = ['id', 'recipient', 'notification_type', 'message', 'request', 'is_read', 'createdAt']
 
 class LogSerializer(serializers.ModelSerializer):
     class Meta:

@@ -2,6 +2,7 @@ import { UserRole } from '../types';
 
 export interface UserModel {
   id: string;
+  username: string;
   name: string;
   email: string;
   password: string; // Hashed password
@@ -130,6 +131,7 @@ export class User {
   // Create from plain object
   static fromJSON(data: UserModel): User {
     const user = new User({
+      username: data.username,
       name: data.name,
       email: data.email,
       password: data.password,
@@ -145,4 +147,4 @@ export class User {
     user.model.lastLogin = data.lastLogin;
     return user;
   }
-} 
+}

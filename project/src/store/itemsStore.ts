@@ -1,26 +1,26 @@
 import { create } from 'zustand';
-import { Item, ItemStatus } from '../types';
+import { ItemModel, ItemStatus } from '../models/item.model';
 import { api } from '../api';
 
 interface ItemsState {
-  items: Item[];
+  items: ItemModel[];
   isLoading: boolean;
   error: string | null;
   
   // CRUD operations
   fetchItems: () => Promise<void>;
-  addItem: (item: Omit<Item, 'id' | 'created_at' | 'updated_at'>) => Promise<Item>;
-  updateItem: (id: string, updates: Partial<Item>) => Promise<Item>;
+  addItem: (item: Omit<ItemModel, 'id' | 'created_at' | 'updated_at'>) => Promise<ItemModel>;
+  updateItem: (id: string, updates: Partial<ItemModel>) => Promise<ItemModel>;
   deleteItem: (id: string) => Promise<void>;
   
   // Additional operations
-  updateItemStatus: (id: string, status: ItemStatus, assignedTo?: string) => Promise<Item>;
-  getItemsByStatus: (status: ItemStatus) => Item[];
-  getItemById: (id: string) => Item | undefined;
+  updateItemStatus: (id: string, status: ItemStatus, assignedTo?: string) => Promise<ItemModel>;
+  getItemsByStatus: (status: ItemStatus) => ItemModel[];
+  getItemById: (id: string) => ItemModel | undefined;
 }
 
 export const useItemsStore = create<ItemsState>()((set, get) => ({
-  items: [],
+  items: [] as ItemModel[],
   isLoading: false,
   error: null,
 
@@ -76,7 +76,7 @@ export const useItemsStore = create<ItemsState>()((set, get) => ({
   },
 
   updateItemStatus: async (id, status, assignedTo) => {
-    return get().updateItem(id, { status, assigned_to: assignedTo });
+    return get().updateItem(id, { status: status as ItemStatus, assignedTo });
   },
 
   getItemsByStatus: (status) => {

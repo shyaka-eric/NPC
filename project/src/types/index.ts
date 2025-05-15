@@ -2,12 +2,20 @@ export type UserRole = 'unit-leader' | 'admin' | 'logistics-officer' | 'system-a
 
 export interface User {
   id: string;
+  username: string;
   name: string;
   email: string;
   role: UserRole;
   department?: string;
   phoneNumber?: string;
   profileImage?: string;
+  rank?: string;
+  unit?: string;
+  phone_number?: string;
+  first_name?: string;
+  last_name?: string;
+  birth_date?: string;
+  password?: string;
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
@@ -23,6 +31,9 @@ export interface Item {
   quantity: number;
   expiration_date?: Date;
   last_updated: Date;
+  status: ItemStatus;
+  assigned_quantity?: number;
+  assignedTo?: string;
 }
 
 export type RequestStatus = 'pending' | 'approved' | 'denied' | 'issued' | 'completed';

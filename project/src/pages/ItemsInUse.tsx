@@ -3,7 +3,6 @@ import { useItemsStore } from '../store/itemsStore';
 import { useAuthStore } from '../store/authStore';
 import PageHeader from '../components/PageHeader';
 import Table from '../components/ui/Table';
-import StatusBadge from '../components/ui/StatusBadge';
 import { formatDate } from '../utils/formatters';
 import Pagination from '../components/Pagination';
 import SimpleModal from '../components/ui/SimpleModal';
@@ -34,8 +33,14 @@ const ItemsInUse: React.FC = () => {
     loadItems();
   }, [fetchItems]);
 
-  // Filter items in use by the current user
-  const itemsInUse = items.filter(item => item.status === 'in-use' && item.assignedToId === user?.id);
+  // Debug output
+  useEffect(() => {
+    console.log('All items from backend:', items);
+    console.log('Filtered itemsInUse:', items.filter(item => item.assigned_to_id === user?.id));
+  }, [items, user]);
+
+  // Filter items in use by the current user (now just assigned items)
+  const itemsInUse = items.filter(item => item.assigned_to_id === user?.id);
   const totalPages = Math.ceil(itemsInUse.length / ITEMS_PER_PAGE);
   const paginatedItems = itemsInUse.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
@@ -56,15 +61,11 @@ const ItemsInUse: React.FC = () => {
     },
     {
       header: 'Quantity',
-      accessor: 'quantity'
-    },
-    {
-      header: 'Status',
-      accessor: (item: any) => <StatusBadge status={item.status} />
+      accessor: 'assigned_quantity'
     },
     {
       header: 'Assigned Date',
-      accessor: (item: any) => formatDate(item.assignedAt)
+      accessor: (item: any) => formatDate(item.assigned_date)
     },
     {
       header: 'Actions',
@@ -121,15 +122,11 @@ const ItemsInUse: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Quantity</h3>
-                <p className="mt-1">{selectedItem.quantity}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                <p className="mt-1"><StatusBadge status={selectedItem.status} /></p>
+                <p className="mt-1">{selectedItem.assigned_quantity}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Assigned Date</h3>
-                <p className="mt-1">{formatDate(selectedItem.assignedAt)}</p>
+                <p className="mt-1">{formatDate(selectedItem.assigned_date)}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Last Updated</h3>

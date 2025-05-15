@@ -15,6 +15,7 @@ interface AuthState {
   addUser: (userData: Partial<User> & { password: string }) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   toggleUserActive: (id: string, isActive: boolean) => Promise<void>;
+  refreshToken: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
@@ -116,6 +117,19 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       await get().fetchUsers();
     } catch (error: any) {
       set({ error: error.response?.data?.detail || error.message });
+      throw error;
+    }
+  },
+
+  refreshToken: async () => {
+    try {
+      const response = await api.post('auth/refresh/');
+      const { access } = response.data;
+      if (!access) throw new Error('Failed to refresh token');
+      localStorage.setItem('token', access);
+      set({ isAuthenticated: true });
+    } catch (error: any) {
+      set({ isAuthenticated: false });
       throw error;
     }
   },

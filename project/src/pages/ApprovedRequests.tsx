@@ -27,15 +27,15 @@ const ApprovedRequests: React.FC = () => {
     load();
   }, [fetchRequests, fetchItems]);
 
-  // Case-insensitive filter for approved requests
-  const approvedRequests = requests.filter(r => r.status?.toLowerCase() === 'approved');
+  // Case-insensitive filter for approved and issued requests
+  const approvedRequests = requests.filter(r => ['approved', 'issued'].includes(r.status?.toLowerCase()));
 
-  const getCategory = (itemId: number) => {
+  const getCategory = (itemId: string) => {
     const item = items.find(i => i.id === itemId);
     return item ? item.category : '';
   };
 
-  const getItemName = (itemId: number) => {
+  const getItemName = (itemId: string) => {
     const item = items.find(i => i.id === itemId);
     return item ? item.name : '';
   };
@@ -44,8 +44,8 @@ const ApprovedRequests: React.FC = () => {
     { header: 'Date', accessor: (r: any) => formatDate(r.requested_at) },
     { header: 'Category', accessor: (r: any) => getCategory(r.item) },
     { header: 'Item Name', accessor: (r: any) => getItemName(r.item) },
-    { header: 'Quantity', accessor: 'quantity' },
-    { header: 'Requested By', accessor: 'requested_by_name' },
+    { header: 'Quantity', accessor: (r: any) => r.quantity },
+    { header: 'Requested By', accessor: (r: any) => r.requested_by_name },
     { header: 'Status', accessor: (r: any) => <StatusBadge status={r.status} /> },
   ];
 
@@ -65,4 +65,4 @@ const ApprovedRequests: React.FC = () => {
   );
 };
 
-export default ApprovedRequests; 
+export default ApprovedRequests;

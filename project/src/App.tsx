@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useAuthStore } from './store/authStore';
-import { UserRole } from './types';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import Navbar from './components/Navbar';
@@ -27,6 +26,8 @@ import AdminReports from './pages/AdminReports';
 import AdminRequests from './pages/AdminRequests';
 import EditUser from './pages/EditUser';
 import ApprovedRequests from './pages/ApprovedRequests';
+import Logs from './pages/Logs';
+import { AppRoutes } from "./routes";
 
 // Route guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -45,11 +46,9 @@ const App: React.FC = () => {
   
   useEffect(() => {
     // Simulate initial loading (in a real app, this would be auth initialization)
-    const timer = setTimeout(() => {
+    setTimeout(() => {
       setIsLoading(false);
     }, 1000);
-    
-    return () => clearTimeout(timer);
   }, []);
   
   if (isLoading) {
@@ -102,7 +101,7 @@ const App: React.FC = () => {
           <Route
             path="/reports"
             element={
-              <RoleBasedRoute allowedRoles={['logistics-officer', 'system-admin']}>
+              <RoleBasedRoute allowedRoles={["system-admin"]}>
                 <Reports />
               </RoleBasedRoute>
             }
@@ -110,7 +109,7 @@ const App: React.FC = () => {
           <Route
             path="/requests"
             element={
-              <RoleBasedRoute allowedRoles={['logistics-officer', 'system-admin']}>
+              <RoleBasedRoute allowedRoles={["system-admin"]}>
                 <Requests />
               </RoleBasedRoute>
             }
@@ -158,7 +157,7 @@ const App: React.FC = () => {
           <Route
             path="/users"
             element={
-              <RoleBasedRoute allowedRoles={['system-admin']}>
+              <RoleBasedRoute allowedRoles={["system-admin"]}>
                 <Users />
               </RoleBasedRoute>
             }
@@ -182,7 +181,7 @@ const App: React.FC = () => {
           <Route
             path="/settings"
             element={
-              <RoleBasedRoute allowedRoles={['system-admin']}>
+              <RoleBasedRoute allowedRoles={["system-admin"]}>
                 <Settings />
               </RoleBasedRoute>
             }
@@ -222,7 +221,7 @@ const App: React.FC = () => {
           <Route
             path="/stock-availability"
             element={
-              <RoleBasedRoute allowedRoles={['system-admin']}>
+              <RoleBasedRoute allowedRoles={["system-admin"]}>
                 <AdminStock />
               </RoleBasedRoute>
             }
@@ -235,7 +234,26 @@ const App: React.FC = () => {
               </RoleBasedRoute>
             }
           />
-          <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
+          <Route
+            path="/logs"
+            element={
+              <RoleBasedRoute allowedRoles={["system-admin"]}>
+                <Logs />
+              </RoleBasedRoute>
+            }
+          />
+          <Route 
+            path="/*" 
+            element={
+              <ProtectedRoute>
+                <AppRoutes />
+              </ProtectedRoute>
+            } 
+          />
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
+          />
         </Routes>
         
         {/* Toast notifications */}

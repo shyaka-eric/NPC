@@ -14,6 +14,10 @@ export function formatDateTime(date: Date | string): string {
 
 export function formatRelativeTime(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
+  if (!(d instanceof Date) || isNaN(d.getTime())) {
+    console.warn('Invalid date passed to formatRelativeTime:', date);
+    return 'Invalid date';
+  }
   return formatDistanceToNow(d, { addSuffix: true });
 }
 

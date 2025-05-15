@@ -10,6 +10,7 @@ import Button from '../components/ui/Button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import SimpleModal from '../components/ui/SimpleModal';
+import { RequestType } from '../types';
 
 const priorityOptions = [
   { value: 'normal', label: 'Normal' },
@@ -73,14 +74,27 @@ const NewRequest: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     // Always set as string
-    setFormData(prev => ({
-      ...prev,
-      [name]: value.toString()
-    }));
+    setFormData(prev => {
+      // Reset itemId if category changes
+      if (name === 'category') {
+        return {
+          ...prev,
+          category: value.toString(),
+          itemId: '', // Reset item selection to placeholder
+        };
+      }
+      // Reset item/category if type changes
+      if (name === 'type') {
+        return { ...prev, type: value.toString(), category: '', itemId: '', quantity: '' };
+      }
+      return {
+        ...prev,
+        [name]: value.toString()
+      };
+    });
     setErrors(prev => ({ ...prev, [name]: '' }));
-    // Reset item/category if type changes
+    // Reset file if type changes
     if (name === 'type') {
-      setFormData(prev => ({ ...prev, category: '', itemId: '', quantity: '' }));
       setFile(null);
     }
   };
@@ -112,22 +126,24 @@ const NewRequest: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user) return;
-    console.log('SUBMIT', formData);
     if (!validate()) return;
     setIsLoading(true);
     try {
-      const selectedItem = items.find(item => item.id === formData.itemId);
+      // Find selected item for name
+      const selectedItem = items.find(item => String(item.id) === String(formData.itemId));
       await addRequest({
-        type: formData.type,
-        item: formData.itemId,
-        quantity: formData.type === 'new' ? parseInt(formData.quantity) : undefined,
+        type: formData.type as RequestType,
+        itemId: formData.itemId,
+        itemName: selectedItem ? selectedItem.name : '',
+        quantity: formData.type === 'new' ? parseInt(formData.quantity) : 0,
+        requestedBy: user.id,
+        requestedByName: user.name,
+        requestedAt: new Date(),
         priority: formData.priority,
         purpose: formData.purpose,
-        requested_by: user.id,
-        status: 'pending',
         attachments: file ? [file.name] : [],
       });
       toast.success('Request created successfully');
@@ -190,7 +206,7 @@ const NewRequest: React.FC = () => {
           name="category"
           value={formData.category}
           onChange={handleChange}
-          options={formData.type === 'repair' ? inUseCategories : categories}
+          options={[{ value: '', label: 'Select Category' }, ...(formData.type === 'repair' ? inUseCategories : categories).filter(cat => cat.value !== '')]}
           required
           error={errors.category}
         />
@@ -199,7 +215,7 @@ const NewRequest: React.FC = () => {
           name="itemId"
           value={formData.itemId}
           onChange={handleChange}
-          options={formData.type === 'repair' ? inUseItemOptions : itemOptions}
+          options={[{ value: '', label: 'Select Item' }, ...(formData.type === 'repair' ? inUseItemOptions : itemOptions)]}
           required
           error={errors.itemId}
         />
@@ -219,7 +235,7 @@ const NewRequest: React.FC = () => {
           name="priority"
           value={formData.priority}
           onChange={handleChange}
-          options={priorityOptions}
+          options={[{ value: '', label: 'Select Priority' }, ...priorityOptions.filter(opt => opt.value !== '')]}
           required
           error={errors.priority}
         />
@@ -331,4 +347,4 @@ const NewRequest: React.FC = () => {
   );
 };
 
-export default NewRequest; 
+export default NewRequest;

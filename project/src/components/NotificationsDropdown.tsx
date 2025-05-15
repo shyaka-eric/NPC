@@ -14,18 +14,27 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
   isMobile = false
 }) => {
   const { user } = useAuthStore();
-  const { notifications, fetchNotifications, markAsRead, markAllAsRead } = useNotificationsStore();
+  const { notifications, fetchNotifications, markAsRead, markAllAsRead } = useNotificationsStore(); // Include all necessary methods
   
   useEffect(() => {
     if (user) {
+      console.debug('Fetching notifications for user:', user.id);
       fetchNotifications(user.id);
+    } else {
+      console.warn('No user found, skipping notification fetch');
     }
   }, [user, fetchNotifications]);
 
-  if (!user) return null;
+  if (!user) {
+    console.warn('NotificationsDropdown rendered without a user');
+    return null;
+  }
 
-  const userNotifications = notifications.filter(notification => notification.userId === user.id);
+  const userNotifications = notifications.filter(notification => notification.recipient === user.id);
+  console.debug('Filtered user notifications:', userNotifications);
+
   const hasUnread = userNotifications.some(notification => !notification.read);
+  console.debug('User has unread notifications:', hasUnread);
 
   const handleMarkAllAsRead = () => {
     markAllAsRead(user.id);
@@ -88,7 +97,14 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
                     <p className="text-sm font-medium text-slate-900">{notification.title}</p>
                     <p className="text-sm text-slate-600">{notification.message}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {formatRelativeTime(notification.createdAt)}
+                      {(() => {
+                        try {
+                          return formatRelativeTime(notification.createdAt);
+                        } catch (error) {
+                          console.warn('Error formatting notification time:', error, notification);
+                          return 'Invalid date';
+                        }
+                      })()}
                     </p>
                   </div>
                 </div>

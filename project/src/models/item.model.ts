@@ -1,5 +1,7 @@
 import { ItemStatus } from '../types';
 
+export type { ItemStatus } from '../types';
+
 export interface ItemModel {
   id: string;
   name: string;
@@ -14,6 +16,7 @@ export interface ItemModel {
   lastIssuedAt?: Date;
   lastReturnedAt?: Date;
   repairHistory?: RepairRecord[];
+  assigned_quantity?: number;
 }
 
 export interface RepairRecord {
@@ -177,4 +180,4 @@ export class Item {
     item.model.repairHistory = data.repairHistory;
     return item;
   }
-} 
+}

@@ -9,6 +9,7 @@ export interface NotificationModel {
   updatedAt: Date;
   actionUrl?: string;
   metadata?: Record<string, any>;
+  recipient: string; // Added recipient property to match backend response
 }
 
 export class Notification {
@@ -21,6 +22,7 @@ export class Notification {
       read: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      recipient: data.recipient, // Ensure recipient is included
     };
   }
 
@@ -123,6 +125,7 @@ export class Notification {
       type: data.type,
       actionUrl: data.actionUrl,
       metadata: data.metadata,
+      recipient: data.recipient, // Ensure recipient is included
     });
     notification.model.id = data.id;
     notification.model.read = data.read;
@@ -130,4 +133,4 @@ export class Notification {
     notification.model.updatedAt = data.updatedAt;
     return notification;
   }
-} 
+}

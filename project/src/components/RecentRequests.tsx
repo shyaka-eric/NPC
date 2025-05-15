@@ -43,12 +43,12 @@ const RecentRequests: React.FC = () => {
 
   // Get recent requests based on user role
   const getRecentRequests = () => {
-    let filteredRequests = [];
+    let filteredRequests: typeof requests = [];
 
     switch (user.role) {
       case 'unit-leader':
         // For unit leaders, show their own requests
-        filteredRequests = requests.filter(req => req.requested_by === user.id);
+        filteredRequests = requests.filter(req => req.requestedBy === user.id);
         break;
       case 'admin':
         // For admins, prioritize pending requests
@@ -82,7 +82,7 @@ const RecentRequests: React.FC = () => {
 
     // Sort by most recent and take the top 5
     return filteredRequests
-      .sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime())
+      .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
       .slice(0, 5);
   };
 
@@ -110,16 +110,16 @@ const RecentRequests: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">
-                      {request.item_name || '-'}
+                      {request.itemName || '-'}
                     </p>
                     <div className="flex items-center mt-1">
                       <StatusBadge status={request.status} />
                       <p className="ml-2 text-xs text-slate-500">
-                        {safeFormatRelativeTime(request.requested_at)}
+                        {safeFormatRelativeTime(request.requestedAt)}
                       </p>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">
-                      {request.type === 'new' ? 'New Request' : 'Repair Request'} by {request.requested_by_name || '-'}
+                      {request.type === 'new' ? 'New Request' : 'Repair Request'} by {request.requestedByName || '-'}
                     </p>
                   </div>
                   <div className="ml-4">
@@ -147,12 +147,12 @@ const RecentRequests: React.FC = () => {
       >
         {selectedRequest && (
           <div className="space-y-2">
-            <div><span className="font-semibold">Item:</span> {selectedRequest.item_name || '-'}</div>
+            <div><span className="font-semibold">Item:</span> {selectedRequest.itemName || '-'}</div>
             <div><span className="font-semibold">Type:</span> {selectedRequest.type === 'new' ? 'New Request' : 'Repair Request'}</div>
             <div><span className="font-semibold">Quantity:</span> {selectedRequest.quantity}</div>
-            <div><span className="font-semibold">Requested By:</span> {selectedRequest.requested_by_name || '-'}</div>
+            <div><span className="font-semibold">Requested By:</span> {selectedRequest.requestedByName || '-'}</div>
             <div><span className="font-semibold">Status:</span> <StatusBadge status={selectedRequest.status} /></div>
-            <div><span className="font-semibold">Requested At:</span> {selectedRequest.requested_at ? new Date(selectedRequest.requested_at).toLocaleString() : '-'}</div>
+            <div><span className="font-semibold">Requested At:</span> {selectedRequest.requestedAt ? new Date(selectedRequest.requestedAt).toLocaleString() : '-'}</div>
             {selectedRequest.reason && (
               <div><span className="font-semibold">Reason:</span> {selectedRequest.reason}</div>
             )}

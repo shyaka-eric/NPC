@@ -6,7 +6,28 @@ import Select from '../components/ui/Select';
 import Button from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
 
+const rankOptions = [
+  { value: '', label: 'Select Rank' },
+  { value: 'PC', label: 'PC' },
+  { value: 'CPL', label: 'CPL' },
+  { value: 'SGT', label: 'SGT' },
+  { value: 'S/SGT', label: 'S/SGT' },
+  { value: 'C/SGT', label: 'C/SGT' },
+  { value: 'OC', label: 'OC' },
+  { value: 'AIP', label: 'AIP' },
+  { value: 'IP', label: 'IP' },
+  { value: 'CIP', label: 'CIP' },
+  { value: 'SP', label: 'SP' },
+  { value: 'SSP', label: 'SSP' },
+  { value: 'CSP', label: 'CSP' },
+  { value: 'ACP', label: 'ACP' },
+  { value: 'CP', label: 'CP' },
+  { value: 'DCG', label: 'DCG' },
+  { value: 'CG', label: 'CG' },
+];
+
 const roleOptions = [
+  { value: '', label: 'Select Role' },
   { value: 'unit-leader', label: 'Unit Leader' },
   { value: 'admin', label: 'Admin' },
   { value: 'logistics-officer', label: 'Logistics Officer' },
@@ -17,11 +38,15 @@ const AddUser: React.FC = () => {
   const navigate = useNavigate();
   const addUser = useAuthStore(state => state.addUser);
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    role: 'unit-leader',
-    department: '',
+    rank: '',
+    first_name: '',
+    last_name: '',
+    birth_date: '',
+    role: '',
+    unit: '',
     phone_number: '',
+    username: '',
+    email: '',
     password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -34,17 +59,19 @@ const AddUser: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const userPayload = {
-      first_name: form.name,
-      last_name: '',
-      email: form.email,
-      username: form.email,
-      role: form.role,
-      department: form.department,
+
+    addUser({
+      rank: form.rank,
+      username: form.username,
+      first_name: form.first_name,
+      last_name: form.last_name,
+      birth_date: form.birth_date,
+      role: form.role as any, // typecast to satisfy UserRole
+      unit: form.unit,
       phone_number: form.phone_number,
+      email: form.email,
       password: form.password,
-    };
-    addUser(userPayload);
+    });
     setTimeout(() => {
       setIsLoading(false);
       navigate('/users');
@@ -57,12 +84,17 @@ const AddUser: React.FC = () => {
         title="Add User"
         description="Create a new user account."
       />
-      <form onSubmit={handleSubmit} className="space-y-6 mt-8">
-        <Input label="Name" name="name" value={form.name} onChange={handleChange} required />
-        <Input label="Email" name="email" value={form.email} onChange={handleChange} required type="email" />
+      <form onSubmit={handleSubmit} className="space-y-6 mt-8" encType="multipart/form-data">
+        <Select label="Rank" name="rank" value={form.rank} onChange={handleChange} options={rankOptions} required />
+        <Input label="First Name" name="first_name" value={form.first_name} onChange={handleChange} required />
+        <Input label="Last Name" name="last_name" value={form.last_name} onChange={handleChange} required />
+        <Input label="Birth Date" name="birth_date" type="date" value={form.birth_date} onChange={handleChange} required />
         <Select label="Role" name="role" value={form.role} onChange={handleChange} options={roleOptions} required />
-        <Input label="Password" name="password" value={form.password} onChange={handleChange} required type="password" />
+        <Input label="Unit" name="unit" value={form.unit} onChange={handleChange} required />
         <Input label="Phone" name="phone_number" value={form.phone_number} onChange={handleChange} required />
+        <Input label="Username" name="username" value={form.username} onChange={handleChange} required />
+        <Input label="Email" name="email" value={form.email} onChange={handleChange} required type="email" />
+        <Input label="Password" name="password" value={form.password} onChange={handleChange} required type="password" />
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="secondary" type="button" onClick={() => navigate('/users')}>Cancel</Button>
           <Button type="submit" isLoading={isLoading}>Add User</Button>
@@ -72,4 +104,4 @@ const AddUser: React.FC = () => {
   );
 };
 
-export default AddUser; 
+export default AddUser;

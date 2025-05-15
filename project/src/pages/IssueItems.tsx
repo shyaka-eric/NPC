@@ -44,7 +44,7 @@ const IssueItems: React.FC = () => {
       await updateItem(item.id, {
         quantity: item.quantity - request.quantity,
         status: 'in-use',
-        assignedToId: request.requested_by
+        assigned_to: request.requested_by
       });
       // 3. Re-fetch requests to update the table
       await fetchRequests();

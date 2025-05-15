@@ -11,16 +11,27 @@ class User(AbstractUser):
     ]
     role = models.CharField(max_length=32, choices=ROLE_CHOICES)
     department = models.CharField(max_length=100, blank=True, null=True)
-    phone_number = models.CharField(max_length=32, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True)
+    rank = models.CharField(max_length=20, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+    unit = models.CharField(max_length=100, blank=True)
 
 # 2. Item
 class Item(models.Model):
+    STATUS_CHOICES = [
+        ('available', 'Available'),
+        ('in-use', 'In Use'),
+        ('maintenance', 'Maintenance'),
+        ('retired', 'Retired'),
+    ]
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='available')
     serial_number = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=100)
     quantity = models.IntegerField()
     expiration_date = models.DateField(blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
+    assigned_to = models.ForeignKey('User', null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_items')
 
 # 3. Request
 class Request(models.Model):
@@ -51,17 +62,22 @@ class Request(models.Model):
 
 # 4. Notification
 class Notification(models.Model):
-    NOTIF_TYPE_CHOICES = [
-        ('success', 'Success'),
-        ('error', 'Error'),
-        ('info', 'Info'),
+    NOTIFICATION_TYPES = [
+        ('request_submitted', 'Request Submitted'),
+        ('request_approved', 'Request Approved'),
+        ('request_denied', 'Request Denied'),
+        ('item_issued', 'Item Issued'),
     ]
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    title = models.CharField(max_length=100)
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES)
     message = models.TextField()
-    type = models.CharField(max_length=16, choices=NOTIF_TYPE_CHOICES, default='info')
-    read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    request = models.ForeignKey(Request, on_delete=models.CASCADE, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    createdAt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-createdAt']
 
 # 5. Log
 class Log(models.Model):

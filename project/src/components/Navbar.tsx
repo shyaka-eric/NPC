@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Bell, Menu, X, LogOut, ChevronDown, Package, ClipboardList, User, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Bell, Menu, X, LogOut, ChevronDown } from 'lucide-react'; // Removed unused imports
 import { useAuthStore } from '../store/authStore';
 import { useNotificationsStore } from '../store/notificationsStore';
-import { usePermissions } from '../hooks/usePermissions';
 import Badge from './ui/Badge';
 import NotificationsDropdown from './NotificationsDropdown';
 
@@ -12,72 +11,36 @@ const ORG_LOGO_KEY = 'orgLogo';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
-  const { getUnreadCount } = useNotificationsStore();
-  const { checkPermission } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const location = useLocation();
   
-  if (!user) return null;
+  if (!user) return null; // Ensure user is not null before rendering
   
-  const unreadCount = getUnreadCount(user.id);
+  const unreadCount = useNotificationsStore((state) => state.unreadCount); // Subscribe to unreadCount changes
 
   // Get org name and logo from localStorage
   const orgName = localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics';
   const orgLogo = localStorage.getItem(ORG_LOGO_KEY);
 
-  // Navigation links based on user permissions
-  const navigationLinks = () => {
-    const links = [
-      // System-admin-specific links in correct order
-      ...(user.role === 'system-admin' ? [
-        { name: 'Dashboard', path: '/', icon: <Package className="w-5 h-5" />, permission: 'view-dashboard' },
-        { name: 'Stock Availability', path: '/stock-availability', icon: <Package className="w-5 h-5" />, permission: 'view-stock' },
-        { name: 'Requests', path: '/requests', icon: <ClipboardList className="w-5 h-5" />, permission: 'approve-requests' },
-        { name: 'Reports', path: '/reports', icon: <ClipboardList className="w-5 h-5" />, permission: 'view-reports' },
-        { name: 'Users', path: '/users', icon: <User className="w-5 h-5" />, permission: 'manage-users' },
-        { name: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5" />, permission: 'manage-users' },
-      ] : []),
-      // Admin-specific links
-      ...(user.role === 'admin' ? [
-        { name: 'Dashboard', path: '/', icon: <Package className="w-5 h-5" />, permission: 'view-dashboard' },
-        { name: 'Stock Availability', path: '/admin/stock', icon: <Package className="w-5 h-5" />, permission: 'view-stock' },
-        { name: 'Approve Requests', path: '/admin/approve-requests', icon: <ClipboardList className="w-5 h-5" />, permission: 'approve-requests' },
-        { name: 'Reports', path: '/admin/reports', icon: <ClipboardList className="w-5 h-5" />, permission: 'view-reports' },
-        { name: 'Requests', path: '/admin/requests', icon: <ClipboardList className="w-5 h-5" />, permission: 'approve-requests' },
-      ] : []),
-      // Logistics-officer-specific links
-      ...(user.role === 'logistics-officer' ? [
-        { name: 'Dashboard', path: '/', icon: <Package className="w-5 h-5" />, permission: 'view-dashboard' },
-        { name: 'Stock Management', path: '/stock-management', icon: <Package className="w-5 h-5" />, permission: 'manage-stock' },
-        { name: 'Issue Items', path: '/issue-items', icon: <ClipboardList className="w-5 h-5" />, permission: 'issue-items' },
-        { name: 'Reports', path: '/reports', icon: <ClipboardList className="w-5 h-5" />, permission: 'view-reports' },
-        { name: 'Approved Requests', path: '/approved-requests', icon: <ClipboardList className="w-5 h-5" />, permission: 'view-approved-requests' },
-      ] : []),
-      // Unit-leader-specific links
-      ...(user.role === 'unit-leader' ? [
-        { name: 'Dashboard', path: '/', icon: <Package className="w-5 h-5" />, permission: 'view-dashboard' },
-        { name: 'My Requests', path: '/my-requests', icon: <ClipboardList className="w-5 h-5" />, permission: 'request-items' },
-        { name: 'Items In-Use', path: '/items-in-use', icon: <Package className="w-5 h-5" />, permission: 'request-items' },
-      ] : []),
-      // Non-admin links (for any other roles)
-      ...(user.role !== 'admin' && user.role !== 'system-admin' && user.role !== 'logistics-officer' && user.role !== 'unit-leader' ? [
-        // Add other links for other roles here if needed
-      ] : []),
-    ];
-
-    return links.filter(link =>
-      (user.role === 'admin')
-        ? link.path === '/' || link.path.startsWith('/admin/')
-        : (user.role === 'system-admin' || user.role === 'logistics-officer' || user.role === 'unit-leader'
-            ? true // Show all links in the block for these roles
-            : checkPermission(link.permission)
-          )
-    );
-  };
-
-  const links = navigationLinks();
+  const navigationLinks = [
+    { name: 'Dashboard', path: '/', roles: ['system-admin', 'admin', 'logistics-officer', 'unit-leader'] },
+    { name: 'Stock Availability', path: '/stock-availability', roles: ['system-admin'] },
+    { name: 'Requests', path: '/requests', roles: ['system-admin'] },
+    { name: 'Report', path: '/reports', roles: ['system-admin'] },
+    { name: 'My Requests', path: '/my-requests', roles: ['unit-leader'] },
+    { name: 'In-Use Items', path: '/items-in-use', roles: ['unit-leader'] },
+    { name: 'Stock Management', path: '/stock-management', roles: ['logistics-officer'] },
+    { name: 'Approved Requests', path: '/approved-requests', roles: ['logistics-officer'] },
+    { name: 'Issue Item', path: '/issue-items', roles: ['logistics-officer'] },
+    { name: 'Users', path: '/users', roles: ['system-admin'] },
+    { name: 'Settings', path: '/settings', roles: ['system-admin'] },
+    { name: 'Logs', path: '/logs', roles: ['system-admin'] },
+    { name: 'Stock Availability', path: '/admin/stock', roles: ['admin'] },
+    { name: 'Requests', path: '/admin/requests', roles: ['admin'] },
+    { name: 'Approve Requests', path: '/admin/approve-requests', roles: ['admin'] },
+    { name: 'Reports', path: '/admin/reports', roles: ['admin'] },
+  ].filter(link => link.roles.includes(user.role));
 
   return (
     <nav className="bg-white shadow-sm border-b border-slate-200">
@@ -89,25 +52,23 @@ const Navbar: React.FC = () => {
                 {orgLogo ? (
                   <img src={orgLogo} alt="Logo" className="w-8 h-8 rounded" />
                 ) : (
-                  <Package className="w-8 h-8 text-blue-800" />
+                  <span className="w-8 h-8 text-blue-800">{orgName.charAt(0)}</span>
                 )}
                 <span className="font-bold text-xl text-slate-900">{orgName}</span>
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {links.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`inline-flex items-center px-1 pt-1 text-sm font-medium border-b-2 ${
-                    location.pathname === link.path
-                      ? 'border-blue-800 text-slate-900'
-                      : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
+              <div className="flex items-center gap-8"> {/* Adjusted alignment of navigation options */}
+                {navigationLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    className="text-slate-700 hover:text-blue-800 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    <span className="ml-2">{link.name}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
@@ -229,19 +190,14 @@ const Navbar: React.FC = () => {
             </Badge>
           </div>
           <div className="space-y-1">
-            {links.map((link) => (
+            {navigationLinks.map((link) => (
               <Link
-                key={link.path}
+                key={link.name}
                 to={link.path}
-                className={`flex items-center px-4 py-2 text-base font-medium ${
-                  location.pathname === link.path
-                    ? 'bg-blue-50 text-blue-800'
-                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                }`}
+                className="flex items-center px-4 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <span className="mr-3">{link.icon}</span>
-                {link.name}
+                <span className="ml-2">{link.name}</span>
               </Link>
             ))}
             <Link
@@ -249,7 +205,6 @@ const Navbar: React.FC = () => {
               className="flex items-center px-4 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              <User className="mr-3 h-5 w-5" />
               Profile
             </Link>
             <button

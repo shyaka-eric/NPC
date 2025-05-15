@@ -1,4 +1,4 @@
-from rest_framework import viewsets, generics, permissions
+from rest_framework import viewsets, generics, permissions, filters
 from .models import User, Item, Request, Notification, Log, Settings
 from .serializers import (
     UserSerializer, ItemSerializer, RequestSerializer,
@@ -11,6 +11,16 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+from .services import (
+    notify_request_submitted,
+    notify_request_approved,
+    notify_request_denied,
+    notify_item_issued
+)
+from rest_framework_simplejwt.authentication import JWTAuthentication
+import logging
+
+logger = logging.getLogger(__name__)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -31,10 +41,35 @@ class UserViewSet(viewsets.ModelViewSet):
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['assigned_to__id']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        assigned_to = self.request.query_params.get('assigned_to')
+        if assigned_to:
+            queryset = queryset.filter(assigned_to_id=assigned_to)
+        return queryset
 
 class RequestViewSet(viewsets.ModelViewSet):
     queryset = Request.objects.all()
     serializer_class = RequestSerializer
+
+    def perform_create(self, serializer):
+        request = serializer.save(requested_by=self.request.user)
+        notify_request_submitted(request)
+
+    def perform_update(self, serializer):
+        old_status = serializer.instance.status
+        request = serializer.save()
+        
+        if old_status != request.status:
+            if request.status == 'approved':
+                notify_request_approved(request)
+            elif request.status == 'denied':
+                notify_request_denied(request)
+            elif request.status == 'issued':
+                notify_item_issued(request)
 
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()
@@ -43,6 +78,12 @@ class NotificationViewSet(viewsets.ModelViewSet):
 class LogViewSet(viewsets.ModelViewSet):
     queryset = Log.objects.all()
     serializer_class = LogSerializer
+    permission_classes = [permissions.IsAuthenticated]  # Ensure only authenticated users can access
+    authentication_classes = [JWTAuthentication]  # Use JWT for authentication
+
+    def get_queryset(self):
+        logger.debug("Fetching logs for user: %s", self.request.user)
+        return super().get_queryset()
 
 class SettingsViewSet(viewsets.ModelViewSet):
     queryset = Settings.objects.all()

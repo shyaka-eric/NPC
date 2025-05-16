@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from './store/authStore';
 
-export const API_URL = "http://localhost:8000/api/";
+export const API_URL = "http://localhost:8000/api/"; // Directly use the backend URL without relying on the proxy
 
 export const api = axios.create({
   baseURL: API_URL,

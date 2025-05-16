@@ -34,7 +34,7 @@ const Users: React.FC = () => {
               <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Name</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Email</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Role</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Department</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Unit</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Phone</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
@@ -46,14 +46,14 @@ const Users: React.FC = () => {
                 <td className="px-4 py-2 whitespace-nowrap">{user.name}</td>
                 <td className="px-4 py-2 whitespace-nowrap">{user.email}</td>
                 <td className="px-4 py-2 whitespace-nowrap capitalize">{user.role.replace('-', ' ')}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{user.department}</td>
+                <td className="px-4 py-2 whitespace-nowrap">{user.unit}</td>
                 <td className="px-4 py-2 whitespace-nowrap">{user.phone_number}</td>
                 <td className="px-4 py-2 whitespace-nowrap">{user.is_active ? 'Active' : 'Inactive'}</td>
                 <td className="px-4 py-2 whitespace-nowrap flex gap-2">
                   <Button size="sm" variant="secondary" onClick={() => navigate(`/users/${user.id}/edit`)}>
                     Edit
                   </Button>
-                  <Button size="sm" variant={user.is_active ? 'danger' : 'success'} onClick={async () => {
+                  <Button size="sm" variant={user.is_active ? 'warning' : 'success'} onClick={async () => {
                     await toggleUserActive(user.id, !user.is_active);
                   }}>
                     {user.is_active ? 'Deactivate' : 'Activate'}
@@ -75,4 +75,4 @@ const Users: React.FC = () => {
   );
 };
 
-export default Users; 
+export default Users;

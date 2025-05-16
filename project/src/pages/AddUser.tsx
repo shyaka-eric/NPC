@@ -68,7 +68,7 @@ const AddUser: React.FC = () => {
       birth_date: form.birth_date,
       role: form.role as any, // typecast to satisfy UserRole
       unit: form.unit,
-      phone_number: form.phone_number,
+      phone_number: form.phone_number, // use snake_case for backend
       email: form.email,
       password: form.password,
     });

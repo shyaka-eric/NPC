@@ -6,7 +6,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  department?: string;
+  
   phoneNumber?: string;
   profileImage?: string;
   rank?: string;
@@ -25,7 +25,6 @@ export type ItemStatus = 'in-stock' | 'in-use' | 'under-repair' | 'damaged';
 
 export interface Item {
   id: string;
-  serial_number: string;
   name: string;
   category: string;
   quantity: number;
@@ -34,6 +33,18 @@ export interface Item {
   status: ItemStatus;
   assigned_quantity?: number;
   assignedTo?: string;
+}
+
+export interface IssuedItem {
+  id: string;
+  item: string;
+  item_name: string;
+  item_category: string;
+  assigned_to: string;
+  assigned_to_name: string;
+  assigned_date: string;
+  serial_number: string;
+  expiration_date?: string;
 }
 
 export type RequestStatus = 'pending' | 'approved' | 'denied' | 'issued' | 'completed';

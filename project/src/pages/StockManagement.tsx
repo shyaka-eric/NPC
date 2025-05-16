@@ -41,7 +41,6 @@ const StockManagement: React.FC = () => {
   const navigate = useNavigate();
   const firstInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
-    serial_number: '',
     name: '',
     category: '',
     quantity: '',
@@ -49,7 +48,6 @@ const StockManagement: React.FC = () => {
   });
 
   const [editFormData, setEditFormData] = useState({
-    serial_number: '',
     name: '',
     category: '',
     quantity: '',
@@ -118,15 +116,13 @@ const StockManagement: React.FC = () => {
           return acc;
         }, {} as Record<string, any>);
         // Accept various header forms
-        const serialNumber = keys['serialnumber'] || keys['serial_number'] || '';
         const name = keys['itemname'] || keys['name'] || '';
         const category = keys['category'] || '';
         const quantity = keys['quantity'] || '';
         const expirationDate = keys['expirationdate'] || '';
-        if (!serialNumber || !name) continue;
+        if (!name) continue;
         try {
           await addItem({
-            serial_number: serialNumber,
             name,
             category,
             quantity: Number(quantity) || 0,
@@ -143,7 +139,6 @@ const StockManagement: React.FC = () => {
 
   const handleExportExcel = () => {
     const exportData = items.map(item => ({
-      'Serial Number': item.serial_number,
       'Name': item.name,
       'Category': item.category,
       'Quantity': item.quantity,
@@ -159,7 +154,6 @@ const StockManagement: React.FC = () => {
 
   const handleExportTemplate = () => {
     const templateData = [{
-      'Serial Number': '',
       'Name': '',
       'Category': '',
       'Quantity': '',
@@ -212,7 +206,6 @@ const StockManagement: React.FC = () => {
       });
       setIsAddModalOpen(false);
       setFormData({
-        serial_number: '',
         name: '',
         category: '',
         quantity: '',
@@ -243,7 +236,6 @@ const StockManagement: React.FC = () => {
   useEffect(() => {
     if (selectedItem) {
       setEditFormData({
-        serial_number: selectedItem.serial_number,
         name: selectedItem.name,
         category: selectedItem.category,
         quantity: selectedItem.quantity.toString(),
@@ -253,7 +245,6 @@ const StockManagement: React.FC = () => {
   }, [selectedItem]);
 
   const columns = [
-    { header: 'Serial Number', accessor: 'serial_number', className: 'font-medium' },
     { header: 'Item Name', accessor: 'name' },
     { header: 'Category', accessor: 'category' },
     { header: 'Quantity', accessor: 'quantity' },
@@ -347,7 +338,6 @@ const StockManagement: React.FC = () => {
         }
       >
         <form id="add-stock-form" onSubmit={handleSubmit} className="space-y-4">
-          <Input label="Serial Number" name="serial_number" value={formData.serial_number} onChange={handleChange} required />
           <Input label="Item Name" name="name" value={formData.name} onChange={handleChange} required />
           <Input label="Category" name="category" value={formData.category} onChange={handleChange} required />
           <Input label="Quantity" name="quantity" type="number" value={formData.quantity} onChange={handleChange} required />
@@ -380,7 +370,6 @@ const StockManagement: React.FC = () => {
       >
         {selectedItem && (
           <form id="edit-stock-form" onSubmit={handleEditSubmit} className="space-y-4">
-            <Input label="Serial Number" name="serial_number" value={editFormData.serial_number} onChange={handleEditChange} required />
             <Input label="Item Name" name="name" value={editFormData.name} onChange={handleEditChange} required />
             <Input label="Category" name="category" value={editFormData.category} onChange={handleEditChange} required />
             <Input label="Quantity" name="quantity" type="number" value={editFormData.quantity} onChange={handleEditChange} required />

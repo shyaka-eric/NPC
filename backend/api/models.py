@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 
 # 1. User (extend Django's User)
 class User(AbstractUser):
+    email = models.EmailField(unique=True)  # Ensure email is unique
     ROLE_CHOICES = [
         ('admin', 'Admin'),
         ('system-admin', 'System Admin'),
@@ -25,13 +26,23 @@ class Item(models.Model):
         ('retired', 'Retired'),
     ]
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='available')
-    serial_number = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=100)
     quantity = models.IntegerField()
     expiration_date = models.DateField(blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
     assigned_to = models.ForeignKey('User', null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_items')
+    serial_number = models.CharField(max_length=100, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.serial_number:
+            # Generate serial number: NPC/{category_abbreviation}/{item_name_abbreviation}/{item_number}
+            category_abbr = ''.join([w[0] for w in self.category.split()])[:3].upper()
+            item_name_abbr = ''.join([w[0] for w in self.name.split()])[:3].upper()
+            # Count how many items exist in this category so far (for item_number)
+            count = Item.objects.filter(category=self.category).count() + 1
+            self.serial_number = f"NPC/{category_abbr}/{item_name_abbr}/{count}"
+        super().save(*args, **kwargs)
 
 # 3. Request
 class Request(models.Model):
@@ -52,6 +63,7 @@ class Request(models.Model):
         ('completed', 'Completed'),
     ]
     item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='requests')
+    issued_item = models.ForeignKey('IssuedItem', null=True, blank=True, on_delete=models.SET_NULL, related_name='requests_issued_item')  # Only for repair
     requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
     quantity = models.IntegerField()
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='pending')
@@ -91,3 +103,39 @@ class Settings(models.Model):
     org_name = models.CharField(max_length=100)
     org_logo = models.URLField(blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+class IssuedItem(models.Model):
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='issued_items')
+    assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='issued_items')
+    assigned_date = models.DateTimeField(auto_now_add=True)
+    serial_number = models.CharField(max_length=100, unique=True, blank=True)
+    expiration_date = models.DateField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.serial_number:
+            # Generate serial number: NPC/{unit}/{category_abbreviation}/{item_name_abbreviation}/{item_number}
+            unit = (self.assigned_to.unit or 'X').upper()
+            category_abbr = ''.join([word[0] for word in self.item.category.split()]).upper()
+            item_name_abbr = ''.join([word[0] for word in self.item.name.split()]).upper()
+            count = IssuedItem.objects.filter(item=self.item).count() + 1
+            item_number = str(count).zfill(3)  # Ensure three-digit format
+            self.serial_number = f"NPC/{unit}/{category_abbr}/{item_name_abbr}/{item_number}"
+        super().save(*args, **kwargs)
+
+class RepairRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('repaired', 'Repaired'),
+        ('damaged', 'Damaged'),
+    ]
+    issued_item = models.ForeignKey('IssuedItem', on_delete=models.CASCADE, related_name='repair_requests')
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='repair_requests')
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='repair_requests')
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='pending')
+    description = models.TextField(blank=True, null=True)
+    picture = models.ImageField(upload_to='repair_pictures/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"RepairRequest({self.issued_item.serial_number}) - {self.status}"

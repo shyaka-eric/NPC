@@ -2,33 +2,42 @@ import React, { useState } from 'react';
 
 const RequestForm = () => {
   const items = [
-    { id: '1', name: 'Training Manual' },
+    { id: '1', name: 'Training Manual', serials: ['SN-001', 'SN-002'] },
+    { id: '2', name: 'Handcuffs', serials: ['HC-100', 'HC-101'] },
     // ...other items
   ];
   const priorities = ['Normal', 'High', 'Urgent'];
-  const requestTypes = ['Type A', 'Type B', 'Type C']; // Example request types
-  const categories = ['Category 1', 'Category 2', 'Category 3']; // Example categories
+  const requestTypes = ['New', 'Repair'];
+  const categories = ['Category 1', 'Category 2', 'Category 3'];
 
-  // Set initial state to empty string for each select
   const [requestType, setRequestType] = useState("");
   const [category, setCategory] = useState("");
   const [itemId, setItemId] = useState("");
   const [priority, setPriority] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requestType || !category || !itemId || !priority) {
+    if (!requestType || !category || !itemId || !priority || (requestType === 'Repair' && !serialNumber)) {
       alert('Please fill out all fields.');
       return;
     }
-    console.log('Form submitted:', { requestType, category, itemId, priority });
+    console.log('Form submitted:', { requestType, category, itemId, priority, serialNumber });
   };
 
-  // When the category changes, reset itemId to ""
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setCategory(e.target.value);
     setItemId("");
+    setSerialNumber("");
   };
+
+  const handleItemChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemId(e.target.value);
+    setSerialNumber("");
+  };
+
+  // Find the selected item to get its serials
+  const selectedItem = items.find(item => item.id === itemId);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -62,7 +71,7 @@ const RequestForm = () => {
       <select
         id="item"
         value={itemId}
-        onChange={e => setItemId(e.target.value)}
+        onChange={handleItemChange}
         required
         disabled={!category}
       >
@@ -71,6 +80,24 @@ const RequestForm = () => {
           <option key={item.id} value={item.id}>{item.name}</option>
         ))}
       </select>
+
+      {/* Serial Number field for Repair requests */}
+      {requestType === 'Repair' && itemId && (
+        <>
+          <label htmlFor="serialNumber">Serial Number:</label>
+          <select
+            id="serialNumber"
+            value={serialNumber}
+            onChange={e => setSerialNumber(e.target.value)}
+            required
+          >
+            <option value="" disabled>Select Serial Number</option>
+            {(selectedItem?.serials || []).map(sn => (
+              <option key={sn} value={sn}>{sn}</option>
+            ))}
+          </select>
+        </>
+      )}
 
       <label htmlFor="priority">Priority:</label>
       <select

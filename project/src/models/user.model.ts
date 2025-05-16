@@ -3,11 +3,16 @@ import { UserRole } from '../types';
 export interface UserModel {
   id: string;
   username: string;
+  first_name?: string; // Added
+  last_name?: string;  // Added
+  birth_date?: string; // Added
+  rank?: string;       // Added
+  unit?: string;       // Added
   name: string;
   email: string;
   password: string; // Hashed password
   role: UserRole;
-  department?: string;
+  
   phoneNumber?: string;
   profileImage?: string;
   createdAt: Date;
@@ -49,10 +54,7 @@ export class User {
     return this.model.role;
   }
 
-  getDepartment(): string | undefined {
-    return this.model.department;
-  }
-
+ 
   getPhoneNumber(): string | undefined {
     return this.model.phoneNumber;
   }
@@ -77,6 +79,51 @@ export class User {
     return this.model.lastLogin;
   }
 
+  getFirstName(): string | undefined {
+    return this.model.first_name;
+  }
+
+  setFirstName(firstName: string): void {
+    this.model.first_name = firstName;
+    this.model.updatedAt = new Date();
+  }
+
+  getLastName(): string | undefined {
+    return this.model.last_name;
+  }
+
+  setLastName(lastName: string): void {
+    this.model.last_name = lastName;
+    this.model.updatedAt = new Date();
+  }
+
+  getBirthDate(): string | undefined {
+    return this.model.birth_date;
+  }
+
+  setBirthDate(birthDate: string): void {
+    this.model.birth_date = birthDate;
+    this.model.updatedAt = new Date();
+  }
+
+  getRank(): string | undefined {
+    return this.model.rank;
+  }
+
+  setRank(rank: string): void {
+    this.model.rank = rank;
+    this.model.updatedAt = new Date();
+  }
+
+  getUnit(): string | undefined {
+    return this.model.unit;
+  }
+
+  setUnit(unit: string): void {
+    this.model.unit = unit;
+    this.model.updatedAt = new Date();
+  }
+
   // Setters
   setName(name: string): void {
     this.model.name = name;
@@ -98,10 +145,7 @@ export class User {
     this.model.updatedAt = new Date();
   }
 
-  setDepartment(department: string): void {
-    this.model.department = department;
-    this.model.updatedAt = new Date();
-  }
+ 
 
   setPhoneNumber(phoneNumber: string): void {
     this.model.phoneNumber = phoneNumber;
@@ -136,10 +180,15 @@ export class User {
       email: data.email,
       password: data.password,
       role: data.role,
-      department: data.department,
-      phoneNumber: data.phoneNumber,
+      // phoneNumber should be mapped from phone_number if present
+      phoneNumber: (data as any).phone_number || data.phoneNumber,
       profileImage: data.profileImage,
       isActive: data.isActive,
+      first_name: data.first_name, // Added
+      last_name: data.last_name,   // Added
+      birth_date: data.birth_date, // Added
+      rank: data.rank,             // Added
+      unit: data.unit,             // Added
     });
     user.model.id = data.id;
     user.model.createdAt = data.createdAt;

@@ -1,9 +1,11 @@
 import { create } from 'zustand';
-import { ItemModel, ItemStatus } from '../models/item.model';
+import { ItemModel, ItemStatus, IssuedItemModel } from '../models/item.model';
 import { api } from '../api';
+import { useAuthStore } from './authStore'; // Import useAuthStore
 
 interface ItemsState {
   items: ItemModel[];
+  issuedItems?: IssuedItemModel[];
   isLoading: boolean;
   error: string | null;
   
@@ -17,10 +19,12 @@ interface ItemsState {
   updateItemStatus: (id: string, status: ItemStatus, assignedTo?: string) => Promise<ItemModel>;
   getItemsByStatus: (status: ItemStatus) => ItemModel[];
   getItemById: (id: string) => ItemModel | undefined;
+  fetchIssuedItems: () => Promise<void>;
 }
 
 export const useItemsStore = create<ItemsState>()((set, get) => ({
   items: [] as ItemModel[],
+  issuedItems: [],
   isLoading: false,
   error: null,
 
@@ -85,5 +89,31 @@ export const useItemsStore = create<ItemsState>()((set, get) => ({
 
   getItemById: (id) => {
     return get().items.find(item => item.id === id);
+  },
+
+  fetchIssuedItems: async () => {
+    const user = useAuthStore.getState().user; // Access the current user from useAuthStore
+    if (!user) {
+      set({ error: 'User not authenticated', isLoading: false });
+      return;
+    }
+
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get(`items/?assigned_to=${user.id}`); // Use the correct endpoint
+      console.log('API Response:', response.data); // Debugging log for API response
+
+      // Map backend fields to frontend model
+      const mappedItems = response.data.map((item: any) => ({
+        ...item,
+        item_name: item.name, // Map 'name' to 'item_name'
+        item_category: item.category // Map 'category' to 'item_category'
+      }));
+
+      set({ issuedItems: mappedItems, isLoading: false });
+    } catch (error: any) {
+      console.error('API Error:', error.message); // Debugging log for API error
+      set({ error: error.message, isLoading: false });
+    }
   }
 }));

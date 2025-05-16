@@ -28,6 +28,20 @@ export interface RepairRecord {
   completedBy?: string;
 }
 
+export interface IssuedItemModel {
+  id: string;
+  item: string; // item id
+  item_name: string; // Maps to 'name' from backend
+  item_category: string; // Maps to 'category' from backend
+  assigned_to: string;
+  assigned_to_id?: string; // Add assigned_to_id to match backend response
+  assigned_to_name: string;
+  assigned_date: string;
+  serial_number: string;
+  expiration_date?: string;
+  assigned_quantity?: number; // Add assigned_quantity to match backend response
+}
+
 export class Item {
   private model: ItemModel;
 

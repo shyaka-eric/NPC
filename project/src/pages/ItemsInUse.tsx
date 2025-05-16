@@ -2,78 +2,132 @@ import React, { useEffect, useState } from 'react';
 import { useItemsStore } from '../store/itemsStore';
 import { useAuthStore } from '../store/authStore';
 import PageHeader from '../components/PageHeader';
-import Table from '../components/ui/Table';
-import { formatDate } from '../utils/formatters';
+import Table from '../components/ui/Table'; // Correct import for Table
 import Pagination from '../components/Pagination';
-import SimpleModal from '../components/ui/SimpleModal';
 import Button from '../components/ui/Button';
 import { toast } from 'sonner';
+import { IssuedItemModel } from '../models/item.model';
+import { useNavigate } from 'react-router-dom';
 
 const ITEMS_PER_PAGE = 15;
 
+// Define TableColumn type locally since it's not exported
+interface TableColumn<T> {
+  header: React.ReactNode;
+  accessor: keyof T | ((item: T) => React.ReactNode);
+  className?: string;
+}
+
 const ItemsInUse: React.FC = () => {
   const { user } = useAuthStore();
-  const { items, fetchItems } = useItemsStore();
+  const { issuedItems, fetchIssuedItems } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const loadItems = async () => {
+    const loadIssuedItems = async () => {
       setIsLoading(true);
       try {
-        await fetchItems();
+        await fetchIssuedItems();
       } catch (error) {
-        toast.error('Failed to load items');
+        toast.error('Failed to load issued items');
       } finally {
         setIsLoading(false);
       }
     };
-    loadItems();
-  }, [fetchItems]);
+    loadIssuedItems();
+  }, [fetchIssuedItems]);
 
-  // Debug output
-  useEffect(() => {
-    console.log('All items from backend:', items);
-    console.log('Filtered itemsInUse:', items.filter(item => item.assigned_to_id === user?.id));
-  }, [items, user]);
+  // Filter issued items for the current user (force string comparison for robustness)
+  React.useEffect(() => {
+    if (issuedItems && user) {
+      console.log('User ID:', user.id);
+      console.log('Issued Items:', issuedItems.map(item => ({ id: item.id, assigned_to: item.assigned_to })));
+    }
+  }, [issuedItems, user]);
 
-  // Filter items in use by the current user (now just assigned items)
-  const itemsInUse = items.filter(item => item.assigned_to_id === user?.id);
+  // Update filtering logic to use `assigned_to_id` instead of `assigned_to`
+  const itemsInUse = (issuedItems || []).filter(item => {
+    const isAssignedToUser = String(item.assigned_to_id) === String(user?.id);
+    console.log('Filtering Item:', {
+      itemId: item.id,
+      assignedToId: item.assigned_to_id,
+      isAssignedToUser
+    });
+    return isAssignedToUser;
+  });
+  console.log('Filtered Items In Use:', itemsInUse);
+
+  // Group issued items by item_name and item_category
+  const groupedItems = React.useMemo(() => {
+    const map = new Map<string, { item_name: string; item_category: string; quantity: number; items: IssuedItemModel[] }>();
+    itemsInUse.forEach(item => {
+      const key = `${item.item_name}|${item.item_category}`;
+      console.log('Grouping Item:', {
+        itemId: item.id,
+        itemName: item.item_name,
+        itemCategory: item.item_category,
+        assignedQuantity: item.assigned_quantity,
+        key
+      });
+      if (!map.has(key)) {
+        map.set(key, {
+          item_name: item.item_name,
+          item_category: item.item_category,
+          quantity: item.assigned_quantity || 0, // Initialize with assigned_quantity
+          items: [item],
+        });
+      } else {
+        const entry = map.get(key)!;
+        entry.quantity += item.assigned_quantity || 0; // Sum up assigned_quantity
+        entry.items.push(item);
+      }
+    });
+    console.log('Grouped Items:', Array.from(map.values()));
+    return Array.from(map.values());
+  }, [itemsInUse]);
+
   const totalPages = Math.ceil(itemsInUse.length / ITEMS_PER_PAGE);
-  const paginatedItems = itemsInUse.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const paginatedItems = groupedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  console.log('Paginated Items:', paginatedItems);
 
-  const handleViewItem = (item: any) => {
-    setSelectedItem(item);
-    setIsViewModalOpen(true);
+  const handleViewItem = (row: { item_name: string; item_category: string; quantity: number; items: IssuedItemModel[] }) => {
+    const enrichedRow = {
+      ...row,
+      serial_numbers: row.items.map(item => item.serial_number) // Ensure serial numbers are included
+    };
+    console.log('Navigating with data:', enrichedRow); // Debugging log
+    navigate('/issued-item-details', { state: enrichedRow });
   };
 
-  const columns = [
+  // Table columns for grouped items
+  const columns: TableColumn<{
+    item_name: string;
+    item_category: string;
+    quantity: number;
+    items: IssuedItemModel[];
+  }>[] = [
     {
       header: 'Item Name',
-      accessor: 'name',
+      accessor: 'item_name',
       className: 'font-medium'
     },
     {
       header: 'Category',
-      accessor: 'category'
+      accessor: 'item_category'
     },
     {
       header: 'Quantity',
-      accessor: 'assigned_quantity'
-    },
-    {
-      header: 'Assigned Date',
-      accessor: (item: any) => formatDate(item.assigned_date)
+      accessor: (row: { quantity: number }) => row.quantity // Explicit type for row
     },
     {
       header: 'Actions',
-      accessor: (item: any) => (
+      accessor: (row: { item_name: string; item_category: string; quantity: number; items: IssuedItemModel[] }) => (
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => handleViewItem(item)}
+          onClick={() => handleViewItem(row)}
         >
           View Details
         </Button>
@@ -92,7 +146,7 @@ const ItemsInUse: React.FC = () => {
         <Table
           columns={columns}
           data={paginatedItems}
-          keyExtractor={item => item.id}
+          keyExtractor={row => row.item_name + '|' + row.item_category}
           isLoading={isLoading}
           emptyMessage="You don't have any items assigned to you."
         />
@@ -103,47 +157,8 @@ const ItemsInUse: React.FC = () => {
           className="mt-6"
         />
       </div>
-
-      <SimpleModal
-        open={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
-        title="Item Details"
-      >
-        {selectedItem && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Item Name</h3>
-                <p className="mt-1">{selectedItem.name}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Category</h3>
-                <p className="mt-1">{selectedItem.category}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Quantity</h3>
-                <p className="mt-1">{selectedItem.assigned_quantity}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Assigned Date</h3>
-                <p className="mt-1">{formatDate(selectedItem.assigned_date)}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Last Updated</h3>
-                <p className="mt-1">{formatDate(selectedItem.updatedAt)}</p>
-              </div>
-            </div>
-            {selectedItem.description && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Description</h3>
-                <p className="mt-1">{selectedItem.description}</p>
-              </div>
-            )}
-          </div>
-        )}
-      </SimpleModal>
     </div>
   );
 };
 
-export default ItemsInUse; 
+export default ItemsInUse;

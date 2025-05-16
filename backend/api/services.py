@@ -1,6 +1,7 @@
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .models import Notification, User
+from .models import Notification, User, IssuedItem
+from django.utils import timezone
 
 def send_notification(recipient_id, notification_type, message, request=None):
     """
@@ -78,8 +79,21 @@ def notify_request_denied(request):
 
 def notify_item_issued(request):
     """
-    Notify unit leader when their item is issued
+    Notify unit leader when their item is issued and assign IssuedItem to the request.
     """
+    # Create IssuedItem
+    issued_item = IssuedItem.objects.create(
+        item=request.item,
+        assigned_to=request.requested_by,
+        assigned_date=timezone.now(),
+        expiration_date=None  # Set expiration date if applicable
+    )
+
+    # Assign the issued item to the request
+    request.issued_item = issued_item
+    request.save()
+
+    # Send notification
     send_notification(
         request.requested_by.id,
         'item_issued',

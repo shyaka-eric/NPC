@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Item, Request, Notification, Log, Settings
+from .models import User, Item, Request, Notification, Log, Settings, RepairRequest, IssuedItem
 
 class UserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
@@ -92,3 +92,15 @@ class SettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Settings
         fields = '__all__'
+
+class RepairRequestSerializer(serializers.ModelSerializer):
+    serial_number = serializers.CharField(source='issued_item.serial_number', read_only=True)
+
+    class Meta:
+        model = RepairRequest
+        fields = ['id', 'item', 'requested_by', 'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at']
+
+class IssuedItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IssuedItem
+        fields = ['id', 'item', 'assigned_to', 'assigned_date', 'serial_number', 'expiration_date']

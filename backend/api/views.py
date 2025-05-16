@@ -1,8 +1,8 @@
 from rest_framework import viewsets, generics, permissions, filters
-from .models import User, Item, Request, Notification, Log, Settings
+from .models import User, Item, Request, Notification, Log, Settings, RepairRequest
 from .serializers import (
     UserSerializer, ItemSerializer, RequestSerializer,
-    NotificationSerializer, LogSerializer, SettingsSerializer
+    NotificationSerializer, LogSerializer, SettingsSerializer, RepairRequestSerializer
 )
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
@@ -62,13 +62,14 @@ class RequestViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         old_status = serializer.instance.status
         request = serializer.save()
-        
+
         if old_status != request.status:
             if request.status == 'approved':
                 notify_request_approved(request)
             elif request.status == 'denied':
                 notify_request_denied(request)
             elif request.status == 'issued':
+                # Call notify_item_issued to handle item issuance
                 notify_item_issued(request)
 
 class NotificationViewSet(viewsets.ModelViewSet):
@@ -137,3 +138,13 @@ class EmailTokenObtainPairView(TokenObtainPairView):
 def has_users(request):
     from .models import User
     return Response({'has_users': User.objects.exists()})
+
+from rest_framework.views import APIView
+from .models import RepairRequest
+from .serializers import RepairRequestSerializer
+
+class RepairRequestListView(APIView):
+    def get(self, request):
+        repair_requests = RepairRequest.objects.select_related('issued_item').all()
+        serializer = RepairRequestSerializer(repair_requests, many=True)
+        return Response(serializer.data)

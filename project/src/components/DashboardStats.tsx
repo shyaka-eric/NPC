@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Package, ClipboardList, CheckCircle, Users, AlertTriangle } from 'lucide-react';
 import { useItemsStore } from '../store/itemsStore';
 import { useRequestsStore } from '../store/requestsStore';
@@ -8,18 +8,24 @@ import { formatNumber } from '../utils/formatters';
 import { useNavigate } from 'react-router-dom';
 
 const DashboardStats: React.FC = () => {
-  const { items } = useItemsStore();
+  const { items, issuedItems = [], fetchIssuedItems } = useItemsStore();
   const { requests } = useRequestsStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    fetchIssuedItems();
+  }, [fetchIssuedItems]);
+
   if (!user) return null; // Ensure user is not null before rendering
 
   const inStockItems = items.filter(item => item.status === 'in-stock').reduce((sum, item) => sum + item.quantity, 0);
-  const inUseItems = items.filter(item => item.status === 'in-use').reduce((sum, item) => sum + (item.assigned_quantity || 0), 0);
+  const inUseItems = issuedItems
+    .filter(item => String(item.assigned_to) === String(user?.id))
+    .reduce((sum, item) => sum + (item.assigned_quantity || 0), 0);
   const damagedItems = items.filter(item => item.status === 'damaged').reduce((sum, item) => sum + item.quantity, 0);
   const pendingRequests = requests.filter(req => req.status === 'pending').length;
-  const fulfilledRequests = requests.filter(req => req.status === 'approved' || req.status === 'issued').length;
+  const fulfilledRequests = requests.filter(req => req.status === 'issued').length;
   const totalUsers = 42; // Placeholder for total users count
 
   const renderCards = () => {
@@ -31,19 +37,19 @@ const DashboardStats: React.FC = () => {
               title="In-Use Items"
               value={formatNumber(inUseItems)}
               icon={<Package size={24} />}
-              onClick={() => navigate('/items-in-use')}
+              onClick={() => navigate('/in-use-items')}
             />
             <StatCard
               title="Pending Requests"
               value={pendingRequests}
               icon={<ClipboardList size={24} />}
-              onClick={() => navigate('/pending-requests')}
+              onClick={() => navigate('/my-requests?status=pending')}
             />
             <StatCard
               title="Fulfilled Requests"
               value={fulfilledRequests}
               icon={<CheckCircle size={24} />}
-              onClick={() => navigate('/requests?status=issued')}
+              onClick={() => navigate('/my-requests?status=issued')}
             />
           </>
         );

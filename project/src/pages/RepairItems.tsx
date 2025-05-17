@@ -44,22 +44,31 @@ const RepairItems: React.FC = () => {
     }
   };
 
+  const getPictureUrl = (r: any) => {
+    if (!r.picture) return null;
+    if (r.picture.startsWith('http')) return r.picture;
+    return `http://localhost:8000${r.picture.startsWith('/media/') ? r.picture : '/media/' + r.picture}`;
+  };
+
   const columns = [
-    { header: 'Request Date', accessor: (r: any) => new Date(r.requested_at).toLocaleDateString() },
+    { header: 'Request Date', accessor: (r: any) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
     { header: 'Category', accessor: (r: any) => r.category || (items.find((i: any) => i.id === r.item)?.category || '-') },
     { header: 'Item', accessor: (r: any) => r.item_name || (items.find((i: any) => i.id === r.item)?.name || '-') },
-    // Show 'View Photo' button if attachment exists
-    { header: 'Picture', accessor: (r: any) => (r.attachments && r.attachments.length > 0) ? (
-      <Button size="sm" variant="secondary" onClick={() => setPhotoModal({ open: true, url: r.attachments[0] })}>View Photo</Button>
-    ) : '-' },
-    { header: 'Purpose', accessor: (r: any) => r.purpose || '-' },
+    { header: 'Requested By', accessor: (r: any) => r.requested_by_name || '-' },
+    { header: 'Picture', accessor: (r: any) => {
+      const url = getPictureUrl(r);
+      return url ? (
+        <Button size="sm" variant="secondary" onClick={() => setPhotoModal({ open: true, url })}>View Photo</Button>
+      ) : '-';
+    } },
+    { header: 'Description', accessor: (r: any) => r.description || '-' },
     { header: 'Status', accessor: (r: any) => r.status },
     {
       header: 'Actions',
       accessor: (r: any) => (
         <div className="flex gap-2">
-          <Button size="sm" variant="success" onClick={() => handleApprove(r)} disabled={r.status !== 'pending'}>Approve</Button>
-          <Button size="sm" variant="danger" onClick={() => handleDeny(r)} disabled={r.status !== 'pending'}>Deny</Button>
+          <Button size="sm" variant="success" onClick={() => handleApprove(r)} disabled={r.status !== 'pending'}>Repair</Button>
+          <Button size="sm" variant="danger" onClick={() => handleDeny(r)} disabled={r.status !== 'pending'}>Damaged</Button>
         </div>
       )
     }

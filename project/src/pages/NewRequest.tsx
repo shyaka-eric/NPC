@@ -207,21 +207,29 @@ const NewRequest: React.FC = () => {
     if (!validate()) return;
     setIsLoading(true);
     try {
-      const payload: any = {
-        type: formData.type as RequestType,
-        priority: formData.priority,
-      };
-      if (formData.type === 'new') {
-        payload.item = formData.itemId;
-        payload.quantity = parseInt(formData.quantity);
-      } else if (formData.type === 'repair') {
-        payload.item = formData.itemTrueId;
-        payload.issued_item = parseInt(formData.itemId, 10);
-        payload.serialNumber = formData.serialNumber;
-        payload.issueDescription = formData.issueDescription;
-        payload.quantity = 1;
+      if (formData.type === 'repair') {
+        // Find the issued item by serial number
+        const foundIssuedItem = inUseItems.find((item: any) => item.serial_number === formData.serialNumber);
+        const form = new FormData();
+        form.append('item', foundIssuedItem ? foundIssuedItem.item : formData.itemTrueId);
+        form.append('issued_item', foundIssuedItem ? foundIssuedItem.id : '');
+        form.append('serialNumber', formData.serialNumber);
+        form.append('description', formData.issueDescription);
+        form.append('priority', formData.priority);
+        form.append('quantity', '1');
+        if (file) {
+          form.append('picture', file);
+        }
+        await addRequest(form);
+      } else {
+        const payload: any = {
+          type: formData.type as RequestType,
+          priority: formData.priority,
+          item: formData.itemId,
+          quantity: parseInt(formData.quantity),
+        };
+        await addRequest(payload);
       }
-      await addRequest(payload);
       toast.success('Request created successfully');
       navigate('/my-requests');
     } catch (error) {

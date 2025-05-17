@@ -64,7 +64,17 @@ export const useRequestsStore = create<RequestsState>()((set, get) => ({
     console.log('addRequest called with:', requestData);
     set({ isLoading: true, error: null });
     try {
-      const response = await api.post('requests/', requestData);
+      let response;
+      // Support FormData for repair requests with images
+      if (typeof FormData !== 'undefined' && requestData instanceof FormData) {
+        response = await api.post('repair-requests/', requestData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else if (requestData.type === 'repair') {
+        response = await api.post('repair-requests/', requestData);
+      } else {
+        response = await api.post('requests/', requestData);
+      }
       set(state => ({ requests: [...state.requests, response.data], isLoading: false }));
       return response.data;
     } catch (error: any) {

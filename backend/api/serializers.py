@@ -106,10 +106,24 @@ class SettingsSerializer(serializers.ModelSerializer):
 
 class RepairRequestSerializer(serializers.ModelSerializer):
     serial_number = serializers.CharField(source='issued_item.serial_number', read_only=True)
+    requested_by_name = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
 
     class Meta:
         model = RepairRequest
-        fields = ['id', 'item', 'requested_by', 'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at']
+        fields = ['id', 'item', 'issued_item', 'requested_by', 'requested_by_name', 'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at', 'type']
+        read_only_fields = ['requested_by', 'serial_number', 'created_at', 'updated_at']
+
+    def get_requested_by_name(self, obj):
+        user = obj.requested_by
+        if hasattr(user, 'get_full_name'):
+            name = user.get_full_name()
+            if name.strip():
+                return name
+        return getattr(user, 'username', None) or getattr(user, 'email', None) or str(user)
+
+    def get_type(self, obj):
+        return 'repair'
 
 class IssuedItemSerializer(serializers.ModelSerializer):
     item_name = serializers.CharField(source='item.name', read_only=True)

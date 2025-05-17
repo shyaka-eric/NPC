@@ -147,6 +147,14 @@ class RepairRequestListView(APIView):
         serializer = RepairRequestSerializer(repair_requests, many=True)
         return Response(serializer.data)
 
+    def post(self, request):
+        data = request.data.copy()
+        serializer = RepairRequestSerializer(data=data)
+        if serializer.is_valid():
+            repair_request = serializer.save(requested_by=request.user)
+            return Response(RepairRequestSerializer(repair_request).data, status=201)
+        return Response(serializer.errors, status=400)
+
 class IssuedItemListView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):

@@ -10,6 +10,7 @@ import Pagination from '../components/Pagination';
 import SimpleModal from '../components/ui/SimpleModal';
 import Button from '../components/ui/Button';
 import { toast } from 'sonner';
+import { fetchRepairRequests } from '../services/api';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -21,12 +22,29 @@ const MyRequests: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [combinedRequests, setCombinedRequests] = useState<any[]>([]);
 
   useEffect(() => {
     const loadRequests = async () => {
       setIsLoading(true);
       try {
-        await fetchRequests();
+        await fetchItems();
+        await fetchRequests(); // updates the store
+        const repairRequests = await fetchRepairRequests();
+        // Normalize repair requests to match the table structure
+        const normalizedRepairs = (repairRequests || []).map((r: any) => ({
+          ...r,
+          type: 'repair',
+          requested_by: r.requested_by, // or r.requested_by.id if needed
+          requested_at: r.created_at,
+          item: r.item,
+          quantity: 1, // repairs are always 1
+          status: r.status,
+        }));
+        setCombinedRequests([
+          ...requests, // from the store, already normalized
+          ...normalizedRepairs
+        ]);
       } catch (error) {
         toast.error('Failed to load requests');
       } finally {
@@ -34,14 +52,12 @@ const MyRequests: React.FC = () => {
       }
     };
     loadRequests();
-  }, [fetchRequests]);
-
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  }, [fetchRequests, fetchItems]);
 
   // Filter requests for the current user
-  const myRequests = requests.filter(request => request.requested_by === user?.id);
+  const myRequests = combinedRequests
+    .filter(request => request.requested_by === user?.id)
+    .sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime());
   const totalPages = Math.ceil(myRequests.length / ITEMS_PER_PAGE);
   const paginatedRequests = myRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
@@ -67,7 +83,10 @@ const MyRequests: React.FC = () => {
     },
     {
       header: 'Type',
-      accessor: (request: any) => request.type.charAt(0).toUpperCase() + request.type.slice(1)
+      accessor: (request: any) =>
+        request.type
+          ? request.type.charAt(0).toUpperCase() + request.type.slice(1)
+          : '-'
     },
     {
       header: 'Category',

@@ -32,17 +32,6 @@ class Item(models.Model):
     expiration_date = models.DateField(blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
     assigned_to = models.ForeignKey('User', null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_items')
-    serial_number = models.CharField(max_length=100, blank=True, null=True)
-
-    def save(self, *args, **kwargs):
-        if not self.serial_number:
-            # Generate serial number: NPC/{category_abbreviation}/{item_name_abbreviation}/{item_number}
-            category_abbr = ''.join([w[0] for w in self.category.split()])[:3].upper()
-            item_name_abbr = ''.join([w[0] for w in self.name.split()])[:3].upper()
-            # Count how many items exist in this category so far (for item_number)
-            count = Item.objects.filter(category=self.category).count() + 1
-            self.serial_number = f"NPC/{category_abbr}/{item_name_abbr}/{count}"
-        super().save(*args, **kwargs)
 
 # 3. Request
 class Request(models.Model):
@@ -108,18 +97,31 @@ class IssuedItem(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='issued_items')
     assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='issued_items')
     assigned_date = models.DateTimeField(auto_now_add=True)
-    serial_number = models.CharField(max_length=100, unique=True, blank=True)
-    expiration_date = models.DateField(blank=True, null=True)
+    serial_number = models.CharField(max_length=100, unique=True, null=True, blank=True)  # Re-add unique constraint
 
     def save(self, *args, **kwargs):
         if not self.serial_number:
-            # Generate serial number: NPC/{unit}/{category_abbreviation}/{item_name_abbreviation}/{item_number}
-            unit = (self.assigned_to.unit or 'X').upper()
-            category_abbr = ''.join([word[0] for word in self.item.category.split()]).upper()
-            item_name_abbr = ''.join([word[0] for word in self.item.name.split()]).upper()
-            count = IssuedItem.objects.filter(item=self.item).count() + 1
-            item_number = str(count).zfill(3)  # Ensure three-digit format
-            self.serial_number = f"NPC/{unit}/{category_abbr}/{item_name_abbr}/{item_number}"
+            def get_abbreviation(text):
+                return ''.join(word[0].upper() for word in text.split() if word)
+            unit = self.assigned_to.unit or 'UNK'
+            category = self.item.category or 'UNK'
+            item_name = self.item.name or 'UNK'
+            # Find the next available item_number for this category and name
+            existing_serials = IssuedItem.objects.filter(
+                item__category=category,
+                item__name=item_name
+            ).exclude(serial_number__isnull=True).values_list('serial_number', flat=True)
+            # Extract numbers from existing serials
+            import re
+            pattern = re.compile(r'/([0-9]{3})$')
+            numbers = [int(m.group(1)) for s in existing_serials if (m := pattern.search(s))]
+            next_number = max(numbers, default=0) + 1
+            serial_number = f"NPC/{unit}/{get_abbreviation(category)}/{get_abbreviation(item_name)}/{next_number:03d}"
+            # Ensure uniqueness
+            while IssuedItem.objects.filter(serial_number=serial_number).exists():
+                next_number += 1
+                serial_number = f"NPC/{unit}/{get_abbreviation(category)}/{get_abbreviation(item_name)}/{next_number:03d}"
+            self.serial_number = serial_number
         super().save(*args, **kwargs)
 
 class RepairRequest(models.Model):
@@ -138,4 +140,4 @@ class RepairRequest(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"RepairRequest({self.issued_item.serial_number}) - {self.status}"
+        return f"RepairRequest({self.status})"

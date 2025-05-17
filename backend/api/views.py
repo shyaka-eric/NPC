@@ -1,8 +1,8 @@
 from rest_framework import viewsets, generics, permissions, filters
-from .models import User, Item, Request, Notification, Log, Settings, RepairRequest
+from .models import User, Item, Request, Notification, Log, Settings, RepairRequest, IssuedItem
 from .serializers import (
     UserSerializer, ItemSerializer, RequestSerializer,
-    NotificationSerializer, LogSerializer, SettingsSerializer, RepairRequestSerializer
+    NotificationSerializer, LogSerializer, SettingsSerializer, RepairRequestSerializer, IssuedItemSerializer
 )
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
@@ -10,7 +10,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .services import (
     notify_request_submitted,
     notify_request_approved,
@@ -52,7 +52,7 @@ class ItemViewSet(viewsets.ModelViewSet):
         return queryset
 
 class RequestViewSet(viewsets.ModelViewSet):
-    queryset = Request.objects.all()
+    queryset = Request.objects.select_related('item').all()
     serializer_class = RequestSerializer
 
     def perform_create(self, serializer):
@@ -140,11 +140,17 @@ def has_users(request):
     return Response({'has_users': User.objects.exists()})
 
 from rest_framework.views import APIView
-from .models import RepairRequest
-from .serializers import RepairRequestSerializer
 
 class RepairRequestListView(APIView):
     def get(self, request):
         repair_requests = RepairRequest.objects.select_related('issued_item').all()
         serializer = RepairRequestSerializer(repair_requests, many=True)
+        return Response(serializer.data)
+
+class IssuedItemListView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        issued_items = IssuedItem.objects.filter(assigned_to=request.user)
+        serializer = IssuedItemSerializer(issued_items, many=True)
+        print("Issued Items API Response:", serializer.data)  # Debug print
         return Response(serializer.data)

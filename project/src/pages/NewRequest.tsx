@@ -34,11 +34,11 @@ const NewRequest: React.FC = () => {
     type: 'new',
     category: '',
     itemId: '',
+    itemTrueId: '',
     quantity: '',
     priority: '',
-    purpose: '',
-    serialNumber: '', // Added for repair requests
-    issueDescription: '' // Added for repair requests
+    serialNumber: '',
+    issueDescription: ''
   });
   const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -53,17 +53,17 @@ const NewRequest: React.FC = () => {
   useEffect(() => {
     const fetchInUseItems = async () => {
       try {
-        const token = localStorage.getItem('token'); // Corrected key to 'token'
-        const response = await fetch(`/api/items/?assigned_to=${user?.id}`, {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/issued-items/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
-        const text = await response.text(); // Log raw response text
+        const text = await response.text();
         console.log('Raw in-use items response:', text);
         const data = JSON.parse(text);
-        console.log('Fetched in-use items:', data); // Debugging log
+        console.log('Fetched in-use items:', data);
         setInUseItems(data);
       } catch (error) {
         console.error('Failed to fetch in-use items:', error);
@@ -71,7 +71,7 @@ const NewRequest: React.FC = () => {
     };
 
     fetchInUseItems();
-  }, [user]); // Fetch in-use items on component mount
+  }, [user]);
 
   useEffect(() => {
     const fetchStockItems = async () => {
@@ -101,9 +101,7 @@ const NewRequest: React.FC = () => {
       console.warn('No in-use items available to populate categories.');
       return [];
     }
-    console.log('In-use items for categories:', inUseItems); // Debugging log
-    const cats = Array.from(new Set(inUseItems.map((item: any) => item.category)));
-    console.log('Mapped categories:', cats); // Debugging log
+    const cats = Array.from(new Set(inUseItems.map((item: any) => item.item_category)));
     return cats.map((cat: string) => ({ value: cat, label: cat }));
   }, [inUseItems]);
 
@@ -112,12 +110,17 @@ const NewRequest: React.FC = () => {
       console.warn('No category selected to filter items.');
       return [];
     }
-    console.log('Selected category:', formData.category); // Debugging log
-    console.log('In-use items for item options:', inUseItems); // Debugging log
-    const filteredItems = inUseItems.filter((item: any) => item.category === formData.category);
-    console.log('Filtered items for selected category:', filteredItems); // Debugging log
-    return filteredItems.map((item: any) => ({ value: item.id, label: item.name }));
+    const filteredItems = inUseItems.filter((item: any) => item.item_category === formData.category);
+    // Get unique item names
+    const uniqueItemNames = Array.from(new Set(filteredItems.map((item: any) => item.item_name)));
+    return uniqueItemNames.map(itemName => ({ value: itemName, label: itemName }));
   }, [inUseItems, formData.category]);
+
+  const getSerialNumbersForItem = (itemName: string) => {
+    return inUseItems
+      .filter((item: any) => item.item_name === itemName)
+      .map((item: any) => ({ value: item.serial_number, label: item.serial_number }));
+  };
 
   const stockCategories = useMemo(() => {
     if (!Array.isArray(stockItems) || stockItems.length === 0) {
@@ -155,6 +158,15 @@ const NewRequest: React.FC = () => {
           itemId: '',
         };
       }
+      if (name === 'serialNumber' && prev.type === 'repair') {
+        const foundItem = inUseItems.find((item: any) => item.item_name === prev.itemId && item.serial_number === value);
+        return {
+          ...prev,
+          serialNumber: value.toString(),
+          itemId: foundItem ? foundItem.id : '',
+          itemTrueId: foundItem ? foundItem.item : '',
+        };
+      }
       return {
         ...prev,
         [name]: value.toString()
@@ -184,7 +196,6 @@ const NewRequest: React.FC = () => {
       if (!formData.issueDescription) newErrors.issueDescription = 'Issue Description is required';
     }
     if (!formData.priority || formData.priority === '') newErrors.priority = 'Priority is required';
-    if (!formData.purpose) newErrors.purpose = 'Purpose is required';
     setErrors(newErrors);
     setShowValidationSummary(Object.keys(newErrors).length > 0);
     return Object.keys(newErrors).length === 0;
@@ -199,15 +210,16 @@ const NewRequest: React.FC = () => {
       const payload: any = {
         type: formData.type as RequestType,
         priority: formData.priority,
-        purpose: formData.purpose,
       };
       if (formData.type === 'new') {
         payload.item = formData.itemId;
         payload.quantity = parseInt(formData.quantity);
       } else if (formData.type === 'repair') {
-        payload.item = formData.itemId;
+        payload.item = formData.itemTrueId;
+        payload.issued_item = parseInt(formData.itemId, 10);
         payload.serialNumber = formData.serialNumber;
         payload.issueDescription = formData.issueDescription;
+        payload.quantity = 1;
       }
       await addRequest(payload);
       toast.success('Request created successfully');
@@ -251,13 +263,21 @@ const NewRequest: React.FC = () => {
             name="serialNumber"
             value={formData.serialNumber}
             onChange={handleChange}
-            options={
-              inUseItems
-                .filter((item: any) => item.id === formData.itemId) // Filter items by selected itemId
-                .map((item: any) => ({ value: item.serialNumber, label: item.serialNumber })) // Map to serial number options
-            }
+            options={[
+              { value: '', label: 'Select Serial Number' },
+              ...(formData.itemId ? getSerialNumbersForItem(formData.itemId) : [])
+            ]}
             required={true}
             error={errors.serialNumber}
+          />
+          <Select
+            label="Priority"
+            name="priority"
+            value={formData.priority}
+            onChange={handleChange}
+            options={[{ value: '', label: 'Select Priority' }, ...priorityOptions.filter(opt => opt.value !== '')]}
+            required
+            error={errors.priority}
           />
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
@@ -364,18 +384,6 @@ const NewRequest: React.FC = () => {
               required
               error={errors.priority}
             />
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Purpose</label>
-              <textarea
-                name="purpose"
-                value={formData.purpose}
-                onChange={handleChange}
-                required
-                className="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                rows={3}
-              />
-              {errors.purpose && <p className="mt-1 text-sm text-red-600">{errors.purpose}</p>}
-            </div>
             <Input
               label={fileLabel}
               name="attachment"

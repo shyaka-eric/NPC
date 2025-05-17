@@ -27,6 +27,14 @@ const AdminStock: React.FC = () => {
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedItems = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
+  const columns = [
+    { header: 'Name', accessor: 'name' },
+    { header: 'Category', accessor: 'category' },
+    { header: 'Quantity', accessor: 'quantity' },
+    { header: 'Expiration Date', accessor: (item: ItemModel) => item.expiration_date ? new Date(item.expiration_date).toLocaleDateString() : '-' },
+    { header: 'Last Updated', accessor: (item: ItemModel) => item.last_updated ? new Date(item.last_updated).toLocaleDateString() : '-' },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <PageHeader title="Stock Availability" description="View all items in stock." />
@@ -38,23 +46,21 @@ const AdminStock: React.FC = () => {
         <table className="min-w-full divide-y divide-slate-200">
           <thead>
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Serial Number</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Name</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Category</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Quantity</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Expiration Date</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Last Updated</th>
+              {columns.map(column => (
+                <th key={column.header} className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+                  {column.header}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-slate-200">
             {paginatedItems.map(item => (
               <tr key={item.id}>
-                <td className="px-4 py-2 whitespace-nowrap">{item.serial_number}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{item.name}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{item.category}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{item.quantity}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{item.expiration_date ? item.expiration_date.split('T')[0] : '-'}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{item.last_updated ? item.last_updated.split('T')[0] : '-'}</td>
+                {columns.map(column => (
+                  <td key={column.header} className="px-4 py-2 whitespace-nowrap">
+                    {typeof column.accessor === 'function' ? column.accessor(item) : item[column.accessor]}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -70,4 +76,4 @@ const AdminStock: React.FC = () => {
   );
 };
 
-export default AdminStock; 
+export default AdminStock;

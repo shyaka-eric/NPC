@@ -57,6 +57,7 @@ export interface Request {
   itemName: string;
   quantity: number;
   requestedBy: string;
+  requested_by?: string;
   requestedByName: string;
   requestedAt: Date;
   status: RequestStatus;

@@ -1,16 +1,20 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { formatDate } from '../utils/formatters';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/ui/Button';
-import { IssuedItemModel } from '../models/item.model';
+
+interface IssuedItem {
+  id: number;
+  assigned_date: string;
+  expiration_date: string | null;
+  serial_number: string;
+}
 
 interface LocationState {
   item_name: string;
   item_category: string;
   quantity: number;
-  items: IssuedItemModel[];
-  serial_numbers?: string[]; // Include serial_numbers in the state
+  items: IssuedItem[];
 }
 
 const IssuedItemDetails: React.FC = () => {
@@ -42,7 +46,7 @@ const IssuedItemDetails: React.FC = () => {
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-500">Quantity</h3>
-            <p className="mt-1">{state.quantity}</p>
+            <p className="mt-1">{state.items.length}</p>
           </div>
         </div>
         <div>
@@ -59,9 +63,9 @@ const IssuedItemDetails: React.FC = () => {
               <tbody className="divide-y divide-gray-100">
                 {state.items.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-4 py-2 font-semibold">{item.serial_number}</td>
-                    <td className="px-4 py-2">{formatDate(item.assigned_date)}</td>
-                    <td className="px-4 py-2">{item.expiration_date ? formatDate(item.expiration_date) : '-'}</td>
+                    <td className="px-4 py-2">{item.serial_number}</td>
+                    <td className="px-4 py-2">{item.assigned_date}</td>
+                    <td className="px-4 py-2">{item.expiration_date || '-'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -48,8 +48,6 @@ const RepairItems: React.FC = () => {
     { header: 'Request Date', accessor: (r: any) => new Date(r.requested_at).toLocaleDateString() },
     { header: 'Category', accessor: (r: any) => r.category || (items.find((i: any) => i.id === r.item)?.category || '-') },
     { header: 'Item', accessor: (r: any) => r.item_name || (items.find((i: any) => i.id === r.item)?.name || '-') },
-    // Show serial number from issued_item if present
-    { header: 'Serial Number', accessor: (r: any) => r.issued_item?.serial_number || '-' },
     // Show 'View Photo' button if attachment exists
     { header: 'Picture', accessor: (r: any) => (r.attachments && r.attachments.length > 0) ? (
       <Button size="sm" variant="secondary" onClick={() => setPhotoModal({ open: true, url: r.attachments[0] })}>View Photo</Button>

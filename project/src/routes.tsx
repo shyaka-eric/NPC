@@ -1,4 +1,3 @@
-import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import AdminStock from './pages/AdminStock';
 import Requests from './pages/Requests';
@@ -11,8 +10,9 @@ import IssueItems from './pages/IssueItems';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
-import IssuedItemDetails from './pages/IssuedItemDetails';
 import RepairItems from './pages/RepairItems';
+import IssuedItemDetails from './pages/IssuedItemDetails';
+import PendingRequests from './pages/PendingRequests';
 
 export const AppRoutes = () => {
   return (
@@ -28,8 +28,9 @@ export const AppRoutes = () => {
       <Route path="/issue-item" element={<IssueItems />} />
       <Route path="/users" element={<Users />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/issued-item-details" element={<IssuedItemDetails />} />
       <Route path="/repair-items" element={<RepairItems />} />
+      <Route path="/issued-item-details" element={<IssuedItemDetails />} />
+      <Route path="/pending-requests" element={<PendingRequests />} />
     </Routes>
   );
 };

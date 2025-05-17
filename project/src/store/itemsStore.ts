@@ -92,27 +92,11 @@ export const useItemsStore = create<ItemsState>()((set, get) => ({
   },
 
   fetchIssuedItems: async () => {
-    const user = useAuthStore.getState().user; // Access the current user from useAuthStore
-    if (!user) {
-      set({ error: 'User not authenticated', isLoading: false });
-      return;
-    }
-
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get(`items/?assigned_to=${user.id}`); // Use the correct endpoint
-      console.log('API Response:', response.data); // Debugging log for API response
-
-      // Map backend fields to frontend model
-      const mappedItems = response.data.map((item: any) => ({
-        ...item,
-        item_name: item.name, // Map 'name' to 'item_name'
-        item_category: item.category // Map 'category' to 'item_category'
-      }));
-
-      set({ issuedItems: mappedItems, isLoading: false });
+      const response = await api.get('issued-items/'); // Use the new endpoint
+      set({ issuedItems: response.data, isLoading: false });
     } catch (error: any) {
-      console.error('API Error:', error.message); // Debugging log for API error
       set({ error: error.message, isLoading: false });
     }
   }

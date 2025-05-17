@@ -48,7 +48,7 @@ class ItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Item
-        fields = ['id', 'serial_number', 'name', 'category', 'quantity', 'status', 'expiration_date', 'last_updated', 'assigned_to_id', 'assigned_to', 'assigned_quantity', 'assigned_date']
+        fields = ['id', 'name', 'category', 'quantity', 'status', 'expiration_date', 'last_updated', 'assigned_to_id', 'assigned_to', 'assigned_quantity', 'assigned_date']
 
     def get_assigned_quantity(self, obj):
         # Get the most recent issued request for this item
@@ -62,10 +62,15 @@ class ItemSerializer(serializers.ModelSerializer):
 
 class RequestSerializer(serializers.ModelSerializer):
     requested_by_name = serializers.SerializerMethodField()
+    item_name = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
 
     class Meta:
         model = Request
-        fields = '__all__'
+        fields = [
+            'id', 'item', 'item_name', 'category', 'quantity', 'status', 'priority', 'purpose',
+            'requested_by', 'requested_by_name', 'requested_at', 'issued_item', 'type'
+        ]
         read_only_fields = ['requested_by']
 
     def get_requested_by_name(self, obj):
@@ -75,6 +80,12 @@ class RequestSerializer(serializers.ModelSerializer):
             if name.strip():
                 return name
         return getattr(user, 'username', None) or getattr(user, 'email', None) or str(user)
+
+    def get_item_name(self, obj):
+        return obj.item.name if obj.item else None
+
+    def get_category(self, obj):
+        return obj.item.category if obj.item else None
 
 class NotificationSerializer(serializers.ModelSerializer):
     recipient = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
@@ -101,6 +112,9 @@ class RepairRequestSerializer(serializers.ModelSerializer):
         fields = ['id', 'item', 'requested_by', 'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at']
 
 class IssuedItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source='item.name', read_only=True)
+    item_category = serializers.CharField(source='item.category', read_only=True)
+
     class Meta:
         model = IssuedItem
-        fields = ['id', 'item', 'assigned_to', 'assigned_date', 'serial_number', 'expiration_date']
+        fields = ['id', 'item', 'item_name', 'item_category', 'assigned_to', 'assigned_date', 'serial_number']

@@ -126,7 +126,7 @@ const StockManagement: React.FC = () => {
             name,
             category,
             quantity: Number(quantity) || 0,
-            expiration_date: parseExcelDate(expirationDate)
+            expirationDate: parseExcelDate(expirationDate)
           });
           added++;
         } catch {}

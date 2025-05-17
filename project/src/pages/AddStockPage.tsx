@@ -9,7 +9,6 @@ const AddStockPage: React.FC = () => {
   const navigate = useNavigate();
   const addItem = useItemsStore(state => state.addItem);
   const [formData, setFormData] = useState({
-    serial_number: '',
     name: '',
     category: '',
     quantity: '',
@@ -20,9 +19,10 @@ const AddStockPage: React.FC = () => {
     e.preventDefault();
     try {
       await addItem({
-        ...formData,
+        name: formData.name,
+        category: formData.category,
         quantity: Number(formData.quantity),
-        expiration_date: formData.expiration_date || undefined,
+        expirationDate: formData.expiration_date ? new Date(formData.expiration_date) : undefined,
       });
       navigate('/stock-management');
     } catch (error) {
@@ -52,13 +52,6 @@ const AddStockPage: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Serial Number"
-          name="serial_number"
-          value={formData.serial_number}
-          onChange={handleChange}
-          required
-        />
-        <Input
           label="Item Name"
           name="name"
           value={formData.name}
@@ -80,13 +73,6 @@ const AddStockPage: React.FC = () => {
           onChange={handleChange}
           required
         />
-        <Input
-          label="Expiration Date"
-          name="expiration_date"
-          type="date"
-          value={formData.expiration_date}
-          onChange={handleChange}
-        />
         <div className="flex justify-end space-x-3 pt-4">
           <Button
             variant="secondary"
@@ -106,4 +92,4 @@ const AddStockPage: React.FC = () => {
   );
 };
 
-export default AddStockPage; 
+export default AddStockPage;

@@ -35,7 +35,14 @@ export const useRequestsStore = create<RequestsState>()((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await api.get('requests/');
-      set({ requests: response.data, isLoading: false });
+      const mappedRequests = response.data.map((req: any) => ({
+        ...req,
+        requestedAt: req.requested_at, // Map API field to frontend field
+        itemName: req.item_name || '-',
+        category: req.category || '-',
+        requestedByName: req.requested_by_name || '-', // Map user name
+      }));
+      set({ requests: mappedRequests, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
     }

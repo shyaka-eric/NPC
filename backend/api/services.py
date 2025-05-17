@@ -82,14 +82,15 @@ def notify_item_issued(request):
     Notify unit leader when their item is issued and assign IssuedItem to the request.
     """
     # Create IssuedItem
-    issued_item = IssuedItem.objects.create(
-        item=request.item,
-        assigned_to=request.requested_by,
-        assigned_date=timezone.now(),
-        expiration_date=None  # Set expiration date if applicable
-    )
+    for _ in range(request.quantity):  # Create multiple IssuedItem records based on quantity
+        issued_item = IssuedItem.objects.create(
+            item=request.item,
+            assigned_to=request.requested_by,
+            assigned_date=timezone.now(),
+            expiration_date=None  # Set expiration date if applicable
+        )
 
-    # Assign the issued item to the request
+    # Assign the last issued item to the request (for reference)
     request.issued_item = issued_item
     request.save()
 

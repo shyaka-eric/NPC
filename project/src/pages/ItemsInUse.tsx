@@ -47,12 +47,12 @@ const ItemsInUse: React.FC = () => {
     }
   }, [issuedItems, user]);
 
-  // Update filtering logic to use `assigned_to_id` instead of `assigned_to`
+  // Update filtering logic to use `assigned_to` instead of `assigned_to_id`
   const itemsInUse = (issuedItems || []).filter(item => {
-    const isAssignedToUser = String(item.assigned_to_id) === String(user?.id);
+    const isAssignedToUser = String(item.assigned_to) === String(user?.id);
     console.log('Filtering Item:', {
       itemId: item.id,
-      assignedToId: item.assigned_to_id,
+      assignedTo: item.assigned_to,
       isAssignedToUser
     });
     return isAssignedToUser;
@@ -93,12 +93,9 @@ const ItemsInUse: React.FC = () => {
   console.log('Paginated Items:', paginatedItems);
 
   const handleViewItem = (row: { item_name: string; item_category: string; quantity: number; items: IssuedItemModel[] }) => {
-    const enrichedRow = {
-      ...row,
-      serial_numbers: row.items.map(item => item.serial_number) // Ensure serial numbers are included
-    };
-    console.log('Navigating with data:', enrichedRow); // Debugging log
-    navigate('/issued-item-details', { state: enrichedRow });
+    // Removed serial_numbers mapping logic as `serial_number` is no longer used
+    console.log('Navigating with data:', row);
+    navigate('/issued-item-details', { state: row });
   };
 
   // Table columns for grouped items
@@ -119,7 +116,7 @@ const ItemsInUse: React.FC = () => {
     },
     {
       header: 'Quantity',
-      accessor: (row: { quantity: number }) => row.quantity // Explicit type for row
+      accessor: (row: { items: IssuedItemModel[] }) => row.items.length
     },
     {
       header: 'Actions',
@@ -134,6 +131,13 @@ const ItemsInUse: React.FC = () => {
       )
     }
   ];
+
+  // Log the API response for issuedItems
+  useEffect(() => {
+    if (issuedItems) {
+      console.log('API Response:', issuedItems);
+    }
+  }, [issuedItems]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

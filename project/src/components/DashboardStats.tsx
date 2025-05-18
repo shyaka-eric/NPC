@@ -22,11 +22,16 @@ const DashboardStats: React.FC = () => {
   const inStockItems = items.filter(item => item.status === 'in-stock').reduce((sum, item) => sum + item.quantity, 0);
   const inUseItems = issuedItems
     .filter(item => String(item.assigned_to) === String(user?.id))
-    .reduce((sum, item) => sum + (item.assigned_quantity || 0), 0);
+    .length;
   const damagedItems = items.filter(item => item.status === 'damaged').reduce((sum, item) => sum + item.quantity, 0);
-  const pendingRequests = requests.filter(req => req.status === 'pending').length;
+  const pendingRequests = requests.filter(
+    req => req.status === 'pending' && req.requested_by === user?.id
+  ).length;
   const fulfilledRequests = requests.filter(req => req.status === 'issued').length;
   const totalUsers = 42; // Placeholder for total users count
+  const pendingRepairRequestsForUser = requests.filter(
+    req => req.type === 'repair' && req.status === 'pending' && req.requested_by === user?.id
+  ).length;
 
   const renderCards = () => {
     switch (user.role) {
@@ -40,16 +45,16 @@ const DashboardStats: React.FC = () => {
               onClick={() => navigate('/in-use-items')}
             />
             <StatCard
+              title="Pending Repair Requests"
+              value={formatNumber(pendingRepairRequestsForUser)}
+              icon={<CheckCircle size={24} />}
+              onClick={() => navigate('/my-requests?status=issued')}
+            />
+            <StatCard
               title="Pending Requests"
               value={pendingRequests}
               icon={<ClipboardList size={24} />}
-              onClick={() => navigate('/my-requests?status=pending')}
-            />
-            <StatCard
-              title="Fulfilled Requests"
-              value={fulfilledRequests}
-              icon={<CheckCircle size={24} />}
-              onClick={() => navigate('/my-requests?status=issued')}
+              onClick={() => navigate('/pending-requests')}
             />
           </>
         );

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth import get_user_model
 
 # 1. User (extend Django's User)
 class User(AbstractUser):
@@ -63,22 +64,31 @@ class Request(models.Model):
 
 # 4. Notification
 class Notification(models.Model):
-    NOTIFICATION_TYPES = [
-        ('request_submitted', 'Request Submitted'),
-        ('request_approved', 'Request Approved'),
-        ('request_denied', 'Request Denied'),
-        ('item_issued', 'Item Issued'),
-    ]
-
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES)
-    message = models.TextField()
-    request = models.ForeignKey(Request, on_delete=models.CASCADE, null=True, blank=True)
-    is_read = models.BooleanField(default=False)
-    createdAt = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        help_text='The user who should receive the notification.',
+        null=True, blank=True # Temporarily allow nulls
+    )
+    message = models.TextField(help_text='The content of the notification.')
+    is_read = models.BooleanField(default=False, help_text='Whether the user has read the notification.')
+    created_at = models.DateTimeField(help_text='The date and time the notification was created.') # Remove auto_now_add=True for now
+    notification_type = models.CharField(
+        max_length=50,
+        help_text='Type of notification (e.g., request_submitted, request_approved, item_issued).'
+    )
+    # Add fields to link to related objects if necessary, e.g., request, issued_item
+    # request = models.ForeignKey('Request', on_delete=models.CASCADE, null=True, blank=True)
+    # issued_item = models.ForeignKey('IssuedItem', on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
-        ordering = ['-createdAt']
+        ordering = ['-created_at']
+        verbose_name = 'Notification'
+        verbose_name_plural = 'Notifications'
+
+    def __str__(self):
+        return f'Notification for {self.user.username}: {self.message[:50]}...'
 
 # 5. Log
 class Log(models.Model):

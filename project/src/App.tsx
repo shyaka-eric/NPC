@@ -28,6 +28,7 @@ import EditUser from './pages/EditUser';
 import ApprovedRequests from './pages/ApprovedRequests';
 import Logs from './pages/Logs';
 import { AppRoutes } from "./routes";
+import useNotificationWebSocket from './hooks/useNotificationWebSocket';
 
 // Route guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -44,6 +45,9 @@ const App: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   const [isLoading, setIsLoading] = React.useState(true);
   
+  // Call the WebSocket hook here, it will manage connection based on user state
+  useNotificationWebSocket();
+
   useEffect(() => {
     // Simulate initial loading (in a real app, this would be auth initialization)
     setTimeout(() => {

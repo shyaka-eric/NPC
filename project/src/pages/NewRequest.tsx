@@ -222,13 +222,13 @@ const NewRequest: React.FC = () => {
         }
         await addRequest(form);
       } else {
-        const payload: any = {
-          type: formData.type as RequestType,
-          priority: formData.priority,
+      const payload: any = {
+        type: formData.type as RequestType,
+        priority: formData.priority,
           item: formData.itemId,
           quantity: parseInt(formData.quantity),
         };
-        await addRequest(payload);
+      await addRequest(payload);
       }
       toast.success('Request created successfully');
       navigate('/my-requests');

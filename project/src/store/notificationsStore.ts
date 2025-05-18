@@ -8,14 +8,14 @@ const log = (message: string, data?: any) => {
 };
 
 interface NotificationsState {
-  notifications: NotificationModel[]; // Update to use NotificationModel
+  notifications: NotificationModel[];
   isLoading: boolean;
   error: string | null;
   unreadCount: number;
 
   // CRUD operations
   fetchNotifications: (userId: string) => Promise<void>;
-  addNotification: (notification: Omit<NotificationModel, 'id' | 'updatedAt'>) => Promise<NotificationModel>; // Allow `createdAt` property
+  addNotification: (notification: Omit<NotificationModel, 'id' | 'created_at'>) => Promise<NotificationModel>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: (userId: string) => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
@@ -40,22 +40,10 @@ export const useNotificationsStore = create<NotificationsState>()(
         try {
           const response = await api.get('notifications/', { params: { user: userId } });
           log('Raw backend response:', response.data);
-          const notifications = response.data.map((notification: NotificationModel) => {
-            let parsedDate;
-            try {
-              parsedDate = new Date(notification.createdAt);
-              if (isNaN(parsedDate.getTime())) {
-                throw new Error('Invalid Date');
-              }
-            } catch {
-              console.warn('Invalid createdAt value:', notification.createdAt);
-              parsedDate = new Date(); // Fallback to current date
-            }
-            return {
-              ...notification,
-              createdAt: parsedDate,
-            };
-          });
+          const notifications = response.data.map((notification: NotificationModel) => ({
+            ...notification,
+            created_at: new Date(notification.created_at)
+          }));
           log('Fetched notifications successfully', notifications);
           set({ notifications, isLoading: false });
         } catch (error: any) {
@@ -66,12 +54,38 @@ export const useNotificationsStore = create<NotificationsState>()(
 
       addNotification: async (notificationData) => {
         log('Adding notification', notificationData);
+        // If the notification already has an ID, it's from WebSocket
+        if ('id' in notificationData) {
+          // Check if notification already exists to prevent duplicates
+          const exists = get().notifications.some(n => n.id === notificationData.id);
+          if (!exists) {
+            const notification = {
+              ...notificationData,
+              created_at: new Date(notificationData.created_at)
+            };
+            set(state => ({ 
+              notifications: [notification, ...state.notifications],
+              isLoading: false 
+            }));
+            return notification;
+          }
+          return notificationData as NotificationModel;
+        }
+        
+        // Otherwise, it's a new notification being created
         set({ isLoading: true, error: null });
         try {
           const response = await api.post('notifications/', notificationData);
           log('Notification added successfully', response.data);
-          set(state => ({ notifications: [...state.notifications, response.data], isLoading: false }));
-          return response.data;
+          const notification = {
+            ...response.data,
+            created_at: new Date(response.data.created_at)
+          };
+          set(state => ({ 
+            notifications: [notification, ...state.notifications], 
+            isLoading: false 
+          }));
+          return notification;
         } catch (error: any) {
           log('Error adding notification', error.message);
           set({ error: error.message, isLoading: false });
@@ -83,10 +97,10 @@ export const useNotificationsStore = create<NotificationsState>()(
         log('Marking notification as read', { id });
         set({ isLoading: true, error: null });
         try {
-          await api.patch(`notifications/${id}/`, { read: true });
+          await api.patch(`notifications/${id}/`, { is_read: true });
           log('Notification marked as read', { id });
           set(state => ({
-            notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+            notifications: state.notifications.map(n => n.id === id ? { ...n, is_read: true } : n),
             isLoading: false
           }));
         } catch (error: any) {
@@ -104,11 +118,11 @@ export const useNotificationsStore = create<NotificationsState>()(
           const notifications = response.data;
           log('Fetched notifications for marking as read', notifications);
           await Promise.all(notifications.map((n: NotificationModel) =>
-            api.patch(`notifications/${n.id}/`, { read: true })
+            api.patch(`notifications/${n.id}/`, { is_read: true })
           ));
           log('All notifications marked as read', { userId });
           set(state => ({
-            notifications: state.notifications.map(n => n.userId === userId ? { ...n, read: true } : n),
+            notifications: state.notifications.map(n => n.user === userId ? { ...n, is_read: true } : n),
             isLoading: false
           }));
         } catch (error: any) {
@@ -133,13 +147,13 @@ export const useNotificationsStore = create<NotificationsState>()(
       },
 
       getUnreadCount: (userId) => {
-        const count = get().notifications.filter(n => n.userId === userId && !n.read).length;
+        const count = get().notifications.filter(n => n.user === userId && !n.is_read).length;
         log('Getting unread count', { userId, count });
         return count;
       },
 
       getNotificationsByUser: (userId) => {
-        const notifications = get().notifications.filter(n => n.userId === userId);
+        const notifications = get().notifications.filter(n => n.user === userId);
         log('Getting notifications by user', { userId, notifications });
         return notifications;
       },

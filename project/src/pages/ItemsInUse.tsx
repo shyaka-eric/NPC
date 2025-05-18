@@ -75,12 +75,12 @@ const ItemsInUse: React.FC = () => {
         map.set(key, {
           item_name: item.item_name,
           item_category: item.item_category,
-          quantity: item.assigned_quantity || 0, // Initialize with assigned_quantity
+          quantity: 1, // Each issued item is one unit
           items: [item],
         });
       } else {
         const entry = map.get(key)!;
-        entry.quantity += item.assigned_quantity || 0; // Sum up assigned_quantity
+        entry.quantity += 1; // Sum up by 1 for each issued item
         entry.items.push(item);
       }
     });
@@ -116,7 +116,7 @@ const ItemsInUse: React.FC = () => {
     },
     {
       header: 'Quantity',
-      accessor: (row: { items: IssuedItemModel[] }) => row.items.length
+      accessor: (row: { quantity: number }) => row.quantity
     },
     {
       header: 'Actions',

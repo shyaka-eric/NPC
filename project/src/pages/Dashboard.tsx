@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader';
 import Button from '../components/ui/Button';
 import DashboardStats from '../components/DashboardStats';
 import RecentRequests from '../components/RecentRequests';
-import RecentActivityLog from '../components/RecentActivityLog';
+import AnalysisCard from '../components/AnalysisCard';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
@@ -102,7 +102,7 @@ const Dashboard: React.FC = () => {
       
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentRequests />
-        <RecentActivityLog />
+        <AnalysisCard />
       </div>
     </div>
   );

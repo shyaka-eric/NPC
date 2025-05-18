@@ -7,29 +7,38 @@ def send_notification(recipient_id, notification_type, message, request=None):
     """
     Send a notification to a specific user
     """
-    # Create notification in database
-    notification = Notification.objects.create(
-        recipient_id=recipient_id,
-        notification_type=notification_type,
-        message=message,
-        request=request
-    )
+    try:
+        # Create notification in database
+        notification = Notification.objects.create(
+            user_id=recipient_id,
+            notification_type=notification_type,
+            message=message,
+            is_read=False,
+            request=request
+        )
 
-    # Send notification through WebSocket
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f"user_{recipient_id}_notifications",
-        {
+        # Send notification through WebSocket
+        channel_layer = get_channel_layer()
+        notification_data = {
             "type": "send_notification",
             "message": message,
             "notification_type": notification_type,
             "data": {
-                "notification_id": notification.id,
-                "request_id": request.id if request else None,
-                "createdAt": notification.createdAt.isoformat()
+                "notification_id": str(notification.id),
+                "created_at": notification.created_at.isoformat(),
+                "request_id": str(request.id) if request else None
             }
         }
-    )
+
+        async_to_sync(channel_layer.group_send)(
+            f"user_{recipient_id}_notifications",
+            notification_data
+        )
+        
+        return notification
+    except Exception as e:
+        print(f"Error sending notification: {str(e)}")
+        return None
 
 def notify_request_submitted(request):
     """

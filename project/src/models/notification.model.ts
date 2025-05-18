@@ -1,28 +1,22 @@
 export interface NotificationModel {
   id: string;
-  userId: string;
-  title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  read: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  actionUrl?: string;
-  metadata?: Record<string, any>;
-  recipient: string; // Added recipient property to match backend response
+  is_read: boolean;
+  created_at: Date;
+  notification_type: string;
+  request?: string;
+  user: string;
 }
 
 export class Notification {
   private model: NotificationModel;
 
-  constructor(data: Omit<NotificationModel, 'id' | 'createdAt' | 'updatedAt' | 'read'>) {
+  constructor(data: Omit<NotificationModel, 'id' | 'created_at' | 'is_read'>) {
     this.model = {
       ...data,
       id: this.generateId(),
-      read: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      recipient: data.recipient, // Ensure recipient is included
+      is_read: false,
+      created_at: new Date(),
     };
   }
 
@@ -36,70 +30,64 @@ export class Notification {
   }
 
   getUserId(): string {
-    return this.model.userId;
+    return this.model.user;
   }
 
   getTitle(): string {
-    return this.model.title;
+    return this.model.notification_type;
   }
 
   getMessage(): string {
     return this.model.message;
   }
 
-  getType(): 'info' | 'success' | 'warning' | 'error' {
-    return this.model.type;
+  getType(): string {
+    return this.model.notification_type;
   }
 
   isRead(): boolean {
-    return this.model.read;
+    return this.model.is_read;
   }
 
   getCreatedAt(): Date {
-    return this.model.createdAt;
+    return this.model.created_at;
   }
 
   getUpdatedAt(): Date {
-    return this.model.updatedAt;
+    return this.model.created_at;
   }
 
   getActionUrl(): string | undefined {
-    return this.model.actionUrl;
+    return this.model.request;
   }
 
   getMetadata(): Record<string, any> | undefined {
-    return this.model.metadata;
+    return undefined;
   }
 
   // Setters
   setTitle(title: string): void {
-    this.model.title = title;
-    this.model.updatedAt = new Date();
+    this.model.notification_type = title;
   }
 
   setMessage(message: string): void {
     this.model.message = message;
-    this.model.updatedAt = new Date();
   }
 
-  setType(type: 'info' | 'success' | 'warning' | 'error'): void {
-    this.model.type = type;
-    this.model.updatedAt = new Date();
+  setType(type: string): void {
+    this.model.notification_type = type;
   }
 
   setRead(read: boolean): void {
-    this.model.read = read;
-    this.model.updatedAt = new Date();
+    this.model.is_read = read;
   }
 
   setActionUrl(url: string): void {
-    this.model.actionUrl = url;
-    this.model.updatedAt = new Date();
+    this.model.request = url;
   }
 
   setMetadata(metadata: Record<string, any>): void {
-    this.model.metadata = metadata;
-    this.model.updatedAt = new Date();
+    // No metadata to set
   }
 
   // Methods
@@ -119,18 +107,14 @@ export class Notification {
   // Create from plain object
   static fromJSON(data: NotificationModel): Notification {
     const notification = new Notification({
-      userId: data.userId,
-      title: data.title,
       message: data.message,
-      type: data.type,
-      actionUrl: data.actionUrl,
-      metadata: data.metadata,
-      recipient: data.recipient, // Ensure recipient is included
+      notification_type: data.notification_type,
+      request: data.request,
+      user: data.user,
     });
     notification.model.id = data.id;
-    notification.model.read = data.read;
-    notification.model.createdAt = data.createdAt;
-    notification.model.updatedAt = data.updatedAt;
+    notification.model.is_read = data.is_read;
+    notification.model.created_at = data.created_at;
     return notification;
   }
 }

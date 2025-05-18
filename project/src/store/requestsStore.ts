@@ -3,6 +3,7 @@ import { Request, RequestStatus, RequestType } from '../types';
 import { api } from '../api';
 import { useNotificationsStore } from './notificationsStore';
 import { useItemsStore } from './itemsStore';
+import { fetchNewItemRequests } from '../services/api';
 
 interface RequestsState {
   requests: Request[];
@@ -34,13 +35,11 @@ export const useRequestsStore = create<RequestsState>()((set, get) => ({
   fetchRequests: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('requests/');
-      const mappedRequests = response.data.map((req: any) => ({
+      const data = await fetchNewItemRequests();
+      const mappedRequests = data.map((req: any) => ({
         ...req,
-        requestedAt: req.requested_at, // Map API field to frontend field
-        itemName: req.item_name || '-',
-        category: req.category || '-',
-        requestedByName: req.requested_by_name || '-', // Map user name
+        requestedAt: req.requested_at,
+        requestedByName: req.requested_by_name || '-',
       }));
       set({ requests: mappedRequests, isLoading: false });
     } catch (error: any) {

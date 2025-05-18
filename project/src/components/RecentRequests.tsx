@@ -48,7 +48,7 @@ const RecentRequests: React.FC = () => {
     switch (user.role) {
       case 'unit-leader':
         // For unit leaders, show their own requests
-        filteredRequests = requests.filter(req => req.requestedBy === user.id);
+        filteredRequests = requests.filter(req => String(req.requested_by) === String(user.id));
         break;
       case 'admin':
         // For admins, prioritize pending requests
@@ -110,7 +110,7 @@ const RecentRequests: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">
-                      {request.itemName || '-'}
+                      {request.item_name || '-'}
                     </p>
                     <div className="flex items-center mt-1">
                       <StatusBadge status={request.status} />

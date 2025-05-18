@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'role', 'first_name', 'last_name', 'name',
-            'rank', 'birth_date', 'unit', 'department', 'phone_number', 'is_active', 'password'
+            'rank', 'birth_date', 'unit', 'phone_number', 'is_active', 'password'
         ]
         extra_kwargs = {
             'username': {'required': True},
@@ -88,11 +88,10 @@ class RequestSerializer(serializers.ModelSerializer):
         return obj.item.category if obj.item else None
 
 class NotificationSerializer(serializers.ModelSerializer):
-    recipient = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-
     class Meta:
         model = Notification
-        fields = ['id', 'recipient', 'notification_type', 'message', 'request', 'is_read', 'createdAt']
+        fields = ['id', 'message', 'is_read', 'created_at', 'notification_type', 'request']
+        read_only_fields = ['id', 'created_at']
 
 class LogSerializer(serializers.ModelSerializer):
     class Meta:

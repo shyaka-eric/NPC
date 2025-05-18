@@ -40,6 +40,7 @@ const PendingRequests: React.FC = () => {
 
   const columns = [
     { header: 'Date', accessor: (req: any) => formatDate(req.requested_at) || '-' },
+    { header: 'Type', accessor: (req: any) => req.type || '-' },
     { header: 'Category', accessor: (req: any) => req.category || '-' },
     { header: 'Item', accessor: (req: any) => req.item_name || '-' },
     { header: 'Quantity', accessor: (req: any) => req.quantity?.toString() || '0' },

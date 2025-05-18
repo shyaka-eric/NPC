@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .services import (
     notify_request_submitted,
@@ -19,6 +19,8 @@ from .services import (
 )
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import logging
+from rest_framework.views import APIView
+from rest_framework import status
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,13 @@ class ItemViewSet(viewsets.ModelViewSet):
 class RequestViewSet(viewsets.ModelViewSet):
     queryset = Request.objects.select_related('item').all()
     serializer_class = RequestSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        request_type = self.request.query_params.get('type')
+        if request_type:
+            queryset = queryset.filter(type=request_type)
+        return queryset
 
     def perform_create(self, serializer):
         request = serializer.save(requested_by=self.request.user)
@@ -143,7 +152,7 @@ from rest_framework.views import APIView
 
 class RepairRequestListView(APIView):
     def get(self, request):
-        repair_requests = RepairRequest.objects.select_related('issued_item').all()
+        repair_requests = RepairRequest.objects.select_related('issued_item', 'item').all()
         serializer = RepairRequestSerializer(repair_requests, many=True)
         return Response(serializer.data)
 
@@ -162,3 +171,77 @@ class IssuedItemListView(APIView):
         serializer = IssuedItemSerializer(issued_items, many=True)
         print("Issued Items API Response:", serializer.data)  # Debug print
         return Response(serializer.data)
+
+class AllPendingRequestsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        # Get pending 'new' requests for this user
+        requests = Request.objects.filter(requested_by=user, status='pending')
+        # Get pending 'repair' requests for this user
+        repair_requests = RepairRequest.objects.filter(requested_by=user, status='pending')
+
+        # Serialize
+        request_data = RequestSerializer(requests, many=True).data
+        repair_data = RepairRequestSerializer(repair_requests, many=True).data
+
+        # Normalize repair_data to match request_data fields
+        from .models import Item
+        for r in repair_data:
+            r['type'] = 'repair'
+            # Fetch item name and category from the related Item object
+            if isinstance(r['item'], int):
+                try:
+                    item_obj = Item.objects.get(id=r['item'])
+                    r['item_name'] = item_obj.name
+                    r['category'] = item_obj.category
+                except Item.DoesNotExist:
+                    r['item_name'] = '-'
+                    r['category'] = '-'
+            else:
+                r['item_name'] = r.get('item_name', '-')
+                r['category'] = r.get('category', '-')
+            r['quantity'] = 1  # Repairs are always quantity 1
+            r['purpose'] = r.get('description', '')
+            r['requested_at'] = r.get('created_at')
+            # Keep status, requested_by, requested_by_name, etc.
+
+        # Combine and sort by date
+        all_requests = request_data + repair_data
+        all_requests.sort(key=lambda x: x.get('requested_at', ''), reverse=True)
+
+        return Response(all_requests)
+
+class NotificationListView(generics.ListAPIView):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+
+class NotificationMarkAsReadView(generics.UpdateAPIView):
+    queryset = Notification.objects.all()
+    permission_classes = [IsAuthenticated]
+    # We only need to update the is_read field
+    serializer_class = NotificationSerializer # We still need a serializer, can use the main one
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Ensure the notification belongs to the authenticated user
+        if instance.user != request.user:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        instance.is_read = True
+        instance.save()
+        # Return the updated notification
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+class NotificationMarkAllAsReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Mark all unread notifications for the authenticated user as read
+        count = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({'message': f'Marked {count} notifications as read.'}, status=status.HTTP_200_OK)

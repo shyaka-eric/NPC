@@ -5,6 +5,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Button from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
+import { toast } from 'sonner';
 
 const rankOptions = [
   { value: '', label: 'Select Rank' },
@@ -56,26 +57,28 @@ const AddUser: React.FC = () => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    addUser({
-      rank: form.rank,
-      username: form.username,
-      first_name: form.first_name,
-      last_name: form.last_name,
-      birth_date: form.birth_date,
-      role: form.role as any, // typecast to satisfy UserRole
-      unit: form.unit,
-      phone_number: form.phone_number, // use snake_case for backend
-      email: form.email,
-      password: form.password,
-    });
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      console.log('Form data being sent:', form);
+      await addUser({
+        rank: form.rank,
+        username: form.username,
+        first_name: form.first_name,
+        last_name: form.last_name,
+        birth_date: form.birth_date,
+        role: form.role as any, // typecast to satisfy UserRole
+        unit: form.unit,
+        phone_number: form.phone_number, // use snake_case for backend
+        email: form.email,
+        password: form.password,
+      });
+      toast.success('User added successfully');
       navigate('/users');
-    }, 500);
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error('Failed to add user');
+    }
   };
 
   return (

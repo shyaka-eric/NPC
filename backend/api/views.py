@@ -29,14 +29,12 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        password = data.pop('password', None)
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
+        logger.debug("Received data: %s", request.data)
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error("Validation errors: %s", serializer.errors)
+            return Response(serializer.errors, status=400)
         user = serializer.save(is_active=True)
-        if password:
-            user.set_password(password)
-            user.save()
         headers = self.get_success_headers(serializer.data)
         return Response(self.get_serializer(user).data, status=201, headers=headers)
 

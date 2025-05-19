@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Menu, X, LogOut, ChevronDown } from 'lucide-react'; // Removed unused imports
 import { useAuthStore } from '../store/authStore';
-import { useNotificationStore } from '../store/notificationStore';
+import { useNotificationsStore } from '../store/notificationsStore';
 import Badge from './ui/Badge';
 import NotificationsDropdown from './NotificationsDropdown';
 
@@ -17,7 +17,7 @@ const Navbar: React.FC = () => {
   
   if (!user) return null; // Ensure user is not null before rendering
   
-  const unreadCount = useNotificationStore((state) => state.unreadCount); // Subscribe to unreadCount changes
+  const unreadCount = useNotificationsStore((state) => state.unreadCount); // Subscribe to unreadCount changes
 
   // Get org name and logo from localStorage
   const orgName = localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics';

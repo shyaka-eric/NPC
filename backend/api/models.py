@@ -17,6 +17,8 @@ class User(AbstractUser):
     rank = models.CharField(max_length=20, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     unit = models.CharField(max_length=100, blank=True)
+    groups = models.ManyToManyField('auth.Group', related_name='api_user_set', blank=True)
+    user_permissions = models.ManyToManyField('auth.Permission', related_name='api_user_set', blank=True)
 
 # 2. Item
 class Item(models.Model):
@@ -73,7 +75,7 @@ class Notification(models.Model):
     )
     message = models.TextField(help_text='The content of the notification.')
     is_read = models.BooleanField(default=False, help_text='Whether the user has read the notification.')
-    created_at = models.DateTimeField(help_text='The date and time the notification was created.') # Remove auto_now_add=True for now
+    created_at = models.DateTimeField(auto_now_add=True, help_text='The date and time the notification was created.')
     notification_type = models.CharField(
         max_length=50,
         help_text='Type of notification (e.g., request_submitted, request_approved, item_issued).'

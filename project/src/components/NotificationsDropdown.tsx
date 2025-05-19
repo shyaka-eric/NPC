@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useNotificationStore } from '../store/notificationStore';
+import { useNotificationsStore } from '../store/notificationsStore';
 import { formatRelativeTime } from '../utils/formatters'; // Assuming you have this utility
 import Button from './ui/Button';
 import { X } from 'lucide-react';
@@ -10,7 +10,7 @@ interface NotificationsDropdownProps {
 
 const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ onClose }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { notifications, unreadCount, isLoading, error, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
+  const { notifications, unreadCount, isLoading, error, fetchNotifications, markAsRead, markAllAsRead } = useNotificationsStore();
 
   useEffect(() => {
     // Fetch notifications when the dropdown opens

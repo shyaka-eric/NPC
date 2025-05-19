@@ -8,36 +8,18 @@ from asgiref.sync import async_to_sync
 User = get_user_model()
 
 @receiver(post_save, sender=Request)
-def notify_admin_on_new_request(sender, instance, created, **kwargs):
-    if created: # Check if a new instance of Request was created
-        # Find all admin users
-        admins = User.objects.filter(role='admin')
-
-        # Create and send notification to each admin
-        for admin in admins:
-            # Create Notification in the database
-            notification = Notification.objects.create(
-                user=admin,
-                message=f"New request submitted by {instance.requested_by.username} ({instance.item.name}).",
+def request_created(sender, instance, created, **kwargs):
+    if created:
+        # Get all admin users
+        admin_users = User.objects.filter(role__in=['admin', 'system-admin'])
+        
+        # Create notifications for each admin user
+        for admin in admin_users:
+            Notification.objects.create(
+                user=admin,  # Set the specific admin user as recipient
+                message=f"New request for {instance.item.name} from {instance.requested_by.get_full_name() or instance.requested_by.username}",
                 notification_type='request_submitted'
             )
-
-            # Send real-time notification via Channels
-            channel_layer = get_channel_layer()
-            if channel_layer:
-                async_to_sync(channel_layer.group_send)(
-                    # Assuming an 'admin_notifications' group or use individual user groups
-                    # Let's use individual user groups for targeted notifications
-                    f"user_{admin.id}", # Send to the specific admin's group
-                    {
-                        'type': 'send_notification', # Method in your consumer
-                        'message': notification.message,
-                        'notification_type': notification.notification_type,
-                        'created_at': notification.created_at.isoformat(),
-                        'is_read': notification.is_read,
-                        'id': notification.id, # Include ID for frontend management
-                    }
-                )
 
 @receiver(post_save, sender=Request)
 def notify_users_on_request_approval(sender, instance, created, **kwargs):

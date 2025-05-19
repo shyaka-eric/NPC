@@ -14,7 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
             'username': {'required': True},
             'email': {'required': True},
             'role': {'required': True},
-            'password': {'write_only': True}
+            'password': {'write_only': True, 'required': True}
         }
 
     def get_name(self, obj):
@@ -33,7 +33,9 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        print("Validated data:", validated_data)  # Debug print
         password = validated_data.pop('password', None)
+        print("Password:", password)  # Debug print
         user = super().create(validated_data)
         if password:
             user.set_password(password)
@@ -90,7 +92,7 @@ class RequestSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['id', 'message', 'is_read', 'created_at', 'notification_type', 'request']
+        fields = ['id', 'message', 'is_read', 'created_at', 'notification_type']
         read_only_fields = ['id', 'created_at']
 
 class LogSerializer(serializers.ModelSerializer):

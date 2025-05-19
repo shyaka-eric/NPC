@@ -52,15 +52,18 @@ const useNotificationWebSocket = () => {
           const data = JSON.parse(event.data);
           console.log('WebSocket message received:', data);
           if (data.message) {
-            addNotification({
+            // Create notification object
+            const notification = {
               id: data.data.notification_id,
               message: data.message,
               notification_type: data.notification_type,
               is_read: false,
               created_at: new Date(data.data.created_at),
-              request: data.data.request_id,
               user: localStorage.getItem('userId') || ''
-            });
+            };
+            
+            // Add notification and increment count only if it's not a duplicate
+            addNotification(notification);
             incrementUnreadCount();
           }
         } catch (error) {

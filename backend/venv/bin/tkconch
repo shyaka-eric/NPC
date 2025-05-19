@@ -1,4 +1,4 @@
-#!/home/brilliant/Videos/NPC/backend/venv/bin/python3
+#!/home/brilliant/NPC/backend/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

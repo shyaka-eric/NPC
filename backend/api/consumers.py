@@ -1,13 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from django.contrib.auth import get_user_model
 from asgiref.sync import async_to_sync
-from rest_framework_simplejwt.tokens import AccessToken
-from django.contrib.auth.models import AnonymousUser
-from .models import Notification
-
-User = get_user_model()
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -25,10 +19,10 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         try:
             # Validate token and get user
+            from rest_framework_simplejwt.tokens import AccessToken
             access_token = AccessToken(token)
             user_id = access_token['user_id']
             self.user = await self.get_user(user_id)
-            
             if not self.user or not self.user.is_authenticated:
                 await self.close()
                 return
@@ -45,9 +39,12 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_user(self, user_id):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
         try:
             return User.objects.get(id=user_id)
         except User.DoesNotExist:
+            from django.contrib.auth.models import AnonymousUser
             return AnonymousUser()
 
     async def disconnect(self, close_code):
@@ -79,6 +76,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
 @database_sync_to_async
 def notify_admins(request):
+    from .models import Notification
     notification = Notification.objects.create(
         user=request.requested_by,
         message=f"New request submitted by {request.requested_by.username}",

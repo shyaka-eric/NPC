@@ -10,7 +10,6 @@ import Pagination from '../components/Pagination';
 import SimpleModal from '../components/ui/SimpleModal';
 import Button from '../components/ui/Button';
 import { toast } from 'sonner';
-// import { fetchRepairRequests } from '../services/api'; // Remove or update this import if fetchRepairRequests is not used or move it to the correct file if it exists
 
 const ITEMS_PER_PAGE = 15;
 
@@ -30,21 +29,7 @@ const MyRequests: React.FC = () => {
       try {
         await fetchItems();
         await fetchRequests(); // updates the store
-        const repairRequests = await fetchRepairRequests();
-        // Normalize repair requests to match the table structure
-        const normalizedRepairs = (repairRequests || []).map((r: any) => ({
-          ...r,
-          type: 'repair',
-          requested_by: r.requested_by, // or r.requested_by.id if needed
-          requested_at: r.created_at,
-          item: r.item,
-          quantity: 1, // repairs are always 1
-          status: r.status,
-        }));
-        setCombinedRequests([
-          ...requests, // from the store, already normalized
-          ...normalizedRepairs
-        ]);
+        setCombinedRequests(requests); // Use only the requests from the store
       } catch (error) {
         toast.error('Failed to load requests');
       } finally {
@@ -52,7 +37,7 @@ const MyRequests: React.FC = () => {
       }
     };
     loadRequests();
-  }, [fetchRequests, fetchItems]);
+  }, [fetchRequests, fetchItems, requests]);
 
   // Filter requests for the current user
   const myRequests = combinedRequests
@@ -197,4 +182,4 @@ const MyRequests: React.FC = () => {
   );
 };
 
-export default MyRequests; 
+export default MyRequests;

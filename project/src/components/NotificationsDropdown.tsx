@@ -3,6 +3,7 @@ import { useNotificationsStore } from '../store/notificationsStore';
 import { formatRelativeTime } from '../utils/formatters'; // Assuming you have this utility
 import Button from './ui/Button';
 import { X } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 
 interface NotificationsDropdownProps {
   onClose: () => void;
@@ -11,11 +12,14 @@ interface NotificationsDropdownProps {
 const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ onClose }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { notifications, unreadCount, isLoading, error, fetchNotifications, markAsRead, markAllAsRead } = useNotificationsStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    // Fetch notifications when the dropdown opens
-    fetchNotifications();
-  }, [fetchNotifications]);
+    const userId = user?.id || localStorage.getItem('userId');
+    if (userId) {
+      fetchNotifications(userId);
+    }
+  }, [fetchNotifications, user]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -32,14 +36,17 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ onClose }
     };
   }, [onClose]);
 
-  const handleMarkAsRead = async (notificationId: number) => {
-    await markAsRead(notificationId);
+  const handleMarkAsRead = async (notificationId: number | string) => {
+    await markAsRead(String(notificationId));
     // Optionally close the dropdown after marking as read if desired
     // onClose();
   };
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
+    const userId = user?.id || localStorage.getItem('userId');
+    if (userId) {
+      await markAllAsRead(userId);
+    }
     // Optionally close the dropdown after marking all as read if desired
     // onClose();
   };

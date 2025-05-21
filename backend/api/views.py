@@ -76,12 +76,27 @@ class RequestViewSet(viewsets.ModelViewSet):
             elif request.status == 'denied':
                 notify_request_denied(request)
             elif request.status == 'issued':
-                # Call notify_item_issued to handle item issuance
                 notify_item_issued(request)
+                # --- Create IssuedItem(s) if not already exists ---
+                if not request.issued_item:
+                    issued_items = []
+                    for _ in range(request.quantity):
+                        issued_item = IssuedItem.objects.create(
+                            item=request.item,
+                            assigned_to=request.requested_by
+                        )
+                        issued_items.append(issued_item)
+                    # Link the first issued item to the request for backward compatibility
+                    if issued_items:
+                        request.issued_item = issued_items[0]
+                        request.save(update_fields=['issued_item'])
 
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
 
 class LogViewSet(viewsets.ModelViewSet):
     queryset = Log.objects.all()

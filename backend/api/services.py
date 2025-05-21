@@ -3,18 +3,17 @@ from asgiref.sync import async_to_sync
 from .models import Notification, User, IssuedItem
 from django.utils import timezone
 
-def send_notification(recipient_id, notification_type, message, request=None):
+def send_notification(recipient_id, notification_type, message):
     """
     Send a notification to a specific user
     """
     try:
-        # Create notification in database
+        # Create notification in database (remove 'request' kwarg)
         notification = Notification.objects.create(
             user_id=recipient_id,
             notification_type=notification_type,
             message=message,
-            is_read=False,
-            request=request
+            is_read=False
         )
 
         # Send notification through WebSocket
@@ -24,9 +23,8 @@ def send_notification(recipient_id, notification_type, message, request=None):
             "message": message,
             "notification_type": notification_type,
             "data": {
-                "notification_id": str(notification.id),
+                "notification_id": notification.id,
                 "created_at": notification.created_at.isoformat(),
-                "request_id": str(request.id) if request else None
             }
         }
 
@@ -34,7 +32,6 @@ def send_notification(recipient_id, notification_type, message, request=None):
             f"user_{recipient_id}_notifications",
             notification_data
         )
-        
         return notification
     except Exception as e:
         print(f"Error sending notification: {str(e)}")
@@ -49,8 +46,7 @@ def notify_request_submitted(request):
         send_notification(
             admin.id,
             'request_submitted',
-            f'New request submitted by {request.requested_by.get_full_name()} for {request.item.name}',
-            request
+            f'New request submitted by {request.requested_by.get_full_name()} for {request.item.name}'
         )
 
 def notify_request_approved(request):
@@ -63,16 +59,14 @@ def notify_request_approved(request):
         send_notification(
             user.id,
             'request_approved',
-            f'Request for {request.item.name} has been approved',
-            request
+            f'Request for {request.item.name} has been approved'
         )
 
     # Notify unit leader
     send_notification(
         request.requested_by.id,
         'request_approved',
-        f'Your request for {request.item.name} has been approved',
-        request
+        f'Your request for {request.item.name} has been approved'
     )
 
 def notify_request_denied(request):
@@ -82,8 +76,7 @@ def notify_request_denied(request):
     send_notification(
         request.requested_by.id,
         'request_denied',
-        f'Your request for {request.item.name} has been denied',
-        request
+        f'Your request for {request.item.name} has been denied'
     )
 
 def notify_item_issued(request):
@@ -96,7 +89,6 @@ def notify_item_issued(request):
             item=request.item,
             assigned_to=request.requested_by,
             assigned_date=timezone.now(),
-            expiration_date=None  # Set expiration date if applicable
         )
 
     # Assign the last issued item to the request (for reference)
@@ -107,6 +99,5 @@ def notify_item_issued(request):
     send_notification(
         request.requested_by.id,
         'item_issued',
-        f'Your requested item {request.item.name} has been issued',
-        request
+        f'Your requested item {request.item.name} has been issued'
     )

@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useNotificationsStore } from '../store/notificationsStore';
 import { useAuthStore } from '../store/authStore';
+import { toast } from 'sonner';
 
 const useNotificationWebSocket = () => {
   const websocketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<number | undefined>();
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   const { addNotification, incrementUnreadCount } = useNotificationsStore();
@@ -61,10 +62,16 @@ const useNotificationWebSocket = () => {
               created_at: new Date(data.data.created_at),
               user: localStorage.getItem('userId') || ''
             };
-            
-            // Add notification and increment count only if it's not a duplicate
-            addNotification(notification);
-            incrementUnreadCount();
+            // Check if notification already exists in store (deduplication)
+            const exists = useNotificationsStore.getState().notifications.some(n => n.id === notification.id);
+            if (!exists) {
+              addNotification(notification);
+              incrementUnreadCount();
+              toast.info(notification.message, {
+                description: 'You have a new notification',
+                duration: 5000,
+              });
+            }
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -108,4 +115,4 @@ const useNotificationWebSocket = () => {
   return null;
 };
 
-export default useNotificationWebSocket; 
+export default useNotificationWebSocket;

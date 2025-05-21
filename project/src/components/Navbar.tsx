@@ -87,7 +87,17 @@ const Navbar: React.FC = () => {
                   </span>
                 )}
               </button>
-              {isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} />}
+              {/* Only render one NotificationsDropdown at a time, responsive */}
+              {isNotificationsOpen && (
+                <div>
+                  <div className="hidden sm:block">
+                    <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} />
+                  </div>
+                  <div className="block sm:hidden">
+                    <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Profile dropdown */}
@@ -219,9 +229,6 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       )}
-      
-      {/* Notifications dropdown for mobile */}
-      {isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} isMobile={true} />}
     </nav>
   );
 };

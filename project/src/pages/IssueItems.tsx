@@ -19,38 +19,39 @@ const IssueItems: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      await fetchRequests();
-      await fetchItems();
+      await fetchItems(); // Fetch items first
+      await fetchRequests(); // Then fetch requests
       setIsLoading(false);
-      // Debug log
-      console.log('Fetched requests:', requests);
     };
     load();
   }, [fetchRequests, fetchItems]);
 
-  const getItem = (itemId: number) => items.find(i => i.id === itemId);
+  const getItem = (itemId: any) => items.find(i => String(i.id) === String(itemId));
 
   const handleIssueItem = async (request: any) => {
     if (!user) return;
+    setIsLoading(true); // Prevent double actions
+    await fetchItems(); // Always get latest items before issuing
     const item = getItem(request.item);
     if (!item || item.quantity < request.quantity) {
       toast.error('Not enough stock to issue this item.');
+      setIsLoading(false);
       return;
     }
     try {
-      // 1. Mark request as issued
       await issueRequest(request.id, user.id);
-      // 2. Reduce item quantity and set status to in-use, assign to requester
       await updateItem(item.id, {
         quantity: item.quantity - request.quantity,
         status: 'in-use',
-        assigned_to: request.requested_by
+        assignedTo: request.requested_by
       });
-      // 3. Re-fetch requests to update the table
-      await fetchRequests();
+      await fetchItems(); // Refresh items after update
+      await fetchRequests(); // Refresh requests after update
       toast.success('Item issued successfully');
     } catch (error) {
       toast.error('Failed to issue item');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -75,11 +76,11 @@ const IssueItems: React.FC = () => {
     },
     {
       header: 'Quantity',
-      accessor: 'quantity'
+      accessor: (request: any) => request.quantity
     },
     {
       header: 'Requested By',
-      accessor: 'requested_by_name'
+      accessor: (request: any) => request.requested_by_name
     },
     {
       header: 'Status',

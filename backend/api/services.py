@@ -101,3 +101,10 @@ def notify_item_issued(request):
         'item_issued',
         f'Your requested item {request.item.name} has been issued'
     )
+
+def notify_repair_completed(repair_request):
+    Notification.objects.create(
+        user=repair_request.requested_by,
+        message=f'Your repair request for {repair_request.issued_item.item.name} (S/N: {repair_request.issued_item.serial_number}) has been completed.',
+        notification_type='repair_completed'
+    )

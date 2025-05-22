@@ -1,5 +1,13 @@
 from rest_framework import serializers
-from .models import User, Item, Request, Notification, Log, Settings, RepairRequest, IssuedItem
+from .models import User, Item, Request, Notification, Log, Settings, RepairRequest, IssuedItem, DamagedItem
+
+class IssuedItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source='item.name', read_only=True)
+    item_category = serializers.CharField(source='item.category', read_only=True)
+
+    class Meta:
+        model = IssuedItem
+        fields = ['id', 'item', 'item_name', 'item_category', 'assigned_to', 'assigned_date', 'serial_number']
 
 class UserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
@@ -109,9 +117,11 @@ class RepairRequestSerializer(serializers.ModelSerializer):
     serial_number = serializers.CharField(source='issued_item.serial_number', read_only=True)
     requested_by_name = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
+    issued_item = IssuedItemSerializer(read_only=True)
 
     class Meta:
         model = RepairRequest
+        # Remove the plain 'issued_item' id field, only use the nested serializer
         fields = ['id', 'item', 'issued_item', 'requested_by', 'requested_by_name', 'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at', 'type']
         read_only_fields = ['requested_by', 'serial_number', 'created_at', 'updated_at']
 
@@ -126,10 +136,61 @@ class RepairRequestSerializer(serializers.ModelSerializer):
     def get_type(self, obj):
         return 'repair'
 
-class IssuedItemSerializer(serializers.ModelSerializer):
-    item_name = serializers.CharField(source='item.name', read_only=True)
-    item_category = serializers.CharField(source='item.category', read_only=True)
+    def update(self, instance, validated_data):
+        # Call the parent class's update method to handle standard field updates
+        updated_repair_request = super().update(instance, validated_data)
+
+        # Check if the status has been changed to 'damaged'
+        if updated_repair_request.status == 'damaged' and instance.status != 'damaged':
+            # Get the associated IssuedItem and Item
+            issued_item = updated_repair_request.issued_item
+            item = issued_item.item
+
+            # Decrement the quantity of the main Item
+            item.quantity -= 1
+            item.save()
+
+            # Ensure the user is set correctly for marked_by
+            request_user = self.context.get('request').user if self.context.get('request', None) else None
+            DamagedItem.objects.create(
+                issued_item=issued_item,
+                repair_request=updated_repair_request,
+                marked_by=request_user
+            )
+
+        return updated_repair_request
+
+class DamagedItemSerializer(serializers.ModelSerializer):
+    issued_item = serializers.PrimaryKeyRelatedField(queryset=IssuedItem.objects.all())
+    repair_request = serializers.PrimaryKeyRelatedField(queryset=RepairRequest.objects.all(), required=False, allow_null=True)
+    item_name = serializers.SerializerMethodField()
+    item_category = serializers.SerializerMethodField()
+    issued_item_serial_number = serializers.CharField(source='issued_item.serial_number', read_only=True)
+    marked_by_name = serializers.SerializerMethodField()
 
     class Meta:
-        model = IssuedItem
-        fields = ['id', 'item', 'item_name', 'item_category', 'assigned_to', 'assigned_date', 'serial_number']
+        model = DamagedItem
+        fields = ['id', 'issued_item', 'issued_item_serial_number', 'item_name', 'item_category', 'repair_request', 'marked_by', 'marked_by_name', 'marked_at']
+        read_only_fields = ['id', 'issued_item_serial_number', 'item_name', 'item_category', 'marked_by', 'marked_by_name', 'marked_at']
+
+    def get_item_name(self, obj):
+        # Always fetch the item name from the issued_item at the time of marking as damaged
+        if obj.issued_item and obj.issued_item.item:
+            return obj.issued_item.item.name
+        return None
+
+    def get_item_category(self, obj):
+        # Always fetch the item category from the issued_item at the time of marking as damaged
+        if obj.issued_item and obj.issued_item.item:
+            return obj.issued_item.item.category
+        return None
+
+    def get_marked_by_name(self, obj):
+        user = obj.marked_by
+        if user:
+            if hasattr(user, 'get_full_name'):
+                name = user.get_full_name()
+                if name.strip():
+                    return name
+            return getattr(user, 'username', None) or getattr(user, 'email', None) or str(user)
+        return None

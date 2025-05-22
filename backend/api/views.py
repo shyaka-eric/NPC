@@ -1,8 +1,9 @@
 from rest_framework import viewsets, generics, permissions, filters
-from .models import User, Item, Request, Notification, Log, Settings, RepairRequest, IssuedItem
+from .models import User, Item, Request, Notification, Log, Settings, RepairRequest, IssuedItem, DamagedItem
 from .serializers import (
     UserSerializer, ItemSerializer, RequestSerializer,
-    NotificationSerializer, LogSerializer, SettingsSerializer, RepairRequestSerializer, IssuedItemSerializer
+    NotificationSerializer, LogSerializer, SettingsSerializer, RepairRequestSerializer, IssuedItemSerializer,
+    DamagedItemSerializer
 )
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
@@ -15,7 +16,8 @@ from .services import (
     notify_request_submitted,
     notify_request_approved,
     notify_request_denied,
-    notify_item_issued
+    notify_item_issued,
+    notify_repair_completed
 )
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import logging
@@ -161,21 +163,25 @@ def has_users(request):
     from .models import User
     return Response({'has_users': User.objects.exists()})
 
-from rest_framework.views import APIView
+class RepairRequestViewSet(viewsets.ModelViewSet):
+    queryset = RepairRequest.objects.select_related('issued_item', 'item').all()
+    serializer_class = RepairRequestSerializer
+    # You might want to add permissions here, e.g., IsAuthenticated
 
-class RepairRequestListView(APIView):
-    def get(self, request):
-        repair_requests = RepairRequest.objects.select_related('issued_item', 'item').all()
-        serializer = RepairRequestSerializer(repair_requests, many=True)
+    @action(detail=True, methods=['patch'])
+    def mark_repaired(self, request, pk=None):
+        repair_request = self.get_object()
+        if repair_request.status != 'pending':
+            return Response({'detail': 'Repair request is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        repair_request.status = 'repaired'
+        repair_request.save()
+
+        # Notify the unit leader that the item is repaired
+        notify_repair_completed(repair_request)
+
+        serializer = self.get_serializer(repair_request)
         return Response(serializer.data)
-
-    def post(self, request):
-        data = request.data.copy()
-        serializer = RepairRequestSerializer(data=data)
-        if serializer.is_valid():
-            repair_request = serializer.save(requested_by=request.user)
-            return Response(RepairRequestSerializer(repair_request).data, status=201)
-        return Response(serializer.errors, status=400)
 
 class IssuedItemListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -258,3 +264,32 @@ class NotificationMarkAllAsReadView(APIView):
         # Mark all unread notifications for the authenticated user as read
         count = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         return Response({'message': f'Marked {count} notifications as read.'}, status=status.HTTP_200_OK)
+
+class DamagedItemViewSet(viewsets.ModelViewSet):
+    queryset = DamagedItem.objects.select_related('issued_item__item', 'marked_by').all()
+    serializer_class = DamagedItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        repair_request_id = request.data.get('repair_request')
+        existing_damaged = DamagedItem.objects.filter(repair_request__id=repair_request_id).first()
+        if existing_damaged:
+            return Response({
+                'detail': 'This item is already marked as damaged.',
+                'damaged_at': existing_damaged.marked_at,
+                'marked_by': existing_damaged.marked_by.username if existing_damaged.marked_by else 'Unknown'
+            }, status=status.HTTP_409_CONFLICT)
+
+        try:
+            repair_request = RepairRequest.objects.get(id=repair_request_id)
+            repair_request.status = 'damaged'
+            repair_request.save()
+            
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except RepairRequest.DoesNotExist:
+            return Response({'detail': 'Repair request not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

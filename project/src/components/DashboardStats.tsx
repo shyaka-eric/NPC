@@ -19,7 +19,7 @@ const DashboardStats: React.FC = () => {
 
   if (!user) return null; // Ensure user is not null before rendering
 
-  const inStockItems = items.filter(item => item.status === 'in-stock').reduce((sum, item) => sum + item.quantity, 0);
+  const inStockItems = items.filter(item => item.status === 'available').reduce((sum, item) => sum + item.quantity, 0);
   const inUseItems = issuedItems
     .filter(item => String(item.assigned_to) === String(user?.id))
     .length;
@@ -65,16 +65,13 @@ const DashboardStats: React.FC = () => {
               title="Available Items"
               value={formatNumber(inStockItems)}
               icon={<Package size={24} />}
+              onClick={() => navigate('/admin/stock')}
             />
             <StatCard
-              title="Requests"
-              value={pendingRequests}
+              title="Pending Requests"
+              value={requests.filter(req => req.status === 'pending').length}
               icon={<ClipboardList size={24} />}
-            />
-            <StatCard
-              title="Fulfilled Requests"
-              value={fulfilledRequests}
-              icon={<CheckCircle size={24} />}
+              onClick={() => navigate('/pending-requests')}
             />
           </>
         );
@@ -124,7 +121,7 @@ const DashboardStats: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
       {renderCards()}
     </div>
   );

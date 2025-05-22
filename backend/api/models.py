@@ -153,3 +153,12 @@ class RepairRequest(models.Model):
 
     def __str__(self):
         return f"RepairRequest({self.status})"
+
+class DamagedItem(models.Model):
+    issued_item = models.OneToOneField('IssuedItem', on_delete=models.CASCADE, related_name='damaged_item')
+    repair_request = models.OneToOneField('RepairRequest', on_delete=models.SET_NULL, null=True, blank=True, related_name='damaged_item_record')
+    marked_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='marked_as_damaged_items')
+    marked_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Damaged: {self.issued_item.serial_number}"

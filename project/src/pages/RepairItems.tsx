@@ -29,15 +29,34 @@ const RepairItems: React.FC = () => {
     load();
   }, []);
 
+  const refreshRepairRequests = async () => {
+    setIsLoading(true);
+    const repairRequestsData = await fetchRepairRequests();
+    setRepairRequests(repairRequestsData);
+    setIsLoading(false);
+  };
+
   const handleApprove = async (request: any) => {
     try {
-      await approveRequest(request.id, '', undefined);
-      toast.success('Request approved.');
-      setRepairRequests(repairRequests.map(r => 
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.');
+        return;
+      }
+      // Call the correct endpoint for repair-in-process
+      await axios.patch(`${API_URL}/api/repair-requests/${request.id}/mark_repair_in_process/`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      toast.success('Request moved to repair in process.');
+      setRepairRequests(repairRequests.map(r =>
         r.id === request.id ? { ...r, status: 'repair-in-process' } : r
       ));
-    } catch {
-      toast.error('Failed to approve request.');
+      setTimeout(refreshRepairRequests, 500);
+    } catch (error) {
+      toast.error('Failed to move request to repair in process.');
+      await refreshRepairRequests();
     }
   };
 
@@ -45,6 +64,7 @@ const RepairItems: React.FC = () => {
     try {
       await denyRequest(request.id, '', 'Denied by admin');
       toast.success('Request denied.');
+      await refreshRepairRequests();
     } catch {
       toast.error('Failed to deny request.');
     }
@@ -82,16 +102,12 @@ const RepairItems: React.FC = () => {
         },
       });
       toast.success('Item marked as damaged and added to damaged items list.');
-      setRepairRequests(repairRequests.map(r => 
-        r.id === request.id ? { ...r, status: 'marked-damaged' } : r
-      ));
+      await refreshRepairRequests();
     } catch (error) {
       console.error('Error marking item as damaged:', error);
       if (axios.isAxiosError(error) && error.response?.status === 409) {
         toast.error('This item has already been marked as damaged.');
-         setRepairRequests(repairRequests.map(r => 
-          r.id === request.id ? { ...r, status: 'marked-damaged' } : r
-        ));
+        await refreshRepairRequests();
       } else if (axios.isAxiosError(error) && error.response?.status === 500) {
         toast.error('Server error occurred. Please try again later.');
       } else {
@@ -108,8 +124,8 @@ const RepairItems: React.FC = () => {
 
   const columns = [
     { header: 'Request Date', accessor: (r: any) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
-    { header: 'Category', accessor: (r: any) => r.category || (items.find((i: any) => i.id === r.item)?.category || '-') },
-    { header: 'Item', accessor: (r: any) => r.item_name || (items.find((i: any) => i.id === r.item)?.name || '-') },
+    { header: 'Category', accessor: (r: any) => r.issued_item?.item_category || r.category || (items.find((i: any) => i.id === r.item)?.category || '-') },
+    { header: 'Item', accessor: (r: any) => r.issued_item?.item_name || r.item_name || (items.find((i: any) => i.id === r.item)?.name || '-') },
     { header: 'Requested By', accessor: (r: any) => r.requested_by_name || '-' },
     { header: 'Picture', accessor: (r: any) => {
       const url = getPictureUrl(r);
@@ -122,16 +138,16 @@ const RepairItems: React.FC = () => {
     {
       header: 'Actions',
       accessor: (r: any) => {
-        if (r.status === 'marked-damaged') {
+        if (r.status === 'marked-damaged' || r.status === 'damaged') {
           return <span className="text-red-600 font-semibold">Marked Damaged</span>;
         }
-         if (r.status === 'repair-in-process') {
+        if (r.status === 'repair-in-process') {
           return <span className="text-yellow-600 font-semibold">Repair in process</span>;
         }
         return (
         <div className="flex gap-2">
           <Button size="sm" variant="success" onClick={() => handleApprove(r)} disabled={r.status !== 'pending'}>Repair</Button>
-            <Button size="sm" variant="danger" onClick={() => handleMarkAsDamaged(r)} disabled={r.status !== 'pending'}>Damaged</Button>
+          <Button size="sm" variant="danger" onClick={() => handleMarkAsDamaged(r)} disabled={r.status !== 'pending'}>Damaged</Button>
         </div>
         );
       }

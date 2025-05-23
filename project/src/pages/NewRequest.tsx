@@ -210,9 +210,15 @@ const NewRequest: React.FC = () => {
       if (formData.type === 'repair') {
         // Find the issued item by serial number
         const foundIssuedItem = inUseItems.find((item: any) => item.serial_number === formData.serialNumber);
+        if (!foundIssuedItem) {
+          toast.error('You must select a valid issued item for repair.');
+          setIsLoading(false);
+          return;
+        }
+        // Use the API directly for FormData
         const form = new FormData();
-        form.append('item', foundIssuedItem ? foundIssuedItem.item : formData.itemTrueId);
-        form.append('issued_item', foundIssuedItem ? foundIssuedItem.id : '');
+        form.append('item', foundIssuedItem.item.toString());
+        form.append('issued_item_id', foundIssuedItem.id.toString());
         form.append('serialNumber', formData.serialNumber);
         form.append('description', formData.issueDescription);
         form.append('priority', formData.priority);
@@ -220,7 +226,17 @@ const NewRequest: React.FC = () => {
         if (file) {
           form.append('picture', file);
         }
-        await addRequest(form);
+        const response = await fetch('/api/repair-requests/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            // Do NOT set Content-Type here, let the browser set it for FormData
+          },
+          body: form
+        });
+        if (!response.ok) {
+          throw new Error('Failed to create repair request');
+        }
       } else {
       const payload: any = {
         type: formData.type as RequestType,
@@ -307,6 +323,17 @@ const NewRequest: React.FC = () => {
             onChange={handleFileChange}
             required
           />
+          {file && (
+            <div className="mt-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Image Preview:</label>
+              <img
+                src={URL.createObjectURL(file)}
+                alt="Preview"
+                className="max-h-48 border rounded shadow"
+                style={{ maxWidth: '100%', objectFit: 'contain' }}
+              />
+            </div>
+          )}
         </>
       );
     }

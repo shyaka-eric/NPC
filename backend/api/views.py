@@ -23,6 +23,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 import logging
 from rest_framework.views import APIView
 from rest_framework import status
+from .utils import log_action
+from rest_framework.exceptions import PermissionDenied
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +69,8 @@ class RequestViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         request = serializer.save(requested_by=self.request.user)
         notify_request_submitted(request)
+        # Log the action
+        log_action(self.request.user, 'Requested Item', f"Requested {request.quantity} x {request.item.name}")
 
     def perform_update(self, serializer):
         old_status = serializer.instance.status
@@ -75,10 +79,13 @@ class RequestViewSet(viewsets.ModelViewSet):
         if old_status != request.status:
             if request.status == 'approved':
                 notify_request_approved(request)
+                log_action(self.request.user, 'Approved Request', f"Approved request for {request.quantity} x {request.item.name}")
             elif request.status == 'denied':
                 notify_request_denied(request)
+                log_action(self.request.user, 'Denied Request', f"Denied request for {request.quantity} x {request.item.name}")
             elif request.status == 'issued':
                 notify_item_issued(request)
+                log_action(self.request.user, 'Issued Item', f"Issued {request.quantity} x {request.item.name}")
                 # --- Create IssuedItem(s) if not already exists ---
                 if not request.issued_item:
                     issued_items = []
@@ -144,17 +151,21 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         attrs = {"username": user.username, "password": password}
         return super().validate(attrs)
 
-class EmailTokenObtainPairView(TokenObtainPairView):
+class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         if response.status_code == 200:
-            from .serializers import UserSerializer
-            from .models import User
-            email = request.data.get('email')
-            user = User.objects.get(email=email)
-            response.data['user'] = UserSerializer(user).data
+            # Get user from validated data if not in request
+            user = getattr(request, 'user', None)
+            if not user or not user.is_authenticated:
+                from django.contrib.auth import authenticate
+                username = request.data.get('username')
+                password = request.data.get('password')
+                user = authenticate(username=username, password=password)
+            if user and user.is_authenticated:
+                log_action(user, 'Login', f'{user.username} logged in')
         return response
 
 @api_view(['GET'])
@@ -168,18 +179,38 @@ class RepairRequestViewSet(viewsets.ModelViewSet):
     serializer_class = RepairRequestSerializer
     # You might want to add permissions here, e.g., IsAuthenticated
 
+    def create(self, request, *args, **kwargs):
+        print('DEBUG RepairRequestViewSet.create request.data:', request.data)
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        repair_request = serializer.save()
+        return Response(self.get_serializer(repair_request).data, status=201)
+
     @action(detail=True, methods=['patch'])
     def mark_repaired(self, request, pk=None):
         repair_request = self.get_object()
-        if repair_request.status != 'pending':
-            return Response({'detail': 'Repair request is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
-
+        # Only allow marking as repaired if status is 'repair-in-process'
+        if repair_request.status != 'repair-in-process':
+            return Response({'detail': 'Repair request is not in repair-in-process state.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Only allow logistics officer (fix: use correct role string)
+        if not hasattr(request.user, 'role') or request.user.role != 'logistics-officer':
+            raise PermissionDenied('Only logistics officers can mark as repaired.')
         repair_request.status = 'repaired'
         repair_request.save()
 
         # Notify the unit leader that the item is repaired
         notify_repair_completed(repair_request)
 
+        serializer = self.get_serializer(repair_request)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'])
+    def mark_repair_in_process(self, request, pk=None):
+        repair_request = self.get_object()
+        if repair_request.status != 'pending':
+            return Response({'detail': 'Repair request is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
+        repair_request.status = 'repair-in-process'
+        repair_request.save()
         serializer = self.get_serializer(repair_request)
         return Response(serializer.data)
 
@@ -284,7 +315,29 @@ class DamagedItemViewSet(viewsets.ModelViewSet):
             repair_request = RepairRequest.objects.get(id=repair_request_id)
             repair_request.status = 'damaged'
             repair_request.save()
-            
+            # Decrement item quantity and unassign issued item
+            issued_item = repair_request.issued_item
+            print(f"[DEBUG] Issued item for repair request {repair_request_id}: {issued_item}")
+            if issued_item:
+                item = issued_item.item
+                print(f"[DEBUG] Item before decrement: {item.name}, quantity: {item.quantity}")
+                item.quantity = max(item.quantity - 1, 0)
+                item.save()
+                print(f"[DEBUG] Item after decrement: {item.name}, quantity: {item.quantity}")
+                issued_item.assigned_to = None
+                issued_item.save()
+                print(f"[DEBUG] Issued item after unassign: assigned_to={issued_item.assigned_to}")
+            else:
+                print(f"[DEBUG] No issued_item found for repair request {repair_request_id}")
+            # Log the action
+            log_action(request.user, 'Marked as Damaged', f"Marked item {repair_request.issued_item.item.name} (S/N: {repair_request.issued_item.serial_number}) as damaged")
+            # Notify the unit leader to request a new item
+            from .services import send_notification
+            send_notification(
+                repair_request.requested_by.id,
+                'item_damaged',
+                f'Your item {repair_request.issued_item.item.name} (S/N: {repair_request.issued_item.serial_number}) was marked as damaged. Please request a replacement.'
+            )
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
@@ -292,4 +345,11 @@ class DamagedItemViewSet(viewsets.ModelViewSet):
         except RepairRequest.DoesNotExist:
             return Response({'detail': 'Repair request not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(f"[DEBUG] Exception in DamagedItemViewSet.create: {e}")
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def log_dashboard_access(request):
+    log_action(request.user, "Dashboard Access", f"{request.user.username} accessed the dashboard")
+    return Response({"status": "logged"})

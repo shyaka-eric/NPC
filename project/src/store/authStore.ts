@@ -28,10 +28,14 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ error: null });
     try {
       const response = await api.post('auth/login/', { email, password });
-      const { user, access } = response.data;
+      const { access } = response.data;
       if (!access) throw new Error('No token received from backend');
       localStorage.setItem('token', access);
-      set({ user, isAuthenticated: true });
+      // Fetch user profile after login
+      const userRes = await api.get('auth/user/', {
+        headers: { Authorization: `Bearer ${access}` }
+      });
+      set({ user: userRes.data, isAuthenticated: true });
     } catch (error: any) {
       set({ error: error.response?.data?.detail || error.message, isAuthenticated: false });
       throw error;

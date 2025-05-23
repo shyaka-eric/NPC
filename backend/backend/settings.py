@@ -41,11 +41,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'channels',
+    'rest_framework_simplejwt.token_blacklist',
     'api',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Must be first
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -133,12 +134,24 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
-
-# Alternatively, to allow all origins (not recommended for production):
+# Only allow all origins for development, do not set both CORS_ALLOWED_ORIGINS and CORS_ALLOW_ALL_ORIGINS
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+# Comment out or remove CORS_ALLOWED_ORIGINS to avoid conflict
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:3000',
+# ]
 
 AUTH_USER_MODEL = 'api.User'
 

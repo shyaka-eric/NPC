@@ -107,7 +107,7 @@ class Settings(models.Model):
 
 class IssuedItem(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='issued_items')
-    assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='issued_items')
+    assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='issued_items', null=True, blank=True)
     assigned_date = models.DateTimeField(auto_now_add=True)
     serial_number = models.CharField(max_length=100, unique=True, null=True, blank=True)  # Re-add unique constraint
 
@@ -139,6 +139,7 @@ class IssuedItem(models.Model):
 class RepairRequest(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('repair-in-process', 'Repair In Process'),
         ('repaired', 'Repaired'),
         ('damaged', 'Damaged'),
     ]

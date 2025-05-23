@@ -32,7 +32,7 @@ const RepairInProgress: React.FC = () => {
   const [repairRequests, setRepairRequests] = useState<RepairRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAuthStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     fetchRepairInProgressRequests();
@@ -70,36 +70,54 @@ const RepairInProgress: React.FC = () => {
         toast.error('Authentication token not found. Please log in again.');
         return;
       }
-
       await axios.patch(`${API_URL}/api/repair-requests/${request.id}/mark_repaired/`, {}, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       toast.success('Item marked as repaired.');
-      // Remove the repaired item from the list
-      setRepairRequests(repairRequests.filter(r => r.id !== request.id));
+      await fetchRepairInProgressRequests();
     } catch (error) {
       console.error('Error marking item as repaired:', error);
       toast.error('Failed to mark item as repaired.');
     }
   };
 
+  // Use the correct UserRole value for logistic officer
+  const isLogisticOfficer = user?.role === 'logistics-officer';
+
   const columns = [
     { header: 'Request Date', accessor: (r: RepairRequest) => format(new Date(r.created_at), 'MMM dd, yyyy') },
-    { header: 'Item', accessor: (r: RepairRequest) => r.issued_item.item.name },
-    { header: 'Serial Number', accessor: (r: RepairRequest) => r.issued_item.serial_number },
+    { header: 'Category', accessor: (r: RepairRequest) => r.issued_item?.item_category || r.issued_item?.item?.category || '-' },
+    { header: 'Item Name', accessor: (r: RepairRequest) => r.issued_item?.item_name || r.issued_item?.item?.name || '-' },
+    { header: 'Serial Number', accessor: (r: RepairRequest) => r.issued_item?.serial_number || '-' },
     { header: 'Requested By', accessor: (r: RepairRequest) => r.requested_by_name },
-     { header: 'Issued To', accessor: (r: RepairRequest) => r.issued_item.assigned_to.name },
     { header: 'Description', accessor: (r: RepairRequest) => r.description },
     { header: 'Status', accessor: (r: RepairRequest) => r.status },
     {
       header: 'Actions',
-      accessor: (r: RepairRequest) => (
-        <Button size="sm" variant="success" onClick={() => handleMarkAsRepaired(r)} disabled={r.status !== 'repair-in-process'}>Mark as Repaired</Button>
-      )
+      accessor: (r: RepairRequest) => {
+        if (isLogisticOfficer && r.status === 'repair-in-process') {
+          return (
+            <Button
+              size="sm"
+              variant="success"
+              onClick={() => handleMarkAsRepaired(r)}
+              disabled={r.status !== 'repair-in-process'}
+            >
+              Mark as Repaired
+            </Button>
+          );
+        }
+        return null;
+      }
     }
   ];
+
+  const keyExtractor = (r: RepairRequest) => r.id.toString();
+
+  // Only show 'repair-in-process' items for everyone (not just logistic officers)
+  const visibleRequests = repairRequests.filter(r => r.status === 'repair-in-process');
 
   if (isLoading) {
     return (
@@ -119,12 +137,17 @@ const RepairInProgress: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <PageHeader title="Repair In Process" description="Track items currently undergoing repair." />
+      <PageHeader
+        title="Repair In Process"
+        description={isLogisticOfficer
+          ? "Track and manage items currently undergoing repair."
+          : "View items currently undergoing repair."}
+      />
       <div className="mt-8">
         <Table
           columns={columns}
-          data={repairRequests}
-          keyExtractor={r => r.id}
+          data={visibleRequests}
+          keyExtractor={keyExtractor}
           isLoading={isLoading}
           emptyMessage="No items currently in repair."
         />
@@ -133,4 +156,4 @@ const RepairInProgress: React.FC = () => {
   );
 };
 
-export default RepairInProgress; 
+export default RepairInProgress;

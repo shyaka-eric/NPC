@@ -3,7 +3,7 @@ import axios from 'axios';
 
 interface Log {
   timestamp: string;
-  user: string;
+  user: string | { username: string }; // user can be a string or an object with a username property
   action: string;
   details: string;
 }
@@ -15,7 +15,13 @@ const Logs: React.FC = () => {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await axios.get('/api/logs'); // Replace with actual API endpoint
+        const token = localStorage.getItem('token'); // Get token from localStorage
+        if (!token) {
+          throw new Error('No authentication token found.');
+        }
+        const response = await axios.get('/api/logs', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (Array.isArray(response.data)) {
           setLogs(response.data);
         } else {
@@ -54,7 +60,7 @@ const Logs: React.FC = () => {
             {logs.map((log, index) => (
               <tr key={index} className="hover:bg-gray-100">
                 <td className="px-4 py-2 border-b">{log.timestamp}</td>
-                <td className="px-4 py-2 border-b">{log.user}</td>
+                <td className="px-4 py-2 border-b">{log.user && typeof log.user === 'object' && 'username' in log.user ? log.user.username : log.user}</td>
                 <td className="px-4 py-2 border-b">{log.action}</td>
                 <td className="px-4 py-2 border-b">{log.details}</td>
               </tr>

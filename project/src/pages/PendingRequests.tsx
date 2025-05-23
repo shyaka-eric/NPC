@@ -32,9 +32,8 @@ const PendingRequests: React.FC = () => {
     loadRequests();
   }, [fetchRequests, requests, user]);
 
-  const pendingRequests = requests.filter(
-    req => req.status === 'pending' && req.requested_by === user?.id
-  );
+  // Show all pending requests, both new and repair
+  const pendingRequests = requests.filter(req => req.status === 'pending');
 
   console.log('Pending Requests Data:', pendingRequests);
 

@@ -39,6 +39,8 @@ export const useRequestsStore = create<RequestsState>()((set, get) => ({
       const mappedRequests = data.map((req: any) => ({
         ...req,
         requestedAt: req.requested_at,
+        requestedBy: req.requested_by, // camelCase for frontend
+        requested_by: req.requested_by, // keep original for compatibility
         requestedByName: req.requested_by_name || '-',
       }));
       set({ requests: mappedRequests, isLoading: false });

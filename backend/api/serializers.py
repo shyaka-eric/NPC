@@ -104,9 +104,11 @@ class NotificationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 class LogSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = Log
-        fields = '__all__'
+        fields = ['id', 'user', 'action', 'details', 'timestamp']
 
 class SettingsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -117,13 +119,23 @@ class RepairRequestSerializer(serializers.ModelSerializer):
     serial_number = serializers.CharField(source='issued_item.serial_number', read_only=True)
     requested_by_name = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
+    issued_item_id = serializers.PrimaryKeyRelatedField(
+        queryset=IssuedItem.objects.all(), source='issued_item', write_only=True, required=True
+    )
     issued_item = IssuedItemSerializer(read_only=True)
 
     class Meta:
         model = RepairRequest
-        # Remove the plain 'issued_item' id field, only use the nested serializer
-        fields = ['id', 'item', 'issued_item', 'requested_by', 'requested_by_name', 'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at', 'type']
+        fields = [
+            'id', 'item', 'issued_item', 'issued_item_id', 'requested_by', 'requested_by_name',
+            'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at', 'type'
+        ]
         read_only_fields = ['requested_by', 'serial_number', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        # Always set requested_by from the authenticated user
+        validated_data['requested_by'] = self.context['request'].user
+        return super().create(validated_data)
 
     def get_requested_by_name(self, obj):
         user = obj.requested_by
@@ -138,26 +150,31 @@ class RepairRequestSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # Call the parent class's update method to handle standard field updates
+        old_status = instance.status
         updated_repair_request = super().update(instance, validated_data)
 
-        # Check if the status has been changed to 'damaged'
-        if updated_repair_request.status == 'damaged' and instance.status != 'damaged':
-            # Get the associated IssuedItem and Item
+        # If status changed to 'damaged' and wasn't already
+        if updated_repair_request.status == 'damaged' and old_status != 'damaged':
             issued_item = updated_repair_request.issued_item
             item = issued_item.item
-
             # Decrement the quantity of the main Item
-            item.quantity -= 1
+            item.quantity = max(item.quantity - 1, 0)
             item.save()
-
-            # Ensure the user is set correctly for marked_by
-            request_user = self.context.get('request').user if self.context.get('request', None) else None
-            DamagedItem.objects.create(
-                issued_item=issued_item,
-                repair_request=updated_repair_request,
-                marked_by=request_user
-            )
-
+            # Unassign the issued item from the user (do not delete for traceability)
+            issued_item.assigned_to = None
+            issued_item.save()
+            # Only create DamagedItem if not already exists
+            if not hasattr(issued_item, 'damaged_item'):
+                request_user = self.context.get('request').user if self.context.get('request', None) else None
+                DamagedItem.objects.create(
+                    issued_item=issued_item,
+                    repair_request=updated_repair_request,
+                    marked_by=request_user
+                )
+        # If status changed to 'repair-in-process', ensure no further admin actions allowed
+        if updated_repair_request.status == 'repair-in-process' and old_status != 'repair-in-process':
+            # Optionally assign to logistic officer here if you have such a field
+            pass
         return updated_repair_request
 
 class DamagedItemSerializer(serializers.ModelSerializer):

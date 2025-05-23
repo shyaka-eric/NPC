@@ -33,6 +33,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             `}
             aria-invalid={error ? 'true' : 'false'}
             {...props}
+            value={props.value ?? ''}
           />
         </div>
         {error && <p className="mt-1 text-sm text-red-600">{error}</p>}

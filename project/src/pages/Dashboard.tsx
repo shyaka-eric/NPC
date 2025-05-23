@@ -15,16 +15,8 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      // Log the dashboard visit
-      addLog(
-        user.id,
-        user.name,
-        'Dashboard Access',
-        'User accessed the dashboard'
-      );
-    }
-  }, [user, addLog]);
+    // No dashboard access logging here
+  }, [user]);
 
   if (!user) return null;
 

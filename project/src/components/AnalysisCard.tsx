@@ -25,20 +25,17 @@ ChartJS.register(
 );
 
 const AnalysisCard: React.FC = () => {
-  const { items } = useItemsStore();
+  const { items, issuedItems = [] } = useItemsStore();
   const { requests } = useRequestsStore();
   const { user } = useAuthStore();
 
-  // Only show this analysis for unit leader
   if (!user) return null;
 
+  // Unit Leader: In-Use Items, Item Requests, Repair Requests (all for this user)
   if (user.role === 'unit-leader') {
-    // Calculate statistics for unit leader
-    const issuedItems = items.filter(item => item.status === 'in-use');
-    const inUseItems = issuedItems.filter(item => String(item.assignedTo) === String(user.id)).length;
+    const inUseItems = issuedItems.filter(item => String(item.assigned_to) === String(user.id)).length;
     const itemRequests = requests.filter(req => req.type === 'new' && req.status === 'pending' && req.requested_by === user.id).length;
     const repairRequests = requests.filter(req => req.type === 'repair' && req.status === 'pending' && req.requested_by === user.id).length;
-
     const chartData = {
       labels: ['In-Use Items', 'Item Requests', 'Repair Requests'],
       datasets: [
@@ -46,40 +43,24 @@ const AnalysisCard: React.FC = () => {
           label: 'Count',
           data: [inUseItems, itemRequests, repairRequests],
           backgroundColor: [
-            'rgba(59, 130, 246, 0.5)',  // blue-500
-            'rgba(16, 185, 129, 0.5)',  // green-500
-            'rgba(245, 158, 11, 0.5)',  // amber-500
+            'rgba(59, 130, 246, 0.5)',
+            'rgba(16, 185, 129, 0.5)',
+            'rgba(245, 158, 11, 0.5)',
           ],
           borderColor: [
-            'rgb(59, 130, 246)',  // blue-500
-            'rgb(16, 185, 129)',  // green-500
-            'rgb(245, 158, 11)',  // amber-500
+            'rgb(59, 130, 246)',
+            'rgb(16, 185, 129)',
+            'rgb(245, 158, 11)',
           ],
           borderWidth: 1,
         },
       ],
     };
-
     const chartOptions = {
       responsive: true,
-      plugins: {
-        legend: {
-          display: false,
-        },
-        title: {
-          display: false,
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            stepSize: 1,
-          },
-        },
-      },
+      plugins: { legend: { display: false }, title: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
     };
-
     return (
       <Card title="Analysis" className="h-full">
         <div className="h-64">
@@ -103,12 +84,12 @@ const AnalysisCard: React.FC = () => {
     );
   }
 
-  // Admin analysis card (example, you can adjust as needed)
+  // Admin: Available Items, Pending Requests, Repair Requests (system-wide)
   if (user.role === 'admin') {
-    const availableItems = items.filter(item => item.status === 'available').reduce((sum, item) => sum + item.quantity, 0);
+    // Use correct ItemStatus value for available items
+    const availableItems = items.filter(item => (item.status as any) === 'available').reduce((sum, item) => sum + item.quantity, 0);
     const pendingRequests = requests.filter(req => req.status === 'pending').length;
     const repairRequests = requests.filter(req => req.type === 'repair' && req.status === 'pending').length;
-
     const chartData = {
       labels: ['Available Items', 'Pending Requests', 'Repair Requests'],
       datasets: [
@@ -129,27 +110,11 @@ const AnalysisCard: React.FC = () => {
         },
       ],
     };
-
     const chartOptions = {
       responsive: true,
-      plugins: {
-        legend: {
-          display: false,
-        },
-        title: {
-          display: false,
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            stepSize: 1,
-          },
-        },
-      },
+      plugins: { legend: { display: false }, title: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
     };
-
     return (
       <Card title="Analysis" className="h-full">
         <div className="h-64">
@@ -173,7 +138,113 @@ const AnalysisCard: React.FC = () => {
     );
   }
 
-  // ...existing code for other roles or return null...
+  // Logistics Officer: Stock, Damaged Items, Pending Requests
+  if (user.role === 'logistics-officer') {
+    const inStockItems = items.filter(item => String(item.status) === 'available').reduce((sum, item) => sum + item.quantity, 0);
+    const damagedItems = items.filter(item => item.status === 'damaged').reduce((sum, item) => sum + item.quantity, 0);
+    const pendingRequests = requests.filter(req => req.status === 'pending').length;
+    const chartData = {
+      labels: ['Stock', 'Damaged Items', 'Pending Requests'],
+      datasets: [
+        {
+          label: 'Count',
+          data: [inStockItems, damagedItems, pendingRequests],
+          backgroundColor: [
+            'rgba(59, 130, 246, 0.5)',
+            'rgba(245, 158, 11, 0.5)',
+            'rgba(16, 185, 129, 0.5)',
+          ],
+          borderColor: [
+            'rgb(59, 130, 246)',
+            'rgb(245, 158, 11)',
+            'rgb(16, 185, 129)',
+          ],
+          borderWidth: 1,
+        },
+      ],
+    };
+    const chartOptions = {
+      responsive: true,
+      plugins: { legend: { display: false }, title: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+    };
+    return (
+      <Card title="Analysis" className="h-full">
+        <div className="h-64">
+          <Bar data={chartData} options={chartOptions} />
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-4">
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-500">Stock</p>
+            <p className="text-2xl font-semibold text-blue-500">{inStockItems}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-500">Damaged Items</p>
+            <p className="text-2xl font-semibold text-amber-500">{damagedItems}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-500">Pending Requests</p>
+            <p className="text-2xl font-semibold text-green-500">{pendingRequests}</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // System Admin: Available Items, Requests, Users (example, adjust as needed)
+  if (user.role === 'system-admin') {
+    const inStockItems = items.filter(item => (item.status as any) === 'available').reduce((sum, item) => sum + item.quantity, 0);
+    const totalRequests = requests.length;
+    const totalUsers = 42; // Placeholder
+    const chartData = {
+      labels: ['Available Items', 'Requests', 'Users'],
+      datasets: [
+        {
+          label: 'Count',
+          data: [inStockItems, totalRequests, totalUsers],
+          backgroundColor: [
+            'rgba(59, 130, 246, 0.5)',
+            'rgba(16, 185, 129, 0.5)',
+            'rgba(245, 158, 11, 0.5)',
+          ],
+          borderColor: [
+            'rgb(59, 130, 246)',
+            'rgb(16, 185, 129)',
+            'rgb(245, 158, 11)',
+          ],
+          borderWidth: 1,
+        },
+      ],
+    };
+    const chartOptions = {
+      responsive: true,
+      plugins: { legend: { display: false }, title: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+    };
+    return (
+      <Card title="Analysis" className="h-full">
+        <div className="h-64">
+          <Bar data={chartData} options={chartOptions} />
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-4">
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-500">Available Items</p>
+            <p className="text-2xl font-semibold text-blue-500">{inStockItems}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-500">Requests</p>
+            <p className="text-2xl font-semibold text-green-500">{totalRequests}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-500">Users</p>
+            <p className="text-2xl font-semibold text-amber-500">{totalUsers}</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Default: nothing
   return null;
 };
 

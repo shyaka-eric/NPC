@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Package, ClipboardList, CheckCircle, Users, AlertTriangle } from 'lucide-react';
 import { useItemsStore } from '../store/itemsStore';
 import { useRequestsStore } from '../store/requestsStore';
@@ -6,20 +6,38 @@ import { useAuthStore } from '../store/authStore';
 import StatCard from './StatCard';
 import { formatNumber } from '../utils/formatters';
 import { useNavigate } from 'react-router-dom';
+import { fetchRepairRequests } from '../services/api';
 
 const DashboardStats: React.FC = () => {
   const { items, issuedItems = [], fetchIssuedItems } = useItemsStore();
   const { requests } = useRequestsStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const [pendingRepairCount, setPendingRepairCount] = useState<number>(0);
 
   useEffect(() => {
     fetchIssuedItems();
   }, [fetchIssuedItems]);
 
+  useEffect(() => {
+    // Fetch pending repair requests for the logged-in user
+    const fetchPendingRepairs = async () => {
+      if (!user) return;
+      try {
+        const data = await fetchRepairRequests();
+        const pending = (data as any[]).filter(r => r.status === 'pending' && r.type === 'repair' && r.requested_by === user.id);
+        setPendingRepairCount(pending.length);
+      } catch (err) {
+        setPendingRepairCount(0);
+      }
+    };
+    fetchPendingRepairs();
+  }, [user]);
+
   if (!user) return null; // Ensure user is not null before rendering
 
-  const inStockItems = items.filter(item => item.status === 'available').reduce((sum, item) => sum + item.quantity, 0);
+  // Fix: use correct status value for in-stock items
+  const inStockItems = items.filter(item => item.status === 'in-stock').reduce((sum, item) => sum + item.quantity, 0);
   const inUseItems = issuedItems
     .filter(item => String(item.assigned_to) === String(user?.id))
     .length;
@@ -27,11 +45,7 @@ const DashboardStats: React.FC = () => {
   const pendingRequests = requests.filter(
     req => req.status === 'pending' && req.requested_by === user?.id
   ).length;
-  const fulfilledRequests = requests.filter(req => req.status === 'issued').length;
   const totalUsers = 42; // Placeholder for total users count
-  const pendingRepairRequestsForUser = requests.filter(
-    req => req.type === 'repair' && req.status === 'pending' && req.requested_by === user?.id
-  ).length;
 
   const renderCards = () => {
     switch (user.role) {
@@ -46,9 +60,9 @@ const DashboardStats: React.FC = () => {
             />
             <StatCard
               title="Pending Repair Requests"
-              value={formatNumber(pendingRepairRequestsForUser)}
+              value={formatNumber(pendingRepairCount)}
               icon={<CheckCircle size={24} />}
-              onClick={() => navigate('/my-requests?status=issued')}
+              onClick={() => navigate('/PendingRepairRequests')}
             />
             <StatCard
               title="Pending Requests"

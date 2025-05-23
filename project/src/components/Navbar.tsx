@@ -29,6 +29,7 @@ const Navbar: React.FC = () => {
     { name: 'Requests', path: '/requests', roles: ['system-admin'] },
     { name: 'Report', path: '/reports', roles: ['system-admin'] },
     { name: 'My Requests', path: '/my-requests', roles: ['unit-leader'] },
+    { name: 'My Repair Requests', path: '/my-repair-requests', roles: ['unit-leader'] },
     { name: 'In-Use Items', path: '/items-in-use', roles: ['unit-leader'] },
     { name: 'Stock Management', path: '/stock-management', roles: ['logistics-officer'] },
     { name: 'Approved Requests', path: '/approved-requests', roles: ['logistics-officer'] },

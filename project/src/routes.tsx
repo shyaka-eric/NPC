@@ -16,6 +16,8 @@ import PendingRequests from './pages/PendingRequests';
 import DamagedItems from './pages/DamagedItems';
 import DamagedItemDetails from './pages/DamagedItemDetails';
 import RepairInProgress from './pages/RepairInProgress';
+import MyRepairRequests from './pages/MyRepairRequests';
+import PendingRepairRequests from './PendingRepairRequests';
 
 export const AppRoutes = () => {
   return (
@@ -37,6 +39,8 @@ export const AppRoutes = () => {
       <Route path="/damaged-items" element={<DamagedItems />} />
       <Route path="/damaged-items/:id" element={<DamagedItemDetails />} />
       <Route path="/repair-in-process" element={<RepairInProgress />} />
+      <Route path="/my-repair-requests" element={<MyRepairRequests />} />
+      <Route path="/PendingRepairRequests" element={<PendingRepairRequests />} />
     </Routes>
   );
 };

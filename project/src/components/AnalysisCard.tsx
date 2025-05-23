@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -13,6 +13,7 @@ import Card from './ui/Card';
 import { useItemsStore } from '../store/itemsStore';
 import { useRequestsStore } from '../store/requestsStore';
 import { useAuthStore } from '../store/authStore';
+import { fetchRepairRequests } from '../services/api';
 
 // Register ChartJS components
 ChartJS.register(
@@ -28,6 +29,22 @@ const AnalysisCard: React.FC = () => {
   const { items, issuedItems = [] } = useItemsStore();
   const { requests } = useRequestsStore();
   const { user } = useAuthStore();
+  const [pendingRepairCount, setPendingRepairCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (user?.role === 'unit-leader') {
+      const fetchPendingRepairs = async () => {
+        try {
+          const data = await fetchRepairRequests();
+          const pending = (data as any[]).filter(r => r.status === 'pending' && r.type === 'repair' && r.requested_by === user.id);
+          setPendingRepairCount(pending.length);
+        } catch {
+          setPendingRepairCount(0);
+        }
+      };
+      fetchPendingRepairs();
+    }
+  }, [user]);
 
   if (!user) return null;
 
@@ -35,7 +52,8 @@ const AnalysisCard: React.FC = () => {
   if (user.role === 'unit-leader') {
     const inUseItems = issuedItems.filter(item => String(item.assigned_to) === String(user.id)).length;
     const itemRequests = requests.filter(req => req.type === 'new' && req.status === 'pending' && req.requested_by === user.id).length;
-    const repairRequests = requests.filter(req => req.type === 'repair' && req.status === 'pending' && req.requested_by === user.id).length;
+    // Use fetched pendingRepairCount for repair requests
+    const repairRequests = pendingRepairCount;
     const chartData = {
       labels: ['In-Use Items', 'Item Requests', 'Repair Requests'],
       datasets: [

@@ -18,6 +18,10 @@ import DamagedItemDetails from './pages/DamagedItemDetails';
 import RepairInProgress from './pages/RepairInProgress';
 import MyRepairRequests from './pages/MyRepairRequests';
 import PendingRepairRequests from './PendingRepairRequests';
+import AdminReportPage from './pages/AdminReportPage';
+import SystemAdminReportPage from './pages/SystemAdminReportPage';
+import LogisticOfficerReportPage from './pages/LogisticOfficerReportPage';
+import UnitLeaderReportPage from './pages/UnitLeaderReportPage';
 
 export const AppRoutes = () => {
   return (
@@ -41,6 +45,10 @@ export const AppRoutes = () => {
       <Route path="/repair-in-process" element={<RepairInProgress />} />
       <Route path="/my-repair-requests" element={<MyRepairRequests />} />
       <Route path="/PendingRepairRequests" element={<PendingRepairRequests />} />
+      <Route path="/reports/admin" element={<AdminReportPage />} />
+      <Route path="/reports/system-admin" element={<SystemAdminReportPage />} />
+      <Route path="/reports/logistic-officer" element={<LogisticOfficerReportPage />} />
+      <Route path="/reports/unit-leader" element={<UnitLeaderReportPage />} />
     </Routes>
   );
 };

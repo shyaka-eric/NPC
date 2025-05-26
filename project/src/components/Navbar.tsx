@@ -33,7 +33,7 @@ const Navbar: React.FC = () => {
     { name: 'Logs', path: '/logs', roles: ['system-admin'] },
     { name: 'Stock Availability', path: '/stock-availability', roles: ['admin'] },
     { name: 'Requests', path: '/requests', roles: ['admin'] },
-    { name: 'Reports', path: '/admin/reports', roles: ['admin'] },
+    { name: 'Reports', path: '/reports/admin', roles: ['admin'] },
     { name: 'Repair Request', path: '/repair-items', roles: ['admin'] },
     { name: 'My Requests', path: '/my-requests', roles: ['unit-leader'] },
     { name: 'My Repair Requests', path: '/my-repair-requests', roles: ['unit-leader'] },

@@ -35,16 +35,33 @@ export const useRequestsStore = create<RequestsState>()((set, get) => ({
   fetchRequests: async () => {
     set({ isLoading: true, error: null });
     try {
-      const data = await fetchNewItemRequests();
-      const mappedRequests = data.map((req: any) => ({
+      const newItemRequests = await fetchNewItemRequests();
+      const repairRequestsResponse = await api.get('repair-requests/');
+      const repairRequests = repairRequestsResponse.data;
+
+      console.log('Fetched new item requests:', newItemRequests);
+      console.log('Fetched repair requests:', repairRequests);
+
+      const combinedRequests = [
+        ...newItemRequests.map((req: any) => ({ ...req, type: 'new' })),
+        ...repairRequests.map((req: any) => ({ ...req, type: 'repair' })),
+      ];
+      
+      console.log('Combined requests:', combinedRequests);
+
+      const mappedRequests = combinedRequests.map((req: any) => ({
         ...req,
         requestedAt: req.requested_at,
         requestedBy: req.requested_by, // camelCase for frontend
         requested_by: req.requested_by, // keep original for compatibility
         requestedByName: req.requested_by_name || '-',
       }));
+
+      console.log('Mapped requests:', mappedRequests);
+
       set({ requests: mappedRequests, isLoading: false });
     } catch (error: any) {
+      console.error('Error fetching requests:', error);
       set({ error: error.message, isLoading: false });
     }
   },
@@ -120,7 +137,7 @@ export const useRequestsStore = create<RequestsState>()((set, get) => ({
 
   denyRequest: async (id, denierId, reason) => {
     // Custom logic for denial, update status and add reason
-    return get().updateRequest(id, { status: 'denied', denial_reason: reason });
+    return get().updateRequest(id, { status: 'denied', reason: reason });
   },
 
   issueRequest: async (id, issuerId) => {

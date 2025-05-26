@@ -71,6 +71,8 @@ export interface Request {
   attachments?: string[];
   priority?: string;
   purpose?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Notification {

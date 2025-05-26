@@ -122,7 +122,7 @@ const App: React.FC = () => {
           <Route
             path="/requests"
             element={
-              <RoleBasedRoute allowedRoles={["system-admin"]}>
+              <RoleBasedRoute allowedRoles={["system-admin", "admin"]}>
                 <Requests />
               </RoleBasedRoute>
             }
@@ -234,7 +234,7 @@ const App: React.FC = () => {
           <Route
             path="/stock-availability"
             element={
-              <RoleBasedRoute allowedRoles={["system-admin"]}>
+              <RoleBasedRoute allowedRoles={["system-admin", "admin"]}>
                 <AdminStock />
               </RoleBasedRoute>
             }

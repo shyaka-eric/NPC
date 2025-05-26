@@ -49,7 +49,9 @@ const AddUser: React.FC = () => {
     username: '',
     email: '',
     password: '',
+    profile_image_file: null as File | null, // add file for upload
   });
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -57,27 +59,61 @@ const AddUser: React.FC = () => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setForm(prev => ({ ...prev, profile_image_file: file }));
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
-      console.log('Form data being sent:', form);
-      await addUser({
-        rank: form.rank,
-        username: form.username,
-        first_name: form.first_name,
-        last_name: form.last_name,
-        birth_date: form.birth_date,
-        role: form.role as any, // typecast to satisfy UserRole
-        unit: form.unit,
-        phone_number: form.phone_number, // use snake_case for backend
-        email: form.email,
-        password: form.password,
-      });
+      let payload;
+      // Always send is_active as true for both FormData and JSON
+      if (form.profile_image_file) {
+        payload = new FormData();
+        payload.append('rank', form.rank);
+        payload.append('username', form.username);
+        payload.append('first_name', form.first_name);
+        payload.append('last_name', form.last_name);
+        payload.append('birth_date', form.birth_date);
+        payload.append('role', form.role);
+        payload.append('unit', form.unit);
+        payload.append('phone_number', form.phone_number);
+        payload.append('email', form.email);
+        payload.append('password', form.password);
+        payload.append('profile_image', form.profile_image_file);
+        payload.append('is_active', 'true');
+      } else {
+        payload = {
+          rank: form.rank,
+          username: form.username,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          birth_date: form.birth_date,
+          role: form.role,
+          unit: form.unit,
+          phone_number: form.phone_number,
+          email: form.email,
+          password: form.password,
+          is_active: true,
+        };
+      }
+      // Call addUser with only the payload (store now handles FormData or JSON)
+      await addUser(payload);
       toast.success('User added successfully');
       navigate('/users');
     } catch (error) {
       console.error('Error adding user:', error);
       toast.error('Failed to add user');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -98,6 +134,12 @@ const AddUser: React.FC = () => {
         <Input label="Username" name="username" value={form.username} onChange={handleChange} required />
         <Input label="Email" name="email" value={form.email} onChange={handleChange} required type="email" />
         <Input label="Password" name="password" value={form.password} onChange={handleChange} required type="password" />
+        <Input label="Profile Image" name="profile_image" type="file" accept="image/*" onChange={handleImageChange} />
+        {imagePreview && (
+          <div className="flex justify-center mb-2">
+            <img src={imagePreview} alt="Preview" className="h-20 w-20 rounded-full object-cover" />
+          </div>
+        )}
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="secondary" type="button" onClick={() => navigate('/users')}>Cancel</Button>
           <Button type="submit" isLoading={isLoading}>Add User</Button>

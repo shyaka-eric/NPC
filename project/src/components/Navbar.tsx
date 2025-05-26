@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, Menu, X, LogOut, ChevronDown } from 'lucide-react'; // Removed unused imports
+import { Link, useLocation } from 'react-router-dom';
+import { Bell, Menu, X, LogOut, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationsStore } from '../store/notificationsStore';
 import Badge from './ui/Badge';
 import NotificationsDropdown from './NotificationsDropdown';
+import npcLogo from '../images/npclogo.jpeg';
 
 const ORG_NAME_KEY = 'orgName';
 const ORG_LOGO_KEY = 'orgLogo';
@@ -14,10 +15,11 @@ const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const location = useLocation();
   
-  if (!user) return null; // Ensure user is not null before rendering
+  if (!user) return null;
   
-  const unreadCount = useNotificationsStore((state) => state.unreadCount); // Subscribe to unreadCount changes
+  const unreadCount = useNotificationsStore((state) => state.unreadCount);
 
   // Get org name and logo from localStorage
   const orgName = localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics';
@@ -25,22 +27,19 @@ const Navbar: React.FC = () => {
 
   const navigationLinks = [
     { name: 'Dashboard', path: '/', roles: ['system-admin', 'admin', 'logistics-officer', 'unit-leader'] },
-    { name: 'Stock Availability', path: '/stock-availability', roles: ['system-admin'] },
-    { name: 'Requests', path: '/requests', roles: ['system-admin'] },
-    { name: 'Report', path: '/reports', roles: ['system-admin'] },
+    { name: 'Users', path: '/users', roles: ['system-admin'] },
+    { name: 'Reports', path: '/reports', roles: ['system-admin'] },
+    { name: 'Settings', path: '/settings', roles: ['system-admin'] },
+    { name: 'Logs', path: '/logs', roles: ['system-admin'] },
+    { name: 'Stock Availability', path: '/stock-availability', roles: ['admin'] },
+    { name: 'Requests', path: '/requests', roles: ['admin'] },
+    { name: 'Reports', path: '/admin/reports', roles: ['admin'] },
+    { name: 'Repair Request', path: '/repair-items', roles: ['admin'] },
     { name: 'My Requests', path: '/my-requests', roles: ['unit-leader'] },
     { name: 'My Repair Requests', path: '/my-repair-requests', roles: ['unit-leader'] },
     { name: 'In-Use Items', path: '/items-in-use', roles: ['unit-leader'] },
     { name: 'Stock Management', path: '/stock-management', roles: ['logistics-officer'] },
-    { name: 'Approved Requests', path: '/approved-requests', roles: ['logistics-officer'] },
     { name: 'Issue Item', path: '/issue-items', roles: ['logistics-officer'] },
-    { name: 'Users', path: '/users', roles: ['system-admin'] },
-    { name: 'Settings', path: '/settings', roles: ['system-admin'] },
-    { name: 'Logs', path: '/logs', roles: ['system-admin'] },
-    { name: 'Stock Availability', path: '/admin/stock', roles: ['admin'] },
-    { name: 'Item Request', path: '/admin/requests', roles: ['admin'] },
-    { name: 'Reports', path: '/admin/reports', roles: ['admin'] },
-    { name: 'Repair Request', path: '/repair-items', roles: ['admin', 'system-admin'] },
     { name: 'Damaged Items', path: '/damaged-items', roles: ['logistics-officer'] },
     { name: 'Repair In Process', path: '/repair-in-process', roles: ['logistics-officer'] },
   ].filter(link => link.roles.includes(user.role));
@@ -52,23 +51,19 @@ const Navbar: React.FC = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="flex items-center gap-2">
-                {orgLogo ? (
-                  <img src={orgLogo} alt="Logo" className="w-8 h-8 rounded" />
-                ) : (
-                  <span className="w-8 h-8 text-blue-800">{orgName.charAt(0)}</span>
-                )}
+                <img src={npcLogo} alt="Logo" className="w-8 h-8 rounded object-contain bg-white" />
                 <span className="font-bold text-xl text-slate-900">{orgName}</span>
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <div className="flex items-center gap-8"> {/* Adjusted alignment of navigation options */}
+              <div className="flex items-center gap-8">
                 {navigationLinks.map((link) => (
                   <Link
                     key={link.name}
                     to={link.path}
-                    className="text-slate-700 hover:text-blue-800 px-3 py-2 rounded-md text-sm font-medium"
+                    className={`px-3 py-2 rounded-md text-sm font-medium ml-2 ${location.pathname === link.path ? 'bg-blue-100 text-blue-800 font-semibold' : 'text-slate-700 hover:text-blue-800'}`}
                   >
-                    <span className="ml-2">{link.name}</span>
+                    {link.name}
                   </Link>
                 ))}
               </div>
@@ -114,8 +109,22 @@ const Navbar: React.FC = () => {
                 >
                   <span className="sr-only">Open user menu</span>
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-blue-800 flex items-center justify-center text-white">
-                      {user.name.charAt(0)}
+                    <div className="h-8 w-8 rounded-full bg-blue-800 flex items-center justify-center text-white overflow-hidden">
+                      {user.profileImage ? (
+                        <img
+                          src={user.profileImage.startsWith('http')
+                            ? user.profileImage
+                            : user.profileImage.startsWith('/media/')
+                              ? `http://localhost:8000${user.profileImage}`
+                              : user.profileImage.includes('/')
+                                ? `http://localhost:8000/${user.profileImage.replace(/^\/+/,'')}`
+                                : `http://localhost:8000/media/${user.profileImage}`}
+                          alt="Profile"
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        user.name.charAt(0)
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-sm font-medium text-slate-700">{user.name}</span>
@@ -191,8 +200,22 @@ const Navbar: React.FC = () => {
         <div className="sm:hidden bg-white pt-2 pb-3 border-t border-slate-200">
           <div className="px-4 py-2 border-b border-slate-200">
             <div className="flex items-center">
-              <div className="h-8 w-8 rounded-full bg-blue-800 flex items-center justify-center text-white">
-                {user.name.charAt(0)}
+              <div className="h-8 w-8 rounded-full bg-blue-800 flex items-center justify-center text-white overflow-hidden">
+                {user.profileImage ? (
+                  <img
+                    src={user.profileImage.startsWith('http')
+                      ? user.profileImage
+                      : user.profileImage.startsWith('/media/')
+                        ? `http://localhost:8000${user.profileImage}`
+                        : user.profileImage.includes('/')
+                          ? `http://localhost:8000/${user.profileImage.replace(/^\/+/,'')}`
+                          : `http://localhost:8000/media/${user.profileImage}`}
+                    alt="Profile"
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  user.name.charAt(0)
+                )}
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-slate-900">{user.name}</p>
@@ -207,10 +230,10 @@ const Navbar: React.FC = () => {
               <Link
                 key={link.name}
                 to={link.path}
-                className="flex items-center px-4 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                className={`flex items-center px-4 py-2 text-base font-medium ml-2 ${location.pathname === link.path ? 'bg-blue-100 text-blue-800 font-semibold' : 'text-slate-700 hover:bg-slate-900 hover:bg-slate-50'}`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <span className="ml-2">{link.name}</span>
+                {link.name}
               </Link>
             ))}
             <Link

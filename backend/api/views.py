@@ -42,6 +42,20 @@ class UserViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(self.get_serializer(user).data, status=201, headers=headers)
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        # Always return context with request for correct profile_image URL
+        return Response(self.get_serializer(instance, context={'request': request}).data)
+
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
@@ -177,7 +191,14 @@ def has_users(request):
 class RepairRequestViewSet(viewsets.ModelViewSet):
     queryset = RepairRequest.objects.select_related('issued_item', 'item').all()
     serializer_class = RepairRequestSerializer
-    # You might want to add permissions here, e.g., IsAuthenticated
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        requested_by = self.request.query_params.get('requested_by')
+        if requested_by:
+            queryset = queryset.filter(requested_by_id=requested_by)
+        return queryset
 
     def create(self, request, *args, **kwargs):
         print('DEBUG RepairRequestViewSet.create request.data:', request.data)

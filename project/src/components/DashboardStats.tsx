@@ -96,6 +96,7 @@ const DashboardStats: React.FC = () => {
               title="Stock"
               value={formatNumber(inStockItems)}
               icon={<Package size={24} />}
+              onClick={() => navigate('/stock-management')}
             />
             <StatCard
               title="Damaged Items"

@@ -3,55 +3,119 @@ import { useAuthStore } from '../store/authStore';
 import PageHeader from '../components/PageHeader';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+import { updateUserProfile } from '../services/api';
 
 const Profile: React.FC = () => {
   const { user, users, isAuthenticated } = useAuthStore();
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    department: user?.department || '',
     phoneNumber: user?.phoneNumber || '',
     profileImage: user?.profileImage || '',
+    password: '',
+    profileImageFile: null as File | null, // store file for upload
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [imagePreview, setImagePreview] = useState(formData.profileImage);
+  const [imagePreview, setImagePreview] = useState(
+    user?.profileImage
+      ? user.profileImage.startsWith('http')
+        ? user.profileImage
+        : user.profileImage.startsWith('/media/')
+          ? `http://localhost:8000${user.profileImage}`
+          : user.profileImage
+      : ''
+  );
+  const [success, setSuccess] = useState(false); // Add success state
 
   if (!user || !isAuthenticated) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setSuccess(false); // Reset success on change
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFormData(prev => ({ ...prev, profileImageFile: file }));
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
       setFormData(prev => ({ ...prev, profileImage: base64 }));
       setImagePreview(base64);
+      setSuccess(false);
     };
     reader.readAsDataURL(file);
   };
 
   const isChanged =
-    formData.name !== user.name ||
-    formData.department !== (user.department || '') ||
     formData.phoneNumber !== (user.phoneNumber || '') ||
-    formData.profileImage !== (user.profileImage || '');
+    formData.profileImage !== (user.profileImage || '') ||
+    formData.password.length > 0;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      // Update user in the store (mock update)
-      const updatedUser = { ...user, ...formData, updatedAt: new Date() };
-      // Find and update in users array
+      let updatedUser;
+      // Always send is_active: true on update to prevent deactivation
+      if (formData.profileImageFile) {
+        // Use FormData for file upload
+        const form = new FormData();
+        form.append('username', user.username);
+        form.append('email', user.email);
+        form.append('role', user.role);
+        form.append('phone_number', formData.phoneNumber);
+        form.append('profile_image', formData.profileImageFile);
+        form.append('is_active', 'true');
+        if (formData.password) form.append('password', formData.password);
+        updatedUser = await updateUserProfile(user.id, form, true); // pass true for multipart
+      } else {
+        // Fallback to JSON if no new image
+        const payload: any = {
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          phone_number: formData.phoneNumber,
+          profile_image: formData.profileImage,
+          is_active: true,
+        };
+        if (formData.password) payload.password = formData.password;
+        updatedUser = await updateUserProfile(user.id, payload);
+      }
+      // Update user in the store
       const idx = users.findIndex(u => u.id === user.id);
       if (idx !== -1) {
         users[idx] = updatedUser;
-        useAuthStore.setState({ user: updatedUser, users: [...users] });
+        useAuthStore.setState({ user: { ...updatedUser }, users: [...users] });
+        setSuccess(true);
+        setFormData({
+          phoneNumber: updatedUser.phone_number || '',
+          profileImage: updatedUser.profile_image || '',
+          password: '',
+          profileImageFile: null,
+        });
+        // Set image preview to backend URL if needed
+        let imageUrl = '';
+        if (updatedUser.profile_image) {
+          // If it's already a full URL, use as is
+          if (updatedUser.profile_image.startsWith('http')) {
+            imageUrl = updatedUser.profile_image;
+          } else if (updatedUser.profile_image.startsWith('/media/')) {
+            // If it starts with /media/, prepend backend host
+            imageUrl = `http://localhost:8000${updatedUser.profile_image}`;
+          } else if (updatedUser.profile_image.includes('/')) {
+            // If it contains a slash but not /media/, treat as relative to backend
+            imageUrl = `http://localhost:8000/${updatedUser.profile_image.replace(/^\/+/, '')}`;
+          } else {
+            // Otherwise, treat as filename in media root
+            imageUrl = `http://localhost:8000/media/${updatedUser.profile_image}`;
+          }
+        }
+        setImagePreview(imageUrl);
       }
+    } catch (error) {
+      setSuccess(false);
+      alert('Failed to update profile.');
     } finally {
       setIsSaving(false);
     }
@@ -81,12 +145,14 @@ const Profile: React.FC = () => {
             <span className="block text-xs text-blue-700 group-hover:underline">Change Photo</span>
           </label>
         </div>
+        {success && (
+          <div className="text-green-600 text-sm text-center">Profile updated successfully!</div>
+        )}
         <Input
           label="Full Name"
           name="name"
-          value={formData.name}
-          onChange={handleChange}
-          required
+          value={user.name}
+          readOnly
           fullWidth
         />
         <Input
@@ -103,18 +169,20 @@ const Profile: React.FC = () => {
           </div>
         </div>
         <Input
-          label="Department"
-          name="department"
-          value={formData.department}
-          onChange={handleChange}
-          fullWidth
-        />
-        <Input
           label="Phone Number"
           name="phoneNumber"
           value={formData.phoneNumber}
           onChange={handleChange}
           fullWidth
+        />
+        <Input
+          label="Password"
+          name="password"
+          type="password"
+          value={formData.password}
+          onChange={handleChange}
+          fullWidth
+          placeholder="Enter new password (leave blank to keep current)"
         />
         <div className="flex justify-end">
           <Button type="submit" variant="primary" isLoading={isSaving} disabled={isSaving || !isChanged}>
@@ -126,4 +194,4 @@ const Profile: React.FC = () => {
   );
 };
 
-export default Profile; 
+export default Profile;

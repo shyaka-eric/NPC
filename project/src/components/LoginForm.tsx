@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, User, Lock } from 'lucide-react';
+import { User, Lock } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import Input from './ui/Input';
 import Button from './ui/Button';
@@ -7,6 +7,7 @@ import Alert from './ui/Alert';
 import { UserRole } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import npcLogo from '../images/npclogo.jpeg';
 
 const LoginForm: React.FC = () => {
   const { login } = useAuthStore();
@@ -48,7 +49,12 @@ const LoginForm: React.FC = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md border border-slate-200">
         <div className="text-center">
           <div className="flex justify-center">
-            <Package className="h-12 w-12 text-blue-800" />
+            <img
+              src={npcLogo}
+              alt="NPC Logo"
+              className="h-16 w-16 object-contain rounded-full shadow"
+              style={{ background: 'white' }}
+            />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-slate-900">NPC Logistics</h2>
           <p className="mt-2 text-sm text-slate-600">Sign in to access the logistics system</p>

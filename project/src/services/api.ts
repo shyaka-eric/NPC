@@ -31,3 +31,24 @@ export const fetchNewItemRequests = async () => {
     throw error;
   }
 };
+
+export const updateUserProfile = async (
+  userId: string,
+  data: any,
+  isMultipart = false
+) => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const headers: any = {
+    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+  };
+  if (!isMultipart) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const response = await fetch(`${API_URL}/api/users/${userId}/`, {
+    method: 'PUT',
+    headers,
+    body: isMultipart ? data : JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to update profile');
+  return await response.json();
+};

@@ -18,6 +18,17 @@ interface AuthState {
   refreshToken: () => Promise<void>;
 }
 
+function normalizeUser(user: any): User {
+  return {
+    ...user,
+    profileImage: user.profileImage || user.profile_image || '',
+    phoneNumber: user.phoneNumber || user.phone_number || '',
+    isActive: user.isActive ?? user.is_active ?? true,
+    createdAt: user.createdAt ? new Date(user.createdAt) : (user.created_at ? new Date(user.created_at) : new Date()),
+    updatedAt: user.updatedAt ? new Date(user.updatedAt) : (user.updated_at ? new Date(user.updated_at) : new Date()),
+  };
+}
+
 export const useAuthStore = create<AuthState>()((set, get) => ({
   user: null,
   users: [],
@@ -35,7 +46,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       const userRes = await api.get('auth/user/', {
         headers: { Authorization: `Bearer ${access}` }
       });
-      set({ user: userRes.data, isAuthenticated: true });
+      set({ user: normalizeUser(userRes.data), isAuthenticated: true });
     } catch (error: any) {
       set({ error: error.response?.data?.detail || error.message, isAuthenticated: false });
       throw error;
@@ -64,7 +75,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       const response = await api.get('auth/user/', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      set({ user: response.data, isAuthenticated: true });
+      set({ user: normalizeUser(response.data), isAuthenticated: true });
     } catch (error: any) {
       set({ user: null, isAuthenticated: false });
     }
@@ -77,19 +88,27 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       const response = await api.get('users/', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      set({ users: response.data });
+      set({ users: response.data.map(normalizeUser) });
     } catch (error: any) {
       set({ users: [] });
     }
   },
 
-  addUser: async (userData) => {
+  addUser: async (userData: any) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('You are not authenticated. Please log in again.');
-      await api.post('users/', userData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      let config = { headers: { Authorization: `Bearer ${token}` } };
+      let data = userData;
+      if (userData instanceof FormData) {
+        // nothing extra needed
+      } else {
+        // Ensure is_active is always true for JSON
+        data.is_active = true;
+        // @ts-ignore
+        config.headers['Content-Type'] = 'application/json';
+      }
+      await api.post('users/', data, config);
       await get().fetchUsers();
     } catch (error: any) {
       set({ error: error.response?.data?.detail || error.message });

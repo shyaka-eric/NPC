@@ -42,18 +42,27 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const App: React.FC = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, fetchUser } = useAuthStore();
   const [isLoading, setIsLoading] = React.useState(true);
-  
+
   // Call the WebSocket hook here, it will manage connection based on user state
   useNotificationWebSocket();
 
   useEffect(() => {
-    // Simulate initial loading (in a real app, this would be auth initialization)
-    setTimeout(() => {
+    // Try to restore user session from token on first load
+    const tryRestoreSession = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await fetchUser();
+        } catch {
+          // If token is invalid, user will remain logged out
+        }
+      }
       setIsLoading(false);
-    }, 1000);
-  }, []);
+    };
+    tryRestoreSession();
+  }, [fetchUser]);
   
   if (isLoading) {
     return <LoadingScreen />;

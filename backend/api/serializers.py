@@ -11,23 +11,34 @@ class IssuedItemSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
+    profile_image = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'role', 'first_name', 'last_name', 'name',
-            'rank', 'birth_date', 'unit', 'phone_number', 'is_active', 'password'
+            'rank', 'birth_date', 'unit', 'phone_number', 'is_active', 'password', 'profile_image'
         ]
         extra_kwargs = {
             'username': {'required': True},
             'email': {'required': True},
             'role': {'required': True},
-            'password': {'write_only': True, 'required': True}
+            'password': {'write_only': True, 'required': True},
+            'profile_image': {'required': False, 'allow_null': True, 'use_url': True},
         }
 
     def get_name(self, obj):
         full_name = f"{obj.first_name} {obj.last_name}".strip()
         return full_name if full_name else obj.username
+
+    def get_profile_image(self, obj):
+        request = self.context.get('request', None)
+        if obj.profile_image:
+            url = obj.profile_image.url
+            if request is not None:
+                return request.build_absolute_uri(url)
+            return url
+        return None
 
     def validate_username(self, value):
         user_id = self.instance.id if self.instance else None
@@ -41,14 +52,34 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        print("Validated data:", validated_data)  # Debug print
         password = validated_data.pop('password', None)
-        print("Password:", password)  # Debug print
         user = super().create(validated_data)
         if password:
             user.set_password(password)
             user.save()
         return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        # Prevent is_active from being set to False if not provided
+        if 'is_active' not in validated_data:
+            validated_data['is_active'] = instance.is_active if instance else True
+        # Handle profile_image file upload
+        request = self.context.get('request', None)
+        if request and hasattr(request, 'FILES') and 'profile_image' in request.FILES:
+            instance.profile_image = request.FILES['profile_image']
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if 'profile_image' not in ret:
+            ret['profile_image'] = None
+        return ret
 
 class ItemSerializer(serializers.ModelSerializer):
     assigned_to_id = serializers.PrimaryKeyRelatedField(source='assigned_to', read_only=True)
@@ -123,12 +154,15 @@ class RepairRequestSerializer(serializers.ModelSerializer):
         queryset=IssuedItem.objects.all(), source='issued_item', write_only=True, required=True
     )
     issued_item = IssuedItemSerializer(read_only=True)
+    item_name = serializers.SerializerMethodField()
+    item_category = serializers.SerializerMethodField()
 
     class Meta:
         model = RepairRequest
         fields = [
             'id', 'item', 'issued_item', 'issued_item_id', 'requested_by', 'requested_by_name',
-            'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at', 'type'
+            'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at', 'type',
+            'item_name', 'item_category'
         ]
         read_only_fields = ['requested_by', 'serial_number', 'created_at', 'updated_at']
 
@@ -147,6 +181,18 @@ class RepairRequestSerializer(serializers.ModelSerializer):
 
     def get_type(self, obj):
         return 'repair'
+
+    def get_item_name(self, obj):
+        try:
+            return obj.issued_item.item.name
+        except Exception:
+            return None
+
+    def get_item_category(self, obj):
+        try:
+            return obj.issued_item.item.category
+        except Exception:
+            return None
 
     def update(self, instance, validated_data):
         # Call the parent class's update method to handle standard field updates

@@ -19,6 +19,7 @@ class User(AbstractUser):
     unit = models.CharField(max_length=100, blank=True)
     groups = models.ManyToManyField('auth.Group', related_name='api_user_set', blank=True)
     user_permissions = models.ManyToManyField('auth.Permission', related_name='api_user_set', blank=True)
+    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
 
 # 2. Item
 class Item(models.Model):

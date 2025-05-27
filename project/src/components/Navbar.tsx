@@ -35,13 +35,14 @@ const Navbar: React.FC = () => {
     { name: 'Requests', path: '/requests', roles: ['admin'] },
     { name: 'Reports', path: '/reports/admin', roles: ['admin'] },
     { name: 'Repair Request', path: '/repair-items', roles: ['admin'] },
-    { name: 'My Requests', path: '/my-requests', roles: ['unit-leader'] },
+    { name: 'My Item Requests', path: '/my-requests', roles: ['unit-leader'] },
     { name: 'My Repair Requests', path: '/my-repair-requests', roles: ['unit-leader'] },
     { name: 'In-Use Items', path: '/items-in-use', roles: ['unit-leader'] },
     { name: 'Stock Management', path: '/stock-management', roles: ['logistics-officer'] },
     { name: 'Issue Item', path: '/issue-items', roles: ['logistics-officer'] },
     { name: 'Damaged Items', path: '/damaged-items', roles: ['logistics-officer'] },
     { name: 'Repair In Process', path: '/repair-in-process', roles: ['logistics-officer'] },
+    { name: 'Report', path: '/reports/unit-leader', roles: ['unit-leader'] },
   ].filter(link => link.roles.includes(user.role));
 
   return (

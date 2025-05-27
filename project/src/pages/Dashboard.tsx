@@ -33,16 +33,6 @@ const Dashboard: React.FC = () => {
             New Request
           </Button>
         );
-      case 'admin':
-        return (
-          <Button
-            variant="primary"
-            icon={<PlusCircle className="h-4 w-4" />}
-            onClick={() => navigate('/admin/requests')}
-          >
-            View Requests
-          </Button>
-        );
       case 'logistics-officer':
         return (
           <Button

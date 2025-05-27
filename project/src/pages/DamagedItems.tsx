@@ -75,6 +75,16 @@ const DamagedItems: React.FC = () => {
         }
     };
 
+    // Group damaged items by item_name and item_category
+    const groupedDamagedItems: { [key: string]: DamagedItem[] } = {};
+    damagedItems.forEach((item) => {
+      const key = `${item.item_name || 'Unknown'}|${item.item_category || 'Unknown'}`;
+      if (!groupedDamagedItems[key]) {
+        groupedDamagedItems[key] = [];
+      }
+      groupedDamagedItems[key].push(item);
+    });
+
     if (!isAuthenticated) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -126,38 +136,42 @@ const DamagedItems: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {damagedItems.map((item) => (
-                                <tr key={item.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">
-                                            {item.item_category ? item.item_category : 'Unknown'}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">
-                                            {item.item_name ? item.item_name : 'Unknown'}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">
-                                            {item.marked_at ? format(new Date(item.marked_at), 'MMM dd, yyyy') : 'Unknown'}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">
-                                            {item.marked_by_name ? item.marked_by_name : 'Unknown'}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <Link
-                                            className="text-blue-600 hover:underline font-medium"
-                                            to={`/damaged-items/${item.id}`}
-                                        >
-                                            View Details
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))}
+                          {Object.entries(groupedDamagedItems).map(([key, items]) => {
+                            const firstItem = items[0];
+                            return (
+                              <tr key={key}>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">
+                                    {firstItem.item_category ? firstItem.item_category : 'Unknown'}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">
+                                    {firstItem.item_name ? firstItem.item_name : 'Unknown'}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">
+                                    {firstItem.marked_at ? format(new Date(firstItem.marked_at), 'MMM dd, yyyy') : 'Unknown'}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">
+                                    {firstItem.marked_by_name ? firstItem.marked_by_name : 'Unknown'}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <Link
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white font-semibold shadow-sm transition-colors duration-150 border border-blue-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                                    to={`/damaged-items/group/${encodeURIComponent(firstItem.item_name || 'Unknown')}/${encodeURIComponent(firstItem.item_category || 'Unknown')}`}
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    View Details
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                     </table>
                 </div>

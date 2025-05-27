@@ -39,9 +39,9 @@ const MyRequests: React.FC = () => {
     loadRequests();
   }, [fetchRequests, fetchItems, requests]);
 
-  // Filter requests for the current user
+  // Filter requests for the current user and only show new item requests
   const myRequests = combinedRequests
-    .filter(request => request.requested_by === user?.id)
+    .filter(request => request.requested_by === user?.id && request.type === 'new')
     .sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime());
   const totalPages = Math.ceil(myRequests.length / ITEMS_PER_PAGE);
   const paginatedRequests = myRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);

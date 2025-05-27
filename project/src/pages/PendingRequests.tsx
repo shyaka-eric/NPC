@@ -38,12 +38,12 @@ const PendingRequests: React.FC = () => {
   console.log('Pending Requests Data:', pendingRequests);
 
   const columns = [
-    { header: 'Date', accessor: (req: any) => formatDate(req.requested_at) || '-' },
+    { header: 'Date', accessor: (req: any) => formatDate(req.requested_at || req.created_at) || '-' },
     { header: 'Type', accessor: (req: any) => req.type || '-' },
-    { header: 'Category', accessor: (req: any) => req.category || '-' },
-    { header: 'Item', accessor: (req: any) => req.item_name || '-' },
-    { header: 'Quantity', accessor: (req: any) => req.quantity?.toString() || '0' },
-    { header: 'Requested By', accessor: (req: any) => req.requested_by_name || '-' },
+    { header: 'Category', accessor: (req: any) => req.category || req.item_category || (req.issued_item && req.issued_item.item_category) || '-' },
+    { header: 'Item', accessor: (req: any) => req.item_name || (req.issued_item && req.issued_item.item_name) || '-' },
+    { header: 'Quantity', accessor: (req: any) => req.type === 'repair' ? '1' : (req.quantity?.toString() || '0') },
+    { header: 'Requested By', accessor: (req: any) => req.requested_by_name || req.requestedByName || '-' },
     { header: 'Status', accessor: (req: any) => <StatusBadge status={req.status} /> },
   ];
 

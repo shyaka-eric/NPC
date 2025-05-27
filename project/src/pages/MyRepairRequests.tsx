@@ -89,7 +89,7 @@ const MyRepairRequests: React.FC = () => {
     { header: 'Quantity', accessor: (g: any) => g.serial_numbers.length },
     { header: 'Actions', accessor: (g: any) => (
       <button
-        className="px-4 py-2 rounded bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition-colors duration-150"
+        className="px-2 py-2 rounded bg-gray-600 text-white font-semibold shadow hover:bg-gray-700 transition-colors duration-150"
         onClick={() => {
           navigate(`/repair-request-details/${encodeURIComponent(g.item_name)}/${encodeURIComponent(g.item_category)}`);
         }}

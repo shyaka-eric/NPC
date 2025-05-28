@@ -1,35 +1,40 @@
-import axios from "axios";
-import { useAuthStore } from './store/authStore';
+import axios from 'axios'
+import type { InternalAxiosRequestConfig } from 'axios'
+import { useAuthStore } from './store/authStore'
 
-export const API_URL = "http://localhost:8000/api/"; // Directly use the backend URL without relying on the proxy
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/'
 
 export const api = axios.create({
   baseURL: API_URL,
-  // You can add headers here if you use authentication
-});
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  },
+})
 
-// Add a request interceptor to include the auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  console.log('Token:', token); // Debugging log
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = localStorage.getItem('token')
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    if (config.headers) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
   }
-  return config;
-});
+  return config
+})
 
 api.interceptors.response.use(
-  (response) => response,
+  response => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const { response, config } = error
+    if (response?.status === 401 && !config._retry) {
+      config._retry = true
       try {
-        await useAuthStore.getState().refreshToken();
-        return api.request(error.config);
-      } catch (refreshError) {
-        useAuthStore.getState().logout();
-        throw refreshError;
+        await useAuthStore.getState().refreshToken()
+        return api.request(config)
+      } catch {
+        useAuthStore.getState().logout()
       }
     }
-    throw error;
+    return Promise.reject(error)
   }
-);
+)

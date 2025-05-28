@@ -35,20 +35,28 @@ const Dashboard: React.FC = () => {
         );
       case 'logistics-officer':
         return (
-          <Button
-            variant="primary"
-            icon={<PlusCircle className="h-4 w-4" />}
-            onClick={() => navigate('/stock-management')}
-          >
-            Manage Stock
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              icon={<PlusCircle className="h-4 w-4" />}
+              onClick={() => navigate('/stock-management')}
+            >
+              Manage Stock
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => navigate('/logistics-officer-report')}
+            >
+              Report
+            </Button>
+          </div>
         );
       case 'system-admin':
         return (
           <Button
             variant="primary"
             icon={<PlusCircle className="h-4 w-4" />}
-            onClick={() => navigate('/reports')}
+            onClick={() => navigate('/systemadminreport')}
           >
             Generate Report
           </Button>

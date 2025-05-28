@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -8,6 +8,8 @@ import {
   Title,
   Tooltip,
   Legend,
+  PointElement,
+  LineElement,
 } from 'chart.js';
 import Card from './ui/Card';
 import { useItemsStore } from '../store/itemsStore';
@@ -23,7 +25,9 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  PointElement,
+  LineElement
 );
 
 const AnalysisCard: React.FC = () => {
@@ -229,54 +233,45 @@ const AnalysisCard: React.FC = () => {
     );
   }
 
-  // System Admin: Available Items, Requests, Users (example, adjust as needed)
+  // System Admin: Requests curve analysis by date
   if (user.role === 'system-admin') {
-    const inStockItems = items.filter(item => (item.status as any) === 'available').reduce((sum, item) => sum + item.quantity, 0);
-    const totalRequests = requests.length;
-    const totalUsers = 42; // Placeholder
+    // Group requests by date (use requestedAt or created_at)
+    const dateCounts: Record<string, number> = {};
+    requests.forEach(req => {
+      const date = (req.requestedAt || req.created_at) ? new Date(req.requestedAt || req.created_at) : null;
+      if (!date) return;
+      const key = date.toISOString().slice(0, 10); // YYYY-MM-DD
+      dateCounts[key] = (dateCounts[key] || 0) + 1;
+    });
+    const sortedDates = Object.keys(dateCounts).sort();
     const chartData = {
-      labels: ['Available Items', 'Requests', 'Users'],
+      labels: sortedDates,
       datasets: [
         {
-          label: 'Count',
-          data: [inStockItems, totalRequests, totalUsers],
-          backgroundColor: [
-            'rgba(59, 130, 246, 0.5)',
-            'rgba(16, 185, 129, 0.5)',
-            'rgba(245, 158, 11, 0.5)',
-          ],
-          borderColor: [
-            'rgb(59, 130, 246)',
-            'rgb(16, 185, 129)',
-            'rgb(245, 158, 11)',
-          ],
-          borderWidth: 1,
+          label: 'Requests per Day',
+          data: sortedDates.map(date => dateCounts[date]),
+          fill: false,
+          borderColor: 'rgba(59, 130, 246, 1)',
+          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+          tension: 0.3,
         },
       ],
     };
     const chartOptions = {
       responsive: true,
-      plugins: { legend: { display: false }, title: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      plugins: {
+        legend: { display: true },
+        title: { display: true, text: 'Requests Trend by Date' },
+      },
+      scales: {
+        x: { title: { display: true, text: 'Date' } },
+        y: { title: { display: true, text: 'Requests' }, beginAtZero: true },
+      },
     };
     return (
-      <Card title="Analysis" className="h-full">
-        <div className="h-64">
-          <Bar data={chartData} options={chartOptions} />
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-500">Available Items</p>
-            <p className="text-2xl font-semibold text-blue-500">{inStockItems}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-500">Requests</p>
-            <p className="text-2xl font-semibold text-green-500">{totalRequests}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-500">Users</p>
-            <p className="text-2xl font-semibold text-amber-500">{totalUsers}</p>
-          </div>
+      <Card title="Requests Analysis" className="h-full flex flex-col">
+        <div className="flex-1 min-h-0">
+          <Line data={chartData} options={chartOptions} />
         </div>
       </Card>
     );

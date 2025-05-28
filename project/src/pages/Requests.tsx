@@ -21,7 +21,8 @@ const statusOptions = [
 
 const typeOptions = [
   { value: '', label: 'All Types' },
-  { value: 'new', label: 'New Item' }
+  { value: 'new', label: 'New Item' },
+  { value: 'repair', label: 'Repair' }
 ];
 
 const ITEMS_PER_PAGE = 15;
@@ -52,13 +53,11 @@ const Requests: React.FC = () => {
     fetchItems();
   }, [fetchItems]);
 
-  // Only show new item requests
-  const newItemRequests = requests.filter(r => r.type === 'new');
-
-  const filteredRequests = newItemRequests.filter(r => {
+  // Show all requests (new and repair)
+  const filteredRequests = requests.filter(r => {
     return (
-      (statusFilter ? r.status === statusFilter : true)
-      // Remove typeFilter check since only 'new' requests are shown
+      (statusFilter ? r.status === statusFilter : true) &&
+      (typeFilter ? r.type === typeFilter : true)
     );
   });
 
@@ -80,7 +79,11 @@ const Requests: React.FC = () => {
   const columns = [
     {
       header: 'Request Date',
-      accessor: (request: any) => safeFormatDate(request.requested_at)
+      accessor: (request: any) => {
+        // Use requested_at for new, created_at for repair
+        const date = request.requested_at || request.created_at;
+        return safeFormatDate(date);
+      }
     },
     {
       header: 'Type',
@@ -89,21 +92,27 @@ const Requests: React.FC = () => {
     {
       header: 'Category',
       accessor: (request: any) => {
+        if (request.type === 'repair') {
+          return request.item_category || (request.issued_item && request.issued_item.item_category) || '-';
+        }
         const item = items.find(i => String(i.id) === String(request.item));
-        return item?.category || '-';
+        return item?.category || request.category || '-';
       }
     },
     {
       header: 'Item',
       accessor: (request: any) => {
+        if (request.type === 'repair') {
+          return request.item_name || (request.issued_item && request.issued_item.item_name) || '-';
+        }
         const item = items.find(i => String(i.id) === String(request.item));
-        return item?.name || '-';
+        return item?.name || request.item_name || '-';
       },
       className: 'font-medium'
     },
     {
       header: 'Quantity',
-      accessor: 'quantity'
+      accessor: (request: any) => request.type === 'repair' ? 1 : request.quantity
     },
     {
       header: 'Requested By',
@@ -165,14 +174,12 @@ const Requests: React.FC = () => {
       <div className="flex gap-4 mb-4">
         <Select
           label="Status"
-          name="status"
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           options={statusOptions}
         />
         <Select
           label="Type"
-          name="type"
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
           options={typeOptions}
@@ -183,7 +190,7 @@ const Requests: React.FC = () => {
         data={paginatedRequests}
         keyExtractor={request => request.id}
         isLoading={isLoading}
-        emptyMessage="No new item requests found."
+        emptyMessage="No requests found."
       />
       <Pagination
         currentPage={currentPage}

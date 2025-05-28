@@ -12,13 +12,16 @@ import { API_URL } from '../config';
 const DashboardStats: React.FC = () => {
   const { items, issuedItems = [], fetchIssuedItems } = useItemsStore();
   const { requests } = useRequestsStore();
-  const { user } = useAuthStore();
+  const { user, users, fetchUsers } = useAuthStore();
   const navigate = useNavigate();
   const [pendingRepairCount, setPendingRepairCount] = useState<number>(0);
 
   useEffect(() => {
     fetchIssuedItems();
-  }, [fetchIssuedItems]);
+    if (user?.role === 'system-admin') {
+      fetchUsers();
+    }
+  }, [fetchIssuedItems, fetchUsers, user]);
 
   useEffect(() => {
     // Fetch pending repair requests for the logged-in user
@@ -46,7 +49,7 @@ const DashboardStats: React.FC = () => {
   const pendingRequests = requests.filter(
     req => req.status === 'pending' && req.requested_by === user?.id
   ).length;
-  const totalUsers = 42; // Placeholder for total users count
+  const totalUsers = user?.role === 'system-admin' ? users.length : 42; // Use real count for system-admin
   const inStockItems = items.filter(item => (item.status as any) === 'available').reduce((sum, item) => sum + item.quantity, 0);
 
   const renderCards = () => {
@@ -146,24 +149,9 @@ const DashboardStats: React.FC = () => {
       case 'system-admin':
         return (
           <>
-            <StatCard
-              title="Available Items"
-              value={formatNumber(inStockItems)}
-              icon={<Package size={24} />}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl"
-            />
-            <StatCard
-              title="Requests"
-              value={pendingRequests}
-              icon={<ClipboardList size={24} />}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl"
-            />
-            <StatCard
-              title="Users"
-              value={totalUsers}
-              icon={<Users size={24} />}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl"
-            />
+            
+            
+            
           </>
         );
       default:

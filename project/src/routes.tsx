@@ -53,6 +53,8 @@ export const AppRoutes = () => {
       <Route path="/reports/unit-leader" element={<UnitLeaderReportPage />} />
       <Route path="/repair-request-details/:itemName/:itemCategory" element={<RepairRequestDetails />} />
       <Route path="/damaged-items/group/:itemName/:itemCategory" element={<DamagedItemGroupDetails />} />
+      <Route path="/logistics-officer-report" element={<LogisticOfficerReportPage />} />
+      <Route path="/systemadminreport" element={<SystemAdminReportPage />} />
     </Routes>
   );
 };

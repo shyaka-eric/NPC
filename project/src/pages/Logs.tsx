@@ -23,7 +23,7 @@ const Logs: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (Array.isArray(response.data)) {
-          setLogs(response.data);
+          setLogs(response.data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
         } else {
           console.error('Unexpected response format:', response.data);
           setLogs([]); // Fallback to an empty array

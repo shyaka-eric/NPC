@@ -8,7 +8,6 @@ import NotificationsDropdown from './NotificationsDropdown';
 import npcLogo from '../images/npclogo.jpeg';
 
 const ORG_NAME_KEY = 'orgName';
-const ORG_LOGO_KEY = 'orgLogo';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -21,14 +20,13 @@ const Navbar: React.FC = () => {
   
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
 
-  // Get org name and logo from localStorage
+  // Get org name from localStorage
   const orgName = localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics';
-  const orgLogo = localStorage.getItem(ORG_LOGO_KEY);
 
   const navigationLinks = [
     { name: 'Dashboard', path: '/', roles: ['system-admin', 'admin', 'logistics-officer', 'unit-leader'] },
     { name: 'Users', path: '/users', roles: ['system-admin'] },
-    { name: 'Reports', path: '/reports', roles: ['system-admin'] },
+    { name: 'System Admin Report', path: '/reports/system-admin', roles: ['system-admin'] },
     { name: 'Settings', path: '/settings', roles: ['system-admin'] },
     { name: 'Logs', path: '/logs', roles: ['system-admin'] },
     { name: 'Stock Availability', path: '/stock-availability', roles: ['admin'] },

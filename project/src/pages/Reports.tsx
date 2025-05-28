@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PageHeader from '../components/PageHeader';
-
+import SystemAdminReportPage from './SystemAdminReportPage';
 
 // Placeholder: Replace with your actual user context/store
 const currentUser = { role: 'system-admin' }; // Example: get from auth context or store

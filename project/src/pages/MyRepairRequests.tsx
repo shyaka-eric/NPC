@@ -3,7 +3,6 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import PageHeader from '../components/PageHeader';
 import Table from '../components/ui/Table';
-import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { API_URL } from '../config';
 import { useNavigate } from 'react-router-dom';
@@ -18,14 +17,19 @@ interface IssuedItem {
 
 interface RepairRequest {
   id: number;
-  issued_item: IssuedItem;
-  description: string;
-  status: 'pending' | 'repaired' | 'damaged' | 'repair-in-process';
+  issued_item?: IssuedItem | null;
+  description: string | null;
+  status: 'pending' | 'repaired' | 'damaged' | 'repair-in-process' | 'approved' | 'issued' | 'denied';
   created_at: string;
+  item_name: string;
+  category: string;
+  quantity: number;
+  requested_by: number;
+  requested_by_name: string;
+  type: 'new' | 'repair';
 }
 
 const MyRepairRequests: React.FC = () => {
-  const [repairRequests, setRepairRequests] = useState<RepairRequest[]>([]);
   const [groupedRequests, setGroupedRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +40,9 @@ const MyRepairRequests: React.FC = () => {
     fetchMyRepairRequests();
     // eslint-disable-next-line
   }, []);
+
+  // Helper to get grouped value safely
+  const getFirst = (g: any, key: string) => (g.requests && g.requests.length > 0 && g.requests[0][key]) ? g.requests[0][key] : '-';
 
   const fetchMyRepairRequests = async () => {
     setIsLoading(true);
@@ -52,24 +59,32 @@ const MyRepairRequests: React.FC = () => {
         },
         params: { requested_by: user.id },
       });
-      // Group by item_name + item_category
+      // Group by item_name + category from the request itself
       const grouped: { [key: string]: any } = {};
       response.data.forEach(req => {
-        const key = `${req.issued_item.item_name}|||${req.issued_item.item_category}`;
+        const key = `${req.item_name}|||${req.category}`;
         if (!grouped[key]) {
           grouped[key] = {
-            item_name: req.issued_item.item_name,
-            item_category: req.issued_item.item_category,
-            serial_numbers: [req.issued_item.serial_number],
-            descriptions: [req.description],
+            item_name: req.item_name,
+            item_category: req.category,
+            serial_numbers: req.issued_item ? [req.issued_item.serial_number] : [], // Handle null issued_item
+            descriptions: req.description ? [req.description] : [], // Handle null description
             statuses: [req.status],
             created_ats: [req.created_at],
+            // Store individual request details for the modal if needed later
+            requests: [req],
           };
         } else {
-          grouped[key].serial_numbers.push(req.issued_item.serial_number);
-          grouped[key].descriptions.push(req.description);
+          if (req.issued_item) {
+             grouped[key].serial_numbers.push(req.issued_item.serial_number);
+          }
+          if (req.description) {
+             grouped[key].descriptions.push(req.description);
+          }
           grouped[key].statuses.push(req.status);
           grouped[key].created_ats.push(req.created_at);
+          // Store individual request details for the modal
+          grouped[key].requests.push(req);
         }
       });
       setGroupedRequests(Object.values(grouped));
@@ -84,14 +99,14 @@ const MyRepairRequests: React.FC = () => {
 
   const columns = [
     { header: 'Request Date', accessor: (g: any) => g.created_ats[0] ? format(new Date(g.created_ats[0]), 'MMM dd, yyyy') : '-' },
-    { header: 'Category', accessor: (g: any) => g.item_category },
-    { header: 'Item Name', accessor: (g: any) => g.item_name },
-    { header: 'Quantity', accessor: (g: any) => g.serial_numbers.length },
+    { header: 'Category', accessor: (g: any) => getFirst(g, 'item_category') || g.item_category || '-' },
+    { header: 'Item Name', accessor: (g: any) => getFirst(g, 'item_name') || g.item_name || '-' },
+    { header: 'Quantity', accessor: (g: any) => g.requests.reduce((sum: number, r: any) => sum + (r.quantity || 1), 0) },
     { header: 'Actions', accessor: (g: any) => (
       <button
         className="px-2 py-2 rounded bg-gray-600 text-white font-semibold shadow hover:bg-gray-700 transition-colors duration-150"
         onClick={() => {
-          navigate(`/repair-request-details/${encodeURIComponent(g.item_name)}/${encodeURIComponent(g.item_category)}`);
+          navigate(`/repair-request-details/${encodeURIComponent(getFirst(g, 'item_name') || g.item_name)}/${encodeURIComponent(getFirst(g, 'item_category') || g.item_category)}`, { state: { groupedRequest: g } });
         }}
       >
         View Details

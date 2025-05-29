@@ -7,13 +7,14 @@ from .views import (
     RegisterView, UserDetailView, CustomTokenObtainPairView, has_users,
     IssuedItemListView, AllPendingRequestsView,
     NotificationListView, NotificationMarkAsReadView, NotificationMarkAllAsReadView,
-    DamagedItemViewSet, log_dashboard_access
+    DamagedItemViewSet, log_dashboard_access, RepairRequestViewSet
 )
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'items', ItemViewSet)
 router.register(r'requests', RequestViewSet)
+router.register(r'repair-requests', RepairRequestViewSet, basename='repair-request')
 router.register(r'logs', LogViewSet)
 router.register(r'settings', SettingsViewSet)
 router.register(r'damaged-items', DamagedItemViewSet)

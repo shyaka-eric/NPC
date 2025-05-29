@@ -98,6 +98,7 @@ const RepairRequestDetails: React.FC = () => {
 
   const columns = [
     { header: 'Serial Number', accessor: (i: IssuedItem) => i.serial_number },
+    { header: 'Assigned Date', accessor: (i: IssuedItem) => i.assigned_date ? new Date(i.assigned_date).toLocaleDateString() : '-' },
     { header: 'Status', accessor: (i: IssuedItem) => {
       switch (i.status) {
         case 'pending': return <span className="text-yellow-600 font-semibold">Pending</span>;

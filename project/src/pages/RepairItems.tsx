@@ -122,10 +122,21 @@ const RepairItems: React.FC = () => {
     return `http://localhost:8000${r.picture.startsWith('/media/') ? r.picture : '/media/' + r.picture}`;
   };
 
+  // Helper to get the real status for a repair item
+  const getRealStatus = (r: any) => {
+    // Only use valid backend statuses
+    if (!r.status || r.status === 'pending') return 'pending';
+    if (r.status === 'damaged') return 'damaged';
+    if (r.status === 'repair-in-process') return 'repair-in-process';
+    if (r.status === 'repaired') return 'repaired';
+    // Fallback for any unknown status (should not happen)
+    return 'pending';
+  };
+
   const columns = [
     { header: 'Request Date', accessor: (r: any) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
-    { header: 'Category', accessor: (r: any) => r.issued_item?.item_category || r.category || (items.find((i: any) => i.id === r.item)?.category || '-') },
-    { header: 'Item', accessor: (r: any) => r.issued_item?.item_name || r.item_name || (items.find((i: any) => i.id === r.item)?.name || '-') },
+    { header: 'Category', accessor: (r: any) => r.item_category || r.issued_item?.item_category || r.category || (items.find((i: any) => i.id === r.item)?.category || '-') },
+    { header: 'Item', accessor: (r: any) => r.item_name || r.issued_item?.item_name || (items.find((i: any) => i.id === r.item)?.name || '-') },
     { header: 'Requested By', accessor: (r: any) => r.requested_by_name || '-' },
     { header: 'Picture', accessor: (r: any) => {
       const url = getPictureUrl(r);
@@ -134,21 +145,33 @@ const RepairItems: React.FC = () => {
       ) : '-';
     } },
     { header: 'Description', accessor: (r: any) => r.description || '-' },
-    { header: 'Status', accessor: (r: any) => r.status },
+    { header: 'Status', accessor: (r: any) => {
+      const status = getRealStatus(r);
+      if (status === 'pending') return 'Pending';
+      if (status === 'damaged') return 'Damaged';
+      if (status === 'repair-in-process') return 'Repair in process';
+      if (status === 'repaired') return 'Repaired';
+      return status;
+    } },
     {
       header: 'Actions',
       accessor: (r: any) => {
-        if (r.status === 'marked-damaged' || r.status === 'damaged') {
+        const realStatus = getRealStatus(r);
+        if (realStatus === 'damaged') {
           return <span className="text-red-600 font-semibold">Marked Damaged</span>;
         }
-        if (r.status === 'repair-in-process') {
+        if (realStatus === 'repair-in-process') {
           return <span className="text-yellow-600 font-semibold">Repair in process</span>;
         }
+        if (realStatus === 'repaired') {
+          return <span className="text-green-600 font-semibold">Repaired</span>;
+        }
+        // Only allow actions if pending
         return (
-        <div className="flex gap-2">
-          <Button size="sm" variant="success" onClick={() => handleApprove(r)} disabled={r.status !== 'pending'}>Repair</Button>
-          <Button size="sm" variant="danger" onClick={() => handleMarkAsDamaged(r)} disabled={r.status !== 'pending'}>Damaged</Button>
-        </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="success" onClick={() => handleApprove(r)} disabled={realStatus !== 'pending'}>Repair</Button>
+            <Button size="sm" variant="danger" onClick={() => handleMarkAsDamaged(r)} disabled={realStatus !== 'pending'}>Damaged</Button>
+          </div>
         );
       }
     }

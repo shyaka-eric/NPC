@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-8d&kdwpx_hltcuartzo1ur6#*ahzhfvl18hspc)@&qa=x_^l^q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
 
 # Application definition
@@ -134,9 +134,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
-# Only allow all origins for development, do not set both CORS_ALLOWED_ORIGINS and CORS_ALLOW_ALL_ORIGINS
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3500',
+    'http://127.0.0.1:3500',
+]
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -148,10 +151,6 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
-# Comment out or remove CORS_ALLOWED_ORIGINS to avoid conflict
-# CORS_ALLOWED_ORIGINS = [
-#     'http://localhost:3000',
-# ]
 
 AUTH_USER_MODEL = 'api.User'
 

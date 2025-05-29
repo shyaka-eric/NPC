@@ -106,7 +106,7 @@ const RecentRequests: React.FC = () => {
         <div className="flow-root">
           <ul className="divide-y divide-slate-200">
             {recentRequests.map((request) => (
-              <li key={request.id} className="py-4">
+              <li key={`${request.type}-${request.id}`} className="py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">

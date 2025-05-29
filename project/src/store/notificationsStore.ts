@@ -46,7 +46,7 @@ export const useNotificationsStore = create<NotificationsState>()(
       markAsRead: async (id) => {
         set({ isLoading: true, error: null })
         try {
-          await api.patch(`notifications/${id}/`, { is_read: true })
+          await api.patch(`notifications/${id}/mark_as_read/`)
           set(state => {
             const updated = state.notifications.map(n =>
               n.id === id ? { ...n, is_read: true } : n

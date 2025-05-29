@@ -8,13 +8,11 @@ const fetchNotifications = async (userId: string) => {
 };
 
 const markRead = async ({ id }: { id: string }) => {
-  await api.patch(`notifications/${id}/`, { is_read: true });
+  await api.patch(`notifications/${id}/mark_as_read/`);
 };
 
 const markAllRead = async (userId: string) => {
-  // ideally your backend provides a bulk endpoint; if not:
-  const { data } = await api.get<NotificationModel[]>('notifications/', { params: { user: userId } });
-  await Promise.all(data.map(n => api.patch(`notifications/${n.id}/`, { is_read: true })));
+  await api.post('notifications/mark_all_as_read/');
 };
 
 export function useNotifications(userId: string) {

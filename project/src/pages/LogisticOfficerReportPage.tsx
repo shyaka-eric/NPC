@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRequestsStore } from '../store/requestsStore';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 
 const REPORT_OPTIONS = [
   { value: 'new', label: 'New Item Request Report' },
@@ -14,8 +12,6 @@ const STATUS_OPTIONS = {
   new: [
     { value: '', label: 'All Statuses' },
     { value: 'approved', label: 'Approved' },
-    { value: 'denied', label: 'Denied' },
-    { value: 'pending', label: 'Pending' },
     { value: 'issued', label: 'Issued' },
   ],
   repair: [
@@ -201,54 +197,6 @@ const LogisticOfficerReportPage: React.FC = () => {
     });
   };
 
-  const handleExportPDF = () => {
-    const exportDate = new Date().toLocaleString();
-    const officerName = user?.username || user?.name || '-';
-    const statusSummary = getStatusSummary();
-    const doc = new jsPDF();
-    doc.text(`Report exported on: ${exportDate}` , 10, 10);
-    doc.text(`Exported by: ${officerName}` , 10, 18);
-    doc.text(`Report type: ${reportType === 'new' ? 'New Item Request Report' : 'Repair Request Report'}` , 10, 26);
-    let y = 34;
-    doc.text('Summary by Status:', 10, y);
-    y += 8;
-    Object.entries(statusSummary).forEach(([label, count]) => {
-      doc.text(`${label}: ${count}`, 14, y);
-      y += 7;
-    });
-    doc.text(`Total: ${filteredRequests.length}`, 14, y);
-    y += 8;
-    const head = [[
-      'Date of the Request',
-      'Category',
-      'Item Name',
-      ...(reportType === 'new' ? ['Quantity'] : []),
-      'Status',
-      'Requested By',
-    ]];
-    const body = filteredRequests.map(row => {
-      const { name, category } = getItemNameAndCategory(row);
-      let requestedBy = '-';
-      if (row.requestedByName) {
-        requestedBy = row.requestedByName;
-      } else if (row.requested_by && typeof row.requested_by === 'object') {
-        requestedBy = row.requested_by['name'] || row.requested_by['fullName'] || row.requested_by['username'] || '-';
-      } else if (row.requested_by) {
-        requestedBy = row.requested_by;
-      }
-      return [
-        row.requestedAt ? new Date(row.requestedAt).toLocaleDateString() : (row.created_at ? new Date(row.created_at).toLocaleDateString() : '-'),
-        category,
-        name,
-        ...(reportType === 'new' ? [row.quantity || '-'] : []),
-        statusLabel(row.status),
-        requestedBy,
-      ];
-    });
-    (doc as any).autoTable({ head, body, startY: y });
-    doc.save('report.pdf');
-  };
-
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">{REPORT_OPTIONS.find(opt => opt.value === reportType)?.label}</h1>
@@ -310,12 +258,6 @@ const LogisticOfficerReportPage: React.FC = () => {
             onClick={handleExportExcel}
           >
             Export to Excel
-          </button>
-          <button
-            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-            onClick={handleExportPDF}
-          >
-            Export to PDF
           </button>
         </div>
         <div className="overflow-x-auto">

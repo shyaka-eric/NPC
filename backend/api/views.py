@@ -28,6 +28,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from .utils import log_action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser, FormParser
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +204,7 @@ class RepairRequestViewSet(viewsets.ModelViewSet):
     queryset = RepairRequest.objects.select_related('issued_item', 'item').all()
     serializer_class = RepairRequestSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
         queryset = super().get_queryset()

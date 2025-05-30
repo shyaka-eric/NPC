@@ -29,6 +29,7 @@ import ApprovedRequests from './pages/ApprovedRequests';
 import Logs from './pages/Logs';
 import { AppRoutes } from "./routes";
 import useNotificationWebSocket from './hooks/useNotificationWebSocket';
+import LoginPage from './pages/LoginPage';
 
 // Route guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,7 +84,7 @@ const App: React.FC = () => {
               isAuthenticated ? (
                 <Navigate to="/" replace />
               ) : (
-                <LoginForm />
+                <LoginPage />
               )
             } 
           />

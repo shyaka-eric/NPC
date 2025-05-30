@@ -45,8 +45,8 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 bg-slate-50">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md border border-slate-200">
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 p-8 rounded-lg shadow-md border border-gray-700">
         <div className="text-center">
           <div className="flex justify-center">
             <img
@@ -56,8 +56,8 @@ const LoginForm: React.FC = () => {
               style={{ background: 'white' }}
             />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-slate-900">NPC Logistics</h2>
-          <p className="mt-2 text-sm text-slate-600">Sign in to access the logistics system</p>
+          <h2 className="mt-6 text-3xl font-bold text-white">NPC Logistics</h2>
+          <p className="mt-2 text-sm text-gray-300">Sign in to access the logistics system</p>
         </div>
 
         {error && (

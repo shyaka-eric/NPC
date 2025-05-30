@@ -8,6 +8,9 @@ import Button from '../components/ui/Button';
 import { toast } from 'sonner';
 import { IssuedItemModel } from '../models/item.model';
 import { useNavigate } from 'react-router-dom';
+import SimpleModal from '../components/ui/SimpleModal';
+import Input from '../components/ui/Input';
+import { requestRepair } from '../services/api';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -23,6 +26,12 @@ const ItemsInUse: React.FC = () => {
   const { issuedItems, fetchIssuedItems } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<IssuedItemModel | null>(null);
+  const [reason, setReason] = useState('');
+  const [picture, setPicture] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,86 +59,84 @@ const ItemsInUse: React.FC = () => {
   // Update filtering logic to use `assigned_to` instead of `assigned_to_id`
   const itemsInUse = (issuedItems || []).filter(item => {
     const isAssignedToUser = String(item.assigned_to) === String(user?.id);
-    console.log('Filtering Item:', {
-      itemId: item.id,
-      assignedTo: item.assigned_to,
-      isAssignedToUser
-    });
     return isAssignedToUser;
   });
-  console.log('Filtered Items In Use:', itemsInUse);
 
-  // Group issued items by item_name and item_category
-  const groupedItems = React.useMemo(() => {
-    const map = new Map<string, { item_name: string; item_category: string; quantity: number; items: IssuedItemModel[] }>();
-    itemsInUse.forEach(item => {
-      const key = `${item.item_name}|${item.item_category}`;
-      console.log('Grouping Item:', {
-        itemId: item.id,
-        itemName: item.item_name,
-        itemCategory: item.item_category,
-        assignedQuantity: item.assigned_quantity,
-        key
-      });
-      if (!map.has(key)) {
-        map.set(key, {
-          item_name: item.item_name,
-          item_category: item.item_category,
-          quantity: 1, // Each issued item is one unit
-          items: [item],
-        });
-      } else {
-        const entry = map.get(key)!;
-        entry.quantity += 1; // Sum up by 1 for each issued item
-        entry.items.push(item);
-      }
-    });
-    console.log('Grouped Items:', Array.from(map.values()));
-    return Array.from(map.values());
-  }, [itemsInUse]);
-
+  // Remove grouping: show each issued item individually
+  const paginatedItems = itemsInUse.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const totalPages = Math.ceil(itemsInUse.length / ITEMS_PER_PAGE);
-  const paginatedItems = groupedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  console.log('Paginated Items:', paginatedItems);
 
-  const handleViewItem = (row: { item_name: string; item_category: string; quantity: number; items: IssuedItemModel[] }) => {
-    // Removed serial_numbers mapping logic as `serial_number` is no longer used
-    console.log('Navigating with data:', row);
-    navigate('/issued-item-details', { state: row });
+  const handleRequestRepair = (item: IssuedItemModel) => {
+    setSelectedItem(item);
+    setReason('');
+    setPicture(null);
+    setShowModal(true);
   };
 
-  // Table columns for grouped items
-  const columns: TableColumn<{
-    item_name: string;
-    item_category: string;
-    quantity: number;
-    items: IssuedItemModel[];
-  }>[] = [
+  const handleModalClose = () => {
+    setShowModal(false);
+    setSelectedItem(null);
+    setReason('');
+    setPicture(null);
+  };
+
+  const handleSubmitRepair = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedItem) return;
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('item', selectedItem.item.toString()); // Use item id for 'item'
+      formData.append('issued_item_id', selectedItem.id.toString()); // Add issued_item_id
+      formData.append('serial_number', selectedItem.serial_number || '');
+      formData.append('category', selectedItem.item_category || '');
+      formData.append('reason', reason);
+      if (picture) formData.append('picture', picture);
+      await requestRepair(formData);
+      toast.success('Repair request submitted successfully');
+      handleModalClose();
+    } catch (error) {
+      toast.error('Failed to submit repair request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Table columns for individual issued items
+  const columns: TableColumn<IssuedItemModel>[] = [
+    {
+      header: 'Serial Number',
+      accessor: (item) => item.serial_number || '-',
+      className: 'font-mono',
+    },
     {
       header: 'Item Name',
-      accessor: 'item_name',
-      className: 'font-medium'
+      accessor: (item) => item.item_name || '-',
     },
     {
       header: 'Category',
-      accessor: 'item_category'
+      accessor: (item) => item.item_category || '-',
     },
     {
       header: 'Quantity',
-      accessor: (row: { quantity: number }) => row.quantity
+      accessor: (item) => item.assigned_quantity || 1,
+    },
+    {
+      header: 'Assigned Date',
+      accessor: (item) => item.assigned_date ? new Date(item.assigned_date).toLocaleDateString() : '-',
     },
     {
       header: 'Actions',
-      accessor: (row: { item_name: string; item_category: string; quantity: number; items: IssuedItemModel[] }) => (
+      accessor: (item) => (
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => handleViewItem(row)}
+          onClick={() => handleRequestRepair(item)}
         >
-          View Details
+          Request Repair
         </Button>
-      )
-    }
+      ),
+    },
   ];
 
   // Log the API response for issuedItems
@@ -145,12 +152,11 @@ const ItemsInUse: React.FC = () => {
         title="Items in Use"
         description="View items currently assigned to you"
       />
-
       <div className="mt-8">
         <Table
           columns={columns}
           data={paginatedItems}
-          keyExtractor={row => row.item_name + '|' + row.item_category}
+          keyExtractor={item => String(item.id)}
           isLoading={isLoading}
           emptyMessage="You don't have any items assigned to you."
         />
@@ -160,6 +166,55 @@ const ItemsInUse: React.FC = () => {
           onPageChange={setCurrentPage}
           className="mt-6"
         />
+        <SimpleModal open={showModal} onClose={handleModalClose} title="Request Repair">
+          <form onSubmit={handleSubmitRepair} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Serial Number</label>
+              <Input value={selectedItem?.serial_number || ''} disabled />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Item Name</label>
+              <Input value={selectedItem?.item_name || ''} disabled />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Category</label>
+              <Input value={selectedItem?.item_category || ''} disabled />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Reason for Repair</label>
+              <textarea
+                className="w-full border rounded px-3 py-2"
+                value={reason}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
+                required
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Picture of Damage</label>
+              <div className="relative flex items-center">
+                <input
+                  id="picture-upload"
+                  type="file"
+                  accept="image/*"
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                  onChange={e => setPicture(e.target.files?.[0] || null)}
+                  required
+                  style={{}} // Remove all visible styles
+                />
+                <div className="w-full border rounded px-3 py-2 pr-32 bg-white flex items-center">
+                  <span className="text-gray-500 text-sm truncate max-w-[10rem]">
+                    {picture ? picture.name : 'No file selected'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button type="button" variant="secondary" onClick={handleModalClose} className="mr-2">Cancel</Button>
+              <Button type="submit" variant="primary" isLoading={isSubmitting}>Submit</Button>
+            </div>
+          </form>
+        </SimpleModal>
       </div>
     </div>
   );

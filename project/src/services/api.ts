@@ -52,3 +52,19 @@ export const updateUserProfile = async (
   if (!response.ok) throw new Error('Failed to update profile');
   return await response.json();
 };
+
+export async function requestRepair(formData: FormData) {
+  // Assumes the backend expects a POST to /api/repair-requests/ with multipart/form-data
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/repair-requests/`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+  });
+  if (!response.ok) {
+    throw new Error('Failed to submit repair request');
+  }
+  return response.json();
+}

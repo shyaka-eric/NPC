@@ -156,6 +156,7 @@ class RepairRequestSerializer(serializers.ModelSerializer):
     issued_item = IssuedItemSerializer(read_only=True)
     item_name = serializers.SerializerMethodField()
     item_category = serializers.SerializerMethodField()
+    picture = serializers.ImageField(required=False, allow_null=True)  # Ensure picture is writable
 
     class Meta:
         model = RepairRequest
@@ -169,6 +170,10 @@ class RepairRequestSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Always set requested_by from the authenticated user
         validated_data['requested_by'] = self.context['request'].user
+        # Pop picture if present and pass to model
+        picture = self.context['request'].FILES.get('picture')
+        if picture:
+            validated_data['picture'] = picture
         return super().create(validated_data)
 
     def get_requested_by_name(self, obj):

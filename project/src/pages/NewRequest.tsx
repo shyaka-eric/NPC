@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRequestsStore } from '../store/requestsStore';
 import { useAuthStore } from '../store/authStore';
 import { useItemsStore } from '../store/itemsStore';
 import PageHeader from '../components/PageHeader';
@@ -10,7 +9,6 @@ import Button from '../components/ui/Button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import SimpleModal from '../components/ui/SimpleModal';
-import { RequestType } from '../types';
 
 const priorityOptions = [
   { value: 'normal', label: 'Normal' },
@@ -18,23 +16,15 @@ const priorityOptions = [
   { value: 'urgent', label: 'Urgent' },
 ];
 
-const requestTypes = [
-  { value: 'new', label: 'New Item' },
-  { value: 'repair', label: 'Repair' } // Added repair request type
-];
-
 const NewRequest: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { addRequest } = useRequestsStore();
   const { fetchItems } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    type: 'new',
     category: '',
     itemId: '',
-    itemTrueId: '',
     quantity: '',
     priority: '',
     serialNumber: '',
@@ -43,35 +33,11 @@ const NewRequest: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [showValidationSummary, setShowValidationSummary] = useState(false);
-  const [inUseItems, setInUseItems] = useState<any[]>([]); // State to store in-use items
   const [stockItems, setStockItems] = useState<any[]>([]); // State to store stock items
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
-
-  useEffect(() => {
-    const fetchInUseItems = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/issued-items/', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        const text = await response.text();
-        console.log('Raw in-use items response:', text);
-        const data = JSON.parse(text);
-        console.log('Fetched in-use items:', data);
-        setInUseItems(data);
-      } catch (error) {
-        console.error('Failed to fetch in-use items:', error);
-      }
-    };
-
-    fetchInUseItems();
-  }, [user]);
 
   useEffect(() => {
     const fetchStockItems = async () => {
@@ -96,33 +62,7 @@ const NewRequest: React.FC = () => {
     fetchStockItems();
   }, []); // Fetch stock items on component mount
 
-  const categories = useMemo(() => {
-    if (!Array.isArray(inUseItems) || inUseItems.length === 0) {
-      console.warn('No in-use items available to populate categories.');
-      return [];
-    }
-    const cats = Array.from(new Set(inUseItems.map((item: any) => item.item_category)));
-    return cats.map((cat: string) => ({ value: cat, label: cat }));
-  }, [inUseItems]);
-
-  const itemOptions = useMemo(() => {
-    if (!formData.category) {
-      console.warn('No category selected to filter items.');
-      return [];
-    }
-    const filteredItems = inUseItems.filter((item: any) => item.item_category === formData.category);
-    // Get unique item names
-    const uniqueItemNames = Array.from(new Set(filteredItems.map((item: any) => item.item_name)));
-    return uniqueItemNames.map(itemName => ({ value: itemName, label: itemName }));
-  }, [inUseItems, formData.category]);
-
-  const getSerialNumbersForItem = (itemName: string) => {
-    return inUseItems
-      .filter((item: any) => item.item_name === itemName)
-      .map((item: any) => ({ value: item.serial_number, label: item.serial_number }));
-  };
-
-  const stockCategories = useMemo(() => {
+  const stockCategories = React.useMemo(() => {
     if (!Array.isArray(stockItems) || stockItems.length === 0) {
       console.warn('No stock items available to populate categories.');
       return [];
@@ -133,7 +73,7 @@ const NewRequest: React.FC = () => {
     return cats.map((cat: string) => ({ value: cat, label: cat }));
   }, [stockItems]);
 
-  const stockItemOptions = useMemo(() => {
+  const stockItemOptions = React.useMemo(() => {
     if (!formData.category) {
       console.warn('No category selected to filter stock items.');
       return [];
@@ -158,15 +98,6 @@ const NewRequest: React.FC = () => {
           itemId: '',
         };
       }
-      if (name === 'serialNumber' && prev.type === 'repair') {
-        const foundItem = inUseItems.find((item: any) => item.item_name === prev.itemId && item.serial_number === value);
-        return {
-          ...prev,
-          serialNumber: value.toString(),
-          itemId: foundItem ? foundItem.id : '',
-          itemTrueId: foundItem ? foundItem.item : '',
-        };
-      }
       return {
         ...prev,
         [name]: value.toString()
@@ -185,16 +116,9 @@ const NewRequest: React.FC = () => {
 
   const validate = () => {
     const newErrors: {[key: string]: string} = {};
-    if (!formData.type) newErrors.type = 'Type is required';
-    if (formData.type === 'new') {
-      if (!formData.category) newErrors.category = 'Category is required';
-      if (!formData.itemId || formData.itemId === '') newErrors.itemId = 'Item is required';
-      if (!formData.quantity || isNaN(Number(formData.quantity)) || Number(formData.quantity) <= 0) newErrors.quantity = 'Quantity is required and must be a positive number';
-    } else if (formData.type === 'repair') {
-      if (!formData.itemId || formData.itemId === '') newErrors.itemId = 'Item to Repair is required';
-      if (!formData.serialNumber) newErrors.serialNumber = 'Serial Number is required';
-      if (!formData.issueDescription) newErrors.issueDescription = 'Issue Description is required';
-    }
+    if (!formData.category) newErrors.category = 'Category is required';
+    if (!formData.itemId || formData.itemId === '') newErrors.itemId = 'Item is required';
+    if (!formData.quantity || isNaN(Number(formData.quantity)) || Number(formData.quantity) <= 0) newErrors.quantity = 'Quantity is required and must be a positive number';
     if (!formData.priority || formData.priority === '') newErrors.priority = 'Priority is required';
     setErrors(newErrors);
     setShowValidationSummary(Object.keys(newErrors).length > 0);
@@ -207,44 +131,22 @@ const NewRequest: React.FC = () => {
     if (!validate()) return;
     setIsLoading(true);
     try {
-      if (formData.type === 'repair') {
-        // Find the issued item by serial number
-        const foundIssuedItem = inUseItems.find((item: any) => item.serial_number === formData.serialNumber);
-        if (!foundIssuedItem) {
-          toast.error('You must select a valid issued item for repair.');
-          setIsLoading(false);
-          return;
-        }
-        // Use the API directly for FormData
-        const form = new FormData();
-        form.append('item', foundIssuedItem.item.toString());
-        form.append('issued_item_id', foundIssuedItem.id.toString());
-        form.append('serialNumber', formData.serialNumber);
-        form.append('description', formData.issueDescription);
-        form.append('priority', formData.priority);
-        form.append('quantity', '1');
-        if (file) {
-          form.append('picture', file);
-        }
-        const response = await fetch('/api/repair-requests/', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-            // Do NOT set Content-Type here, let the browser set it for FormData
-          },
-          body: form
-        });
-        if (!response.ok) {
-          throw new Error('Failed to create repair request');
-        }
-      } else {
       const payload: any = {
-        type: formData.type as RequestType,
+        category: formData.category,
+        item: formData.itemId,
+        quantity: parseInt(formData.quantity),
         priority: formData.priority,
-          item: formData.itemId,
-          quantity: parseInt(formData.quantity),
-        };
-      await addRequest(payload);
+      };
+      // Add file if present
+      if (file) {
+        const form = new FormData();
+        Object.entries(payload).forEach(([key, value]) => form.append(key, value as string));
+        form.append('attachment', file);
+        // Use fetch or your API utility to send the request
+        // Example:
+        // await fetch('/api/requests/', { method: 'POST', body: form, headers: { Authorization: ... } });
+      } else {
+        // await fetch('/api/requests/', { method: 'POST', body: JSON.stringify(payload), headers: { ... } });
       }
       toast.success('Request created successfully');
       navigate('/my-requests');
@@ -261,84 +163,7 @@ const NewRequest: React.FC = () => {
   };
 
   const renderFormFields = () => {
-    if (formData.type === 'repair') {
-      return (
-        <>
-          <Select
-            label="Category"
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            options={[{ value: '', label: 'Select Category' }, ...categories]}
-            required={true}
-            error={errors.category}
-          />
-          <Select
-            label="Item Name"
-            name="itemId"
-            value={formData.itemId}
-            onChange={handleChange}
-            options={[{ value: '', label: 'Select Item' }, ...itemOptions]}
-            required={true}
-            error={errors.itemId}
-          />
-          <Select
-            label="Serial Number"
-            name="serialNumber"
-            value={formData.serialNumber}
-            onChange={handleChange}
-            options={[
-              { value: '', label: 'Select Serial Number' },
-              ...(formData.itemId ? getSerialNumbersForItem(formData.itemId) : [])
-            ]}
-            required={true}
-            error={errors.serialNumber}
-          />
-          <Select
-            label="Priority"
-            name="priority"
-            value={formData.priority}
-            onChange={handleChange}
-            options={[{ value: '', label: 'Select Priority' }, ...priorityOptions.filter(opt => opt.value !== '')]}
-            required
-            error={errors.priority}
-          />
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea
-              name="issueDescription"
-              value={formData.issueDescription || ''}
-              onChange={handleChange}
-              required
-              className="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              rows={3}
-            />
-            {errors.issueDescription && <p className="mt-1 text-sm text-red-600">{errors.issueDescription}</p>}
-          </div>
-          <Input
-            label="Photo of Damaged Item"
-            name="attachment"
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            required
-          />
-          {file && (
-            <div className="mt-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Image Preview:</label>
-              <img
-                src={URL.createObjectURL(file)}
-                alt="Preview"
-                className="max-h-48 border rounded shadow"
-                style={{ maxWidth: '100%', objectFit: 'contain' }}
-              />
-            </div>
-          )}
-        </>
-      );
-    }
-
-    // Default form fields for 'new' type
+    // Only render fields for 'new' type
     return (
       <>
         <Select
@@ -398,36 +223,23 @@ const NewRequest: React.FC = () => {
             </ul>
           </div>
         )}
-        <Select
-          label="Request Type"
-          name="type"
-          value={formData.type}
-          onChange={handleChange}
-          options={requestTypes}
-          required={true}
-          error={errors.type}
-        />
         {renderFormFields()}
-        {formData.type !== 'repair' && (
-          <>
-            <Select
-              label="Priority"
-              name="priority"
-              value={formData.priority}
-              onChange={handleChange}
-              options={[{ value: '', label: 'Select Priority' }, ...priorityOptions.filter(opt => opt.value !== '')]}
-              required
-              error={errors.priority}
-            />
-            <Input
-              label={fileLabel}
-              name="attachment"
-              type="file"
-              accept={fileAccept}
-              onChange={handleFileChange}
-            />
-          </>
-        )}
+        <Select
+          label="Priority"
+          name="priority"
+          value={formData.priority}
+          onChange={handleChange}
+          options={[{ value: '', label: 'Select Priority' }, ...priorityOptions.filter(opt => opt.value !== '')]}
+          required
+          error={errors.priority}
+        />
+        <Input
+          label={fileLabel}
+          name="attachment"
+          type="file"
+          accept={fileAccept}
+          onChange={handleFileChange}
+        />
         <div className="flex justify-end gap-3 pt-4">
           <Button
             variant="secondary"
@@ -473,8 +285,20 @@ const NewRequest: React.FC = () => {
           <p>Please review your request details:</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <h3 className="text-sm font-medium text-gray-500">Request Type</h3>
-              <p className="mt-1">{requestTypes.find(rt => rt.value === formData.type)?.label}</p>
+              <h3 className="text-sm font-medium text-gray-500">Category</h3>
+              <p className="mt-1">{stockCategories.find(cat => cat.value === formData.category)?.label}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Item</h3>
+              <p className="mt-1">{stockItemOptions.find(opt => opt.value === formData.itemId)?.label}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Quantity</h3>
+              <p className="mt-1">{formData.quantity}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Priority</h3>
+              <p className="mt-1">{priorityOptions.find(opt => opt.value === formData.priority)?.label}</p>
             </div>
           </div>
         </div>

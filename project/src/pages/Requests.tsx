@@ -9,6 +9,7 @@ import { formatDate } from '../utils/formatters';
 import Pagination from '../components/Pagination';
 import Button from '../components/ui/Button';
 import { toast } from 'sonner';
+import SimpleModal from '../components/ui/SimpleModal';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
@@ -34,6 +35,12 @@ const Requests: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    request: any | null;
+    action: 'approve' | 'reject' | null;
+  }>({ open: false, request: null, action: null });
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     const loadRequests = async () => {
@@ -73,6 +80,29 @@ const Requests: React.FC = () => {
       return formatDate(d);
     } catch {
       return '-';
+    }
+  };
+
+  const handleAction = async () => {
+    if (!confirmModal.request || !confirmModal.action) return;
+    setActionLoading(true);
+    try {
+      if (confirmModal.action === 'approve') {
+        await approveRequest(confirmModal.request.id, '', undefined);
+        toast.success('Request approved successfully');
+      } else {
+        await denyRequest(confirmModal.request.id, '', 'Denied by admin');
+        toast.success('Request denied successfully');
+      }
+    } catch (error) {
+      toast.error(
+        confirmModal.action === 'approve'
+          ? 'Failed to approve request'
+          : 'Failed to deny request'
+      );
+    } finally {
+      setActionLoading(false);
+      setConfirmModal({ open: false, request: null, action: null });
     }
   };
 
@@ -131,30 +161,16 @@ const Requests: React.FC = () => {
               <Button
                 variant="success"
                 size="sm"
-                onClick={async () => {
-                  try {
-                    await approveRequest(request.id, '', undefined);
-                    toast.success('Request approved successfully');
-                  } catch (error) {
-                    toast.error('Failed to approve request');
-                  }
-                }}
+                onClick={() => setConfirmModal({ open: true, request, action: 'approve' })}
               >
                 Approve
               </Button>
               <Button
                 variant="danger"
                 size="sm"
-                onClick={async () => {
-                  try {
-                    await denyRequest(request.id, '', 'Denied by admin');
-                    toast.success('Request denied successfully');
-                  } catch (error) {
-                    toast.error('Failed to deny request');
-                  }
-                }}
+                onClick={() => setConfirmModal({ open: true, request, action: 'reject' })}
               >
-                Deny
+                Reject
               </Button>
             </div>
           );
@@ -198,6 +214,33 @@ const Requests: React.FC = () => {
         onPageChange={setCurrentPage}
         className="mt-6"
       />
+      <SimpleModal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, request: null, action: null })}
+        title={confirmModal.action === 'approve' ? 'Approve Request' : 'Reject Request'}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmModal({ open: false, request: null, action: null })}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={confirmModal.action === 'approve' ? 'success' : 'danger'}
+              onClick={handleAction}
+              isLoading={actionLoading}
+            >
+              {confirmModal.action === 'approve' ? 'Approve' : 'Reject'}
+            </Button>
+          </div>
+        }
+      >
+        {confirmModal.action === 'approve'
+          ? 'Are you sure you want to approve this request?'
+          : 'Are you sure you want to reject this request?'}
+      </SimpleModal>
     </div>
   );
 };

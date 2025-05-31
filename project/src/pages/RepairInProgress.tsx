@@ -32,6 +32,7 @@ const RepairInProgress: React.FC = () => {
   const [repairRequests, setRepairRequests] = useState<RepairRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmRequest, setConfirmRequest] = useState<RepairRequest | null>(null);
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -102,7 +103,7 @@ const RepairInProgress: React.FC = () => {
             <Button
               size="sm"
               variant="success"
-              onClick={() => handleMarkAsRepaired(r)}
+              onClick={() => setConfirmRequest(r)}
               disabled={r.status !== 'repair-in-process'}
             >
               Mark as Repaired
@@ -152,6 +153,29 @@ const RepairInProgress: React.FC = () => {
           emptyMessage="No items currently in repair."
         />
       </div>
+      {/* Confirmation Modal */}
+      {confirmRequest && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-4">Confirm Action</h2>
+            <p className="mb-6">Are you sure you want to mark <span className="font-bold">{confirmRequest.issued_item.item?.name}</span> as repaired?</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setConfirmRequest(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="success"
+                onClick={async () => {
+                  await handleMarkAsRepaired(confirmRequest);
+                  setConfirmRequest(null);
+                }}
+              >
+                Yes, Mark as Repaired
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

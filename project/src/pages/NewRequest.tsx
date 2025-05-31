@@ -9,6 +9,8 @@ import Button from '../components/ui/Button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import SimpleModal from '../components/ui/SimpleModal';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 const priorityOptions = [
   { value: 'normal', label: 'Normal' },
@@ -162,6 +164,19 @@ const NewRequest: React.FC = () => {
     setIsConfirmModalOpen(true);
   };
 
+  const downloadTemplate = () => {
+    // Define the columns as per the request form
+    const wsData = [
+      ['Category', 'Item', 'Quantity', 'Priority']
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    saveAs(blob, 'item_request_template.xlsx');
+  };
+
   const renderFormFields = () => {
     // Only render fields for 'new' type
     return (
@@ -233,6 +248,14 @@ const NewRequest: React.FC = () => {
           required
           error={errors.priority}
         />
+        <Button
+          type="button"
+          variant="outline"
+          className="mb-2"
+          onClick={downloadTemplate}
+        >
+          Download Excel Template
+        </Button>
         <Input
           label={fileLabel}
           name="attachment"

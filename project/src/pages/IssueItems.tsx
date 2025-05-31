@@ -15,6 +15,7 @@ const IssueItems: React.FC = () => {
   const { requests, fetchRequests, issueRequest } = useRequestsStore();
   const { items, fetchItems, updateItem } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState<any | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -93,7 +94,7 @@ const IssueItems: React.FC = () => {
           variant="success"
           size="sm"
           icon={<CheckCircle className="h-4 w-4" />}
-          onClick={() => handleIssueItem(request)}
+          onClick={() => setConfirmRequest(request)}
           disabled={request.status === 'issued'}
         >
           {request.status === 'issued' ? 'Issued' : 'Issue'}
@@ -108,7 +109,6 @@ const IssueItems: React.FC = () => {
         title="Issue Items"
         description="Process and issue approved requests"
       />
-
       <div className="mt-8">
         <Table
           columns={columns}
@@ -118,6 +118,29 @@ const IssueItems: React.FC = () => {
           emptyMessage="No approved or issued requests to process"
         />
       </div>
+      {/* Confirmation Modal */}
+      {confirmRequest && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-4">Confirm Issue</h2>
+            <p className="mb-6">Are you sure you want to issue <span className="font-bold">{getItem(confirmRequest.item)?.name}</span> (Qty: {confirmRequest.quantity}) to <span className="font-bold">{confirmRequest.requested_by_name}</span>?</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setConfirmRequest(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="success"
+                onClick={async () => {
+                  await handleIssueItem(confirmRequest);
+                  setConfirmRequest(null);
+                }}
+              >
+                Yes, Issue Item
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

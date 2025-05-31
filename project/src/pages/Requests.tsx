@@ -41,6 +41,7 @@ const Requests: React.FC = () => {
     action: 'approve' | 'reject' | null;
   }>({ open: false, request: null, action: null });
   const [actionLoading, setActionLoading] = useState(false);
+  const [editQuantity, setEditQuantity] = useState<number | null>(null);
 
   useEffect(() => {
     const loadRequests = async () => {
@@ -88,7 +89,9 @@ const Requests: React.FC = () => {
     setActionLoading(true);
     try {
       if (confirmModal.action === 'approve') {
-        await approveRequest(confirmModal.request.id, '', undefined);
+        // Use edited quantity if provided, else original
+        const quantityToApprove = editQuantity ?? confirmModal.request.quantity;
+        await approveRequest(confirmModal.request.id, '', quantityToApprove);
         toast.success('Request approved successfully');
       } else {
         await denyRequest(confirmModal.request.id, '', 'Denied by admin');
@@ -103,6 +106,7 @@ const Requests: React.FC = () => {
     } finally {
       setActionLoading(false);
       setConfirmModal({ open: false, request: null, action: null });
+      setEditQuantity(null);
     }
   };
 
@@ -151,6 +155,14 @@ const Requests: React.FC = () => {
     {
       header: 'Status',
       accessor: (request: any) => <StatusBadge status={request.status} />
+    },
+    {
+      header: 'Available Stock',
+      accessor: (request: any) => {
+        if (request.type === 'repair') return '-';
+        const item = items.find(i => String(i.id) === String(request.item));
+        return item ? item.quantity : '-';
+      }
     },
     {
       header: 'Actions',
@@ -216,13 +228,19 @@ const Requests: React.FC = () => {
       />
       <SimpleModal
         open={confirmModal.open}
-        onClose={() => setConfirmModal({ open: false, request: null, action: null })}
+        onClose={() => {
+          setConfirmModal({ open: false, request: null, action: null });
+          setEditQuantity(null);
+        }}
         title={confirmModal.action === 'approve' ? 'Approve Request' : 'Reject Request'}
         footer={
           <div className="flex justify-end gap-2">
             <Button
               variant="secondary"
-              onClick={() => setConfirmModal({ open: false, request: null, action: null })}
+              onClick={() => {
+                setConfirmModal({ open: false, request: null, action: null });
+                setEditQuantity(null);
+              }}
               disabled={actionLoading}
             >
               Cancel
@@ -237,9 +255,54 @@ const Requests: React.FC = () => {
           </div>
         }
       >
-        {confirmModal.action === 'approve'
-          ? 'Are you sure you want to approve this request?'
-          : 'Are you sure you want to reject this request?'}
+        {confirmModal.action === 'approve' ? (
+          <div>
+            <div className="mb-4">
+              <div className="font-semibold mb-2">Item Details</div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-slate-500">Item:</div>
+                <div className="font-medium">{(() => {
+                  if (confirmModal.request.type === 'repair') {
+                    return confirmModal.request.item_name || (confirmModal.request.issued_item && confirmModal.request.issued_item.item_name) || '-';
+                  }
+                  const item = items.find(i => String(i.id) === String(confirmModal.request.item));
+                  return item?.name || confirmModal.request.item_name || '-';
+                })()}</div>
+                <div className="text-slate-500">Category:</div>
+                <div>{(() => {
+                  if (confirmModal.request.type === 'repair') {
+                    return confirmModal.request.item_category || (confirmModal.request.issued_item && confirmModal.request.issued_item.item_category) || '-';
+                  }
+                  const item = items.find(i => String(i.id) === String(confirmModal.request.item));
+                  return item?.category || confirmModal.request.category || '-';
+                })()}</div>
+                <div className="text-slate-500">Requested By:</div>
+                <div>{confirmModal.request.requested_by_name || confirmModal.request.requested_by || '-'}</div>
+                <div className="text-slate-500">Original Quantity:</div>
+                <div>{confirmModal.request.quantity}</div>
+                <div className="text-slate-500">Available Stock:</div>
+                <div>{(() => {
+                  if (confirmModal.request.type === 'repair') return '-';
+                  const item = items.find(i => String(i.id) === String(confirmModal.request.item));
+                  return item ? item.quantity : '-';
+                })()}</div>
+                <div className="text-slate-500">Edit Quantity:</div>
+                <div>
+                  <input
+                    type="number"
+                    min={1}
+                    className="border rounded px-2 py-1 w-24"
+                    value={editQuantity !== null ? editQuantity : confirmModal.request.quantity}
+                    onChange={e => setEditQuantity(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            </div>
+            <div>Are you sure you want to approve this request?</div>
+          </div>
+        ) : (
+          'Are you sure you want to reject this request?'
+        )}
       </SimpleModal>
     </div>
   );

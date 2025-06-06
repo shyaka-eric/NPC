@@ -25,21 +25,11 @@ const Navbar: React.FC = () => {
 
   const navigationLinks = [
     { name: 'Dashboard', path: '/', roles: ['system-admin', 'admin', 'logistics-officer', 'unit-leader'] },
-    { name: 'Users', path: '/users', roles: ['system-admin'] },
+    // { name: 'Users', path: '/users', roles: ['system-admin'] }, // Removed Users link for system-admin
     { name: 'System Admin Report', path: '/reports/system-admin', roles: ['system-admin'] },
     { name: 'Settings', path: '/settings', roles: ['system-admin'] },
     { name: 'Logs', path: '/logs', roles: ['system-admin'] },
-    { name: 'Stock Availability', path: '/stock-availability', roles: ['admin'] },
-    { name: 'Requests', path: '/requests', roles: ['admin'] },
     { name: 'Reports', path: '/reports/admin', roles: ['admin'] },
-    { name: 'Repair Request', path: '/repair-items', roles: ['admin'] },
-    { name: 'My Item Requests', path: '/my-requests', roles: ['unit-leader'] },
-    { name: 'My Repair Requests', path: '/my-repair-requests', roles: ['unit-leader'] },
-    { name: 'In-Use Items', path: '/items-in-use', roles: ['unit-leader'] },
-    { name: 'Stock Management', path: '/stock-management', roles: ['logistics-officer'] },
-    { name: 'Issue Item', path: '/issue-items', roles: ['logistics-officer'] },
-    { name: 'Damaged Items', path: '/damaged-items', roles: ['logistics-officer'] },
-    { name: 'Repair In Process', path: '/repair-in-process', roles: ['logistics-officer'] },
     { name: 'Report', path: '/reports/unit-leader', roles: ['unit-leader'] },
   ].filter(link => link.roles.includes(user.role));
 

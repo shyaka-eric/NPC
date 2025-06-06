@@ -1,22 +1,25 @@
 import React, { useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { useLogsStore } from '../store/logsStore';
 import { PlusCircle } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/ui/Button';
 import DashboardStats from '../components/DashboardStats';
 import RecentRequests from '../components/RecentRequests';
 import AnalysisCard from '../components/AnalysisCard';
+import RecentActivityLog from '../components/RecentActivityLog';
 import { useNavigate } from 'react-router-dom';
+import { useLogsStore } from '../store/logsStore';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const { addLog } = useLogsStore();
   const navigate = useNavigate();
+  const { fetchLogs } = useLogsStore();
 
   useEffect(() => {
-    // No dashboard access logging here
-  }, [user]);
+    if (user?.role === 'system-admin') {
+      fetchLogs();
+    }
+  }, [user, fetchLogs]);
 
   if (!user) return null;
 
@@ -35,21 +38,13 @@ const Dashboard: React.FC = () => {
         );
       case 'logistics-officer':
         return (
-          <div className="flex gap-2">
-            <Button
-              variant="primary"
-              icon={<PlusCircle className="h-4 w-4" />}
-              onClick={() => navigate('/stock-management')}
-            >
-              Manage Stock
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => navigate('/logistics-officer-report')}
-            >
-              Report
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            icon={<PlusCircle className="h-4 w-4" />}
+            onClick={() => navigate('/stock-management')}
+          >
+            Manage Stock
+          </Button>
         );
       case 'system-admin':
         return (
@@ -91,7 +86,7 @@ const Dashboard: React.FC = () => {
       <DashboardStats />
       
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentRequests />
+        {user.role === 'system-admin' ? <RecentActivityLog /> : <RecentRequests />}
         <AnalysisCard />
       </div>
     </div>

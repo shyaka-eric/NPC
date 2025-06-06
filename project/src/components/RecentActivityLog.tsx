@@ -1,13 +1,34 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLogsStore } from '../store/logsStore';
-import { formatRelativeTime } from '../utils/formatters';
+import { useAuthStore } from '../store/authStore';
 import Card from './ui/Card';
 
 const RecentActivityLog: React.FC = () => {
   const { logs } = useLogsStore();
+  const { users, fetchUsers } = useAuthStore();
 
-  // Get the 10 most recent logs
-  const recentLogs = logs.slice(0, 10);
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Map userId or user object to display name
+  const getUserDisplayName = (log: any) => {
+    // If log.user is an object with username or name, use it
+    if (log.user && typeof log.user === 'object') {
+      return log.user.name || log.user.username || 'Unknown User';
+    }
+    // If log.userName exists, use it
+    if (log.userName) return log.userName;
+    // If log.userId exists, try to map from users list
+    if (log.userId) {
+      const user = users.find(u => u.id === log.userId);
+      if (user) return user.name || user.username || 'Unknown User';
+    }
+    return 'Unknown User';
+  };
+
+  // Get the 5 most recent logs (latest first)
+  const recentLogs = [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
 
   return (
     <Card title="Recent Activity" className="h-full">
@@ -30,20 +51,11 @@ const RecentActivityLog: React.FC = () => {
                   <div className="relative flex items-start space-x-3">
                     <div className="min-w-0 flex-1">
                       <div className="text-sm text-slate-500">
-                        <div className="flex">
-                          <div className="mr-0.5">
-                            <span className="font-medium text-slate-900">{log.userName}</span>
-                          </div>
-                          <p>
-                            {log.action}
-                          </p>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-slate-900">{log.action}</span>
+                          <span>{log.details}</span>
+                          <span className="text-xs text-slate-400 mt-1"><b>{getUserDisplayName(log)}</b> &middot; {new Date(log.timestamp).toLocaleString()}</span>
                         </div>
-                        <p className="mt-0.5">
-                          {log.details}
-                        </p>
-                        <p className="mt-2 text-xs">
-                          {formatRelativeTime(log.timestamp)}
-                        </p>
                       </div>
                     </div>
                   </div>

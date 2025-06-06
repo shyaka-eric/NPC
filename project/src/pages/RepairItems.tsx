@@ -133,6 +133,18 @@ const RepairItems: React.FC = () => {
     return 'pending';
   };
 
+  // Sort repairRequests by latest created_at first
+  const sortedRepairRequests = [...repairRequests].sort((a, b) => {
+    const getDate = (r: any) => new Date(r.created_at || 0).getTime();
+    return getDate(b) - getDate(a);
+  });
+
+  // Pagination logic (10 per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(sortedRepairRequests.length / ITEMS_PER_PAGE);
+  const paginatedRepairRequests = sortedRepairRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   const columns = [
     { header: 'Request Date', accessor: (r: any) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
     { header: 'Category', accessor: (r: any) => r.item_category || r.issued_item?.item_category || r.category || (items.find((i: any) => i.id === r.item)?.category || '-') },
@@ -144,7 +156,7 @@ const RepairItems: React.FC = () => {
         <Button size="sm" variant="secondary" onClick={() => setPhotoModal({ open: true, url })}>View Photo</Button>
       ) : '-';
     } },
-    { header: 'Description', accessor: (r: any) => r.description || '-' },
+    { header: 'Reason', accessor: (r: any) => r.reason || r.description || '-' },
     { header: 'Status', accessor: (r: any) => {
       const status = getRealStatus(r);
       if (status === 'pending') return 'Pending';
@@ -183,7 +195,7 @@ const RepairItems: React.FC = () => {
       <div className="mt-8">
         <Table
           columns={columns}
-          data={repairRequests}
+          data={paginatedRepairRequests}
           keyExtractor={r => r.id}
           isLoading={isLoading}
           emptyMessage="No repair requests found."
@@ -192,6 +204,36 @@ const RepairItems: React.FC = () => {
       <SimpleModal open={photoModal.open} onClose={() => setPhotoModal({ open: false, url: null })} title="Photo">
         {photoModal.url && <img src={photoModal.url} alt="Attachment" style={{ maxWidth: 500, maxHeight: 500 }} />}
       </SimpleModal>
+      {/* Pagination Controls */}
+      <div className="flex justify-center mt-6">
+        {totalPages > 1 && (
+          <nav className="inline-flex -space-x-px">
+            <button
+              className="px-3 py-1 border rounded-l disabled:opacity-50"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            {[...Array(totalPages)].map((_, idx) => (
+              <button
+                key={idx}
+                className={`px-3 py-1 border-t border-b ${currentPage === idx + 1 ? 'bg-gray-200 font-bold' : ''}`}
+                onClick={() => setCurrentPage(idx + 1)}
+              >
+                {idx + 1}
+              </button>
+            ))}
+            <button
+              className="px-3 py-1 border rounded-r disabled:opacity-50"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </nav>
+        )}
+      </div>
     </div>
   );
 };

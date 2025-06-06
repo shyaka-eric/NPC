@@ -12,7 +12,7 @@ import SimpleModal from '../components/ui/SimpleModal';
 import Input from '../components/ui/Input';
 import { requestRepair } from '../services/api';
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 10; // Changed to 10 items per page
 
 // Define TableColumn type locally since it's not exported
 interface TableColumn<T> {
@@ -118,10 +118,6 @@ const ItemsInUse: React.FC = () => {
       accessor: (item) => item.item_category || '-',
     },
     {
-      header: 'Quantity',
-      accessor: (item) => item.assigned_quantity || 1,
-    },
-    {
       header: 'Assigned Date',
       accessor: (item) => item.assigned_date ? new Date(item.assigned_date).toLocaleDateString() : '-',
     },
@@ -160,12 +156,36 @@ const ItemsInUse: React.FC = () => {
           isLoading={isLoading}
           emptyMessage="You don't have any items assigned to you."
         />
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          className="mt-6"
-        />
+        {/* Pagination Controls */}
+        <div className="flex justify-center mt-6">
+          {totalPages > 1 && (
+            <nav className="inline-flex -space-x-px">
+              <button
+                className="px-3 py-1 border rounded-l disabled:opacity-50"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              {[...Array(totalPages)].map((_, idx) => (
+                <button
+                  key={idx}
+                  className={`px-3 py-1 border-t border-b ${currentPage === idx + 1 ? 'bg-gray-200 font-bold' : ''}`}
+                  onClick={() => setCurrentPage(idx + 1)}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+              <button
+                className="px-3 py-1 border rounded-r disabled:opacity-50"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </nav>
+          )}
+        </div>
         <SimpleModal open={showModal} onClose={handleModalClose} title="Request Repair">
           <form onSubmit={handleSubmitRepair} className="space-y-4">
             <div>

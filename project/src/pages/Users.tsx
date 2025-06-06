@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader';
 import Button from '../components/ui/Button';
 
 const Users: React.FC = () => {
-  const { users, fetchUsers, deleteUser, toggleUserActive } = useAuthStore();
+  const { users, fetchUsers, toggleUserActive } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,13 +57,6 @@ const Users: React.FC = () => {
                     await toggleUserActive(user.id, !user.is_active);
                   }}>
                     {user.is_active ? 'Deactivate' : 'Activate'}
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={async () => {
-                    if (window.confirm('Are you sure you want to delete this user?')) {
-                      await deleteUser(user.id);
-                    }
-                  }}>
-                    Delete
                   </Button>
                 </td>
               </tr>

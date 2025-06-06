@@ -96,6 +96,18 @@ class ItemViewSet(viewsets.ModelViewSet):
         instance.save()
         return Response({'detail': 'Item soft deleted.'}, status=200)
 
+    def create(self, request, *args, **kwargs):
+        # Accept both 'in-stock' and 'available' as equivalent for status
+        data = request.data.copy()
+        status_value = data.get('status')
+        if status_value == 'in-stock':
+            data['status'] = 'available'
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(self.get_serializer(item).data, status=201, headers=headers)
+
 class RequestViewSet(viewsets.ModelViewSet):
     queryset = Request.objects.select_related('item').all()
     serializer_class = RequestSerializer

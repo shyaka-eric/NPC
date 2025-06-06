@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import SimpleModal from '../components/ui/SimpleModal';
+import Textarea from '../components/ui/Textarea';
 
 const STATUS_OPTIONS = [
   { value: 'in_stock', label: 'In Stock' },
@@ -33,25 +34,30 @@ const StockManagement: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const ITEMS_PER_PAGE = 15;
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
-  const paginatedItems = items.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // Filter out deleted items
+  const visibleItems = items.filter(item => item.status !== 'deleted');
+  const totalPages = Math.ceil(visibleItems.length / ITEMS_PER_PAGE);
+  const paginatedItems = visibleItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const navigate = useNavigate();
   const firstInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     category: '',
     quantity: '',
-    expiration_date: '',
+    expirationDate: '',
   });
 
   const [editFormData, setEditFormData] = useState({
     name: '',
     category: '',
     quantity: '',
-    expiration_date: '',
+    expirationDate: '',
   });
 
   useEffect(() => {
@@ -83,13 +89,11 @@ const StockManagement: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  const parseExcelDate = (value: any) => {
+  const parseExcelDate = (value: any): Date | undefined => {
     if (!value || value === 'N/A') return undefined;
-    // Try to parse as a date
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
-      // Format as YYYY-MM-DD
-      return d.toISOString().split('T')[0];
+      return d;
     }
     return undefined;
   };
@@ -126,7 +130,10 @@ const StockManagement: React.FC = () => {
             name,
             category,
             quantity: Number(quantity) || 0,
-            expirationDate: parseExcelDate(expirationDate)
+            expirationDate: expirationDate ? parseExcelDate(expirationDate)?.toISOString().split('T')[0] : '',
+            status: 'in-stock',
+            createdAt: new Date(),
+            updatedAt: new Date(),
           });
           added++;
         } catch {}
@@ -142,7 +149,7 @@ const StockManagement: React.FC = () => {
       'Name': item.name,
       'Category': item.category,
       'Quantity': item.quantity,
-      'Expiration Date': item.expiration_date ? formatDate(item.expiration_date) : ''
+      'Expiration Date': item.expirationDate ? formatDate(item.expirationDate) : ''
     }));
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
@@ -167,16 +174,25 @@ const StockManagement: React.FC = () => {
     saveAs(blob, 'stock_import_template.xlsx');
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return;
-    setDeletingItemId(itemId);
+  const handleDeleteItem = (itemId: string) => {
+    setDeleteTargetId(itemId);
+    setDeleteReason('');
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteItem = async () => {
+    if (!deleteTargetId || !deleteReason.trim()) return;
+    setDeletingItemId(deleteTargetId);
     try {
-      await deleteItem(itemId);
+      await deleteItem(deleteTargetId, deleteReason); // Pass reason to backend
       toast.success('Item deleted successfully');
     } catch (error) {
       toast.error('Failed to delete item');
     } finally {
       setDeletingItemId(null);
+      setShowDeleteModal(false);
+      setDeleteTargetId(null);
+      setDeleteReason('');
     }
   };
 
@@ -202,14 +218,17 @@ const StockManagement: React.FC = () => {
       await addItem({
         ...formData,
         quantity: parseInt(formData.quantity),
-        expiration_date: formData.expiration_date || undefined,
+        expiration_date: formData.expirationDate ? new Date(formData.expirationDate) : undefined,
+        status: 'in-stock',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
       setIsAddModalOpen(false);
       setFormData({
         name: '',
         category: '',
         quantity: '',
-        expiration_date: '',
+        expirationDate: '',
       });
       toast.success('Item added successfully');
     } catch (error) {
@@ -224,7 +243,8 @@ const StockManagement: React.FC = () => {
       await updateItem(selectedItem.id, {
         ...editFormData,
         quantity: parseInt(editFormData.quantity),
-        expiration_date: editFormData.expiration_date || undefined,
+        expiration_date: editFormData.expirationDate ? editFormData.expirationDate : undefined, // send as 'YYYY-MM-DD'
+        updatedAt: new Date(),
       });
       setIsEditModalOpen(false);
       toast.success('Item updated successfully');
@@ -239,7 +259,7 @@ const StockManagement: React.FC = () => {
         name: selectedItem.name,
         category: selectedItem.category,
         quantity: selectedItem.quantity.toString(),
-        expiration_date: selectedItem.expiration_date ? selectedItem.expiration_date.split('T')[0] : '',
+        expirationDate: selectedItem.expiration_date ? selectedItem.expiration_date.toISOString().split('T')[0] : '',
       });
     }
   }, [selectedItem]);
@@ -280,7 +300,7 @@ const StockManagement: React.FC = () => {
               onClick={handleImportExcel}
               className="mr-2"
             >
-              <Upload className="w-4 h-4 mr-1" /> Import Excel
+              <Upload className="w-4 h-4 mr-1" /> Upload Excel
             </Button>
             <Button
               variant="secondary"
@@ -341,7 +361,7 @@ const StockManagement: React.FC = () => {
           <Input label="Item Name" name="name" value={formData.name} onChange={handleChange} required />
           <Input label="Category" name="category" value={formData.category} onChange={handleChange} required />
           <Input label="Quantity" name="quantity" type="number" value={formData.quantity} onChange={handleChange} required />
-          <Input label="Expiration Date" name="expiration_date" type="date" value={formData.expiration_date} onChange={handleChange} />
+          <Input label="Expiration Date" name="expirationDate" type="date" value={formData.expirationDate} onChange={handleChange} />
         </form>
       </SimpleModal>
 
@@ -373,10 +393,42 @@ const StockManagement: React.FC = () => {
             <Input label="Item Name" name="name" value={editFormData.name} onChange={handleEditChange} required />
             <Input label="Category" name="category" value={editFormData.category} onChange={handleEditChange} required />
             <Input label="Quantity" name="quantity" type="number" value={editFormData.quantity} onChange={handleEditChange} required />
-            <Input label="Expiration Date" name="expiration_date" type="date" value={editFormData.expiration_date} onChange={handleEditChange} />
+            <Input label="Expiration Date" name="expirationDate" type="date" value={editFormData.expirationDate} onChange={handleEditChange} />
           </form>
         )}
       </SimpleModal>
+
+      {showDeleteModal && (
+        <SimpleModal
+          open={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          title="Delete Item"
+          footer={
+            <>
+              <Button
+                variant="danger"
+                onClick={confirmDeleteItem}
+                disabled={!deleteReason.trim() || deletingItemId === deleteTargetId}
+                isLoading={deletingItemId === deleteTargetId}
+              >
+                Confirm Delete
+              </Button>
+              <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deletingItemId === deleteTargetId}>Cancel</Button>
+            </>
+          }
+        >
+          <Textarea
+            label="Reason for Deletion"
+            value={deleteReason}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDeleteReason(e.target.value)}
+            required
+            minRows={3}
+            maxRows={6}
+            placeholder="Enter reason..."
+            autoFocus
+          />
+        </SimpleModal>
+      )}
     </div>
   );
 };

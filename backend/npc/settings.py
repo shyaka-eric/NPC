@@ -61,8 +61,12 @@ WSGI_APPLICATION = 'npc.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'npc_db',  # Change to your desired database name
+        'USER': 'npc_user',  # Change to your desired username
+        'PASSWORD': 'npc_password',  # Change to your desired password
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -146,4 +150,4 @@ LOGGING = {
 # ... rest of the existing settings ...
 
 SECRET_KEY = 'django-insecure-CHANGE_THIS_TO_A_RANDOM_SECRET_KEY'
-AUTH_USER_MODEL = 'api.User' 
+AUTH_USER_MODEL = 'api.User'

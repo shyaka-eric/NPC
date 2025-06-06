@@ -5,17 +5,47 @@ import { useAuthStore } from '../store/authStore';
 import Input from './ui/Input';
 import Button from './ui/Button';
 import Alert from './ui/Alert';
+import Select from './ui/Select';
+
+const rankOptions = [
+  { value: '', label: 'Select Rank' },
+  { value: 'PC', label: 'PC' },
+  { value: 'CPL', label: 'CPL' },
+  { value: 'SGT', label: 'SGT' },
+  { value: 'S/SGT', label: 'S/SGT' },
+  { value: 'C/SGT', label: 'C/SGT' },
+  { value: 'OC', label: 'OC' },
+  { value: 'AIP', label: 'AIP' },
+  { value: 'IP', label: 'IP' },
+  { value: 'CIP', label: 'CIP' },
+  { value: 'SP', label: 'SP' },
+  { value: 'SSP', label: 'SSP' },
+  { value: 'CSP', label: 'CSP' },
+  { value: 'ACP', label: 'ACP' },
+  { value: 'CP', label: 'CP' },
+  { value: 'DCG', label: 'DCG' },
+  { value: 'CG', label: 'CG' },
+];
+
+const roleOptions = [
+  { value: 'system-admin', label: 'System Admin' },
+];
 
 const RegisterForm: React.FC = () => {
   const navigate = useNavigate();
   const { register } = useAuthStore();
   const [formData, setFormData] = useState({
-    name: '',
+    rank: '',
+    first_name: '',
+    last_name: '',
+    birth_date: '',
+    role: 'system-admin',
+    unit: '',
+    phoneNumber: '',
+    username: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    department: '',
-    phoneNumber: ''
+    confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,13 +62,16 @@ const RegisterForm: React.FC = () => {
     setIsLoading(true);
     try {
       await register({
-        name: formData.name,
-        email: formData.email,
-        username: formData.email,
-        password: formData.password,
-        department: formData.department,
+        rank: formData.rank,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        birth_date: formData.birth_date,
+        role: 'system-admin',
+        unit: formData.unit,
         phoneNumber: formData.phoneNumber,
-        role: 'system-admin' // First user is always system admin
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
       });
       navigate('/');
     } catch (err) {
@@ -48,7 +81,7 @@ const RegisterForm: React.FC = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
@@ -71,14 +104,76 @@ const RegisterForm: React.FC = () => {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            <Select label="Rank" name="rank" value={formData.rank} onChange={handleChange} options={rankOptions} required />
+
             <Input
-              id="name"
-              name="name"
+              id="first_name"
+              name="first_name"
               type="text"
               required
-              label="Full Name"
+              label="First Name"
               icon={<User className="h-5 w-5 text-slate-400" />}
-              value={formData.name}
+              value={formData.first_name}
+              onChange={handleChange}
+              fullWidth
+            />
+
+            <Input
+              id="last_name"
+              name="last_name"
+              type="text"
+              required
+              label="Last Name"
+              value={formData.last_name}
+              onChange={handleChange}
+              fullWidth
+            />
+
+            <Input
+              id="birth_date"
+              name="birth_date"
+              type="date"
+              required
+              label="Birth Date"
+              value={formData.birth_date}
+              onChange={handleChange}
+              fullWidth
+            />
+
+            <Select label="Role" name="role" value={formData.role} onChange={handleChange} options={roleOptions} required disabled />
+
+            <Input
+              id="unit"
+              name="unit"
+              type="text"
+              required
+              label="Unit"
+              icon={<Building className="h-5 w-5 text-slate-400" />}
+              value={formData.unit}
+              onChange={handleChange}
+              fullWidth
+            />
+
+            <Input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              required
+              label="Phone Number"
+              icon={<Phone className="h-5 w-5 text-slate-400" />}
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              fullWidth
+            />
+
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              required
+              label="Username"
+              icon={<User className="h-5 w-5 text-slate-400" />}
+              value={formData.username}
               onChange={handleChange}
               fullWidth
             />
@@ -115,30 +210,6 @@ const RegisterForm: React.FC = () => {
               label="Confirm Password"
               icon={<Lock className="h-5 w-5 text-slate-400" />}
               value={formData.confirmPassword}
-              onChange={handleChange}
-              fullWidth
-            />
-
-            <Input
-              id="department"
-              name="department"
-              type="text"
-              required
-              label="Department"
-              icon={<Building className="h-5 w-5 text-slate-400" />}
-              value={formData.department}
-              onChange={handleChange}
-              fullWidth
-            />
-
-            <Input
-              id="phoneNumber"
-              name="phoneNumber"
-              type="tel"
-              required
-              label="Phone Number"
-              icon={<Phone className="h-5 w-5 text-slate-400" />}
-              value={formData.phoneNumber}
               onChange={handleChange}
               fullWidth
             />

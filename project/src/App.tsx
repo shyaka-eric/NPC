@@ -30,6 +30,7 @@ import Logs from './pages/Logs';
 import { AppRoutes } from "./routes";
 import useNotificationWebSocket from './hooks/useNotificationWebSocket';
 import LoginPage from './pages/LoginPage';
+import DeletedItems from './pages/DeletedItems';
 
 // Route guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -253,6 +254,14 @@ const App: React.FC = () => {
             element={
               <RoleBasedRoute allowedRoles={["system-admin"]}>
                 <Logs />
+              </RoleBasedRoute>
+            }
+          />
+          <Route
+            path="/deleted-items"
+            element={
+              <RoleBasedRoute allowedRoles={['system-admin']}>
+                <DeletedItems />
               </RoleBasedRoute>
             }
           />

@@ -29,8 +29,6 @@ const NewRequest: React.FC = () => {
     itemId: '',
     quantity: '',
     priority: '',
-    serialNumber: '',
-    issueDescription: ''
   });
   const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -133,27 +131,44 @@ const NewRequest: React.FC = () => {
     if (!validate()) return;
     setIsLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const payload: any = {
         category: formData.category,
         item: formData.itemId,
         quantity: parseInt(formData.quantity),
         priority: formData.priority,
+        type: 'new', // Always send type for backend compatibility
       };
-      // Add file if present
+      let response;
       if (file) {
         const form = new FormData();
         Object.entries(payload).forEach(([key, value]) => form.append(key, value as string));
         form.append('attachment', file);
-        // Use fetch or your API utility to send the request
-        // Example:
-        // await fetch('/api/requests/', { method: 'POST', body: form, headers: { Authorization: ... } });
+        response = await fetch('/api/requests/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: form
+        });
       } else {
-        // await fetch('/api/requests/', { method: 'POST', body: JSON.stringify(payload), headers: { ... } });
+        response = await fetch('/api/requests/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to create request');
       }
       toast.success('Request created successfully');
       navigate('/my-requests');
-    } catch (error) {
-      toast.error('Failed to create request');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create request');
     } finally {
       setIsLoading(false);
     }
@@ -250,7 +265,7 @@ const NewRequest: React.FC = () => {
         />
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           className="mb-2"
           onClick={downloadTemplate}
         >

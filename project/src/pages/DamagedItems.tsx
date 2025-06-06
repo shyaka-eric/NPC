@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { API_URL } from '../config';
-import { Link } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 interface DamagedItem {
     id: number;
@@ -22,6 +23,7 @@ interface DamagedItem {
         item_name?: string;
         picture?: string;
     };
+    issued_item_serial_number?: string; // <-- Add this field for API compatibility
     damage_description: string;
     reported_date: string;
     status: 'pending' | 'repaired' | 'unrepairable';
@@ -37,6 +39,12 @@ const DamagedItems: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { isAuthenticated } = useAuthStore();
+
+    // Pagination state (must be at top level, not inside render)
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+    const totalPages = Math.ceil(damagedItems.length / ITEMS_PER_PAGE);
+    const paginatedItems = damagedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     useEffect(() => {
         fetchDamagedItems();
@@ -85,6 +93,27 @@ const DamagedItems: React.FC = () => {
       groupedDamagedItems[key].push(item);
     });
 
+    const handleExportExcel = () => {
+      const wsData = [
+        ['Reported Date', 'Category', 'Item Name', 'Serial Number', 'Reported By', 'Status', 'Damage Description'],
+        ...damagedItems.map(item => [
+          format(new Date(item.reported_date), 'yyyy-MM-dd'),
+          item.item_category || item.issued_item?.item_category || '-',
+          item.item_name || item.issued_item?.item_name || item.issued_item?.item?.name || '-',
+          item.issued_item?.item?.serial_number || '-',
+          item.issued_item?.issued_to?.name || '-',
+          item.status,
+          item.damage_description
+        ])
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Damaged Items');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/octet-stream' });
+      saveAs(blob, 'damaged_items_report.xlsx');
+    };
+
     if (!isAuthenticated) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -113,67 +142,73 @@ const DamagedItems: React.FC = () => {
         <div className="container mx-auto px-4 py-8">
             <div className="bg-white rounded-lg shadow-md p-6">
                 <h1 className="text-2xl font-bold text-gray-900 mb-6">Damaged Items</h1>
-                
+                <div className="flex gap-2 mb-4">
+                    <button
+                        onClick={handleExportExcel}
+                        className="bg-green-500 text-white rounded px-4 py-2"
+                    >
+                        Export to Excel
+                    </button>
+                </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Category
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Item Name
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Marked Date
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Marked By
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial Number</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marked Date</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {Object.entries(groupedDamagedItems).map(([key, items]) => {
-                            const firstItem = items[0];
-                            return (
-                              <tr key={key}>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">
-                                    {firstItem.item_category ? firstItem.item_category : 'Unknown'}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">
-                                    {firstItem.item_name ? firstItem.item_name : 'Unknown'}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">
-                                    {firstItem.marked_at ? format(new Date(firstItem.marked_at), 'MMM dd, yyyy') : 'Unknown'}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">
-                                    {firstItem.marked_by_name ? firstItem.marked_by_name : 'Unknown'}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <Link
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white font-semibold shadow-sm transition-colors duration-150 border border-blue-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                                    to={`/damaged-items/group/${encodeURIComponent(firstItem.item_name || 'Unknown')}/${encodeURIComponent(firstItem.item_category || 'Unknown')}`}
-                                  >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    View Details
-                                  </Link>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                            {paginatedItems.map((item) => (
+                                <tr key={item.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900">{item.item_category || item.issued_item?.item_category || 'Unknown'}</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900">{item.item_name || item.issued_item?.item_name || item.issued_item?.item?.name || 'Unknown'}</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900">{item.issued_item_serial_number || 'Unknown'}</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900">{item.marked_at ? format(new Date(item.marked_at), 'MMM dd, yyyy') : 'Unknown'}</div>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
+                </div>
+                {/* Pagination Controls */}
+                <div className="flex justify-center mt-6">
+                    {totalPages > 1 && (
+                        <nav className="inline-flex -space-x-px">
+                            <button
+                                className="px-3 py-1 border rounded-l disabled:opacity-50"
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Previous
+                            </button>
+                            {[...Array(totalPages)].map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    className={`px-3 py-1 border-t border-b ${currentPage === idx + 1 ? 'bg-gray-200 font-bold' : ''}`}
+                                    onClick={() => setCurrentPage(idx + 1)}
+                                >
+                                    {idx + 1}
+                                </button>
+                            ))}
+                            <button
+                                className="px-3 py-1 border rounded-r disabled:opacity-50"
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                            </button>
+                        </nav>
+                    )}
                 </div>
             </div>
         </div>

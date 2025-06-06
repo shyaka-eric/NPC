@@ -3,7 +3,6 @@ export type UserRole = 'unit-leader' | 'admin' | 'logistics-officer' | 'system-a
 export interface User {
   id: string;
   username: string;
-  name: string;
   email: string;
   role: UserRole;
   
@@ -11,7 +10,6 @@ export interface User {
   profileImage?: string;
   rank?: string;
   unit?: string;
-  phone_number?: string;
   first_name?: string;
   last_name?: string;
   birth_date?: string;
@@ -21,7 +19,7 @@ export interface User {
   isActive: boolean;
 }
 
-export type ItemStatus = 'in-stock' | 'in-use' | 'under-repair' | 'damaged';
+export type ItemStatus = 'in-stock' | 'in-use' | 'under-repair' | 'damaged' | 'deleted';
 
 export interface Item {
   id: string;

@@ -20,12 +20,6 @@ const statusOptions = [
   { value: 'completed', label: 'Completed' }
 ];
 
-const typeOptions = [
-  { value: '', label: 'All Types' },
-  { value: 'new', label: 'New Item' },
-  { value: 'repair', label: 'Repair' }
-];
-
 const ITEMS_PER_PAGE = 15;
 
 const Requests: React.FC = () => {
@@ -33,7 +27,6 @@ const Requests: React.FC = () => {
   const { items, fetchItems } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
@@ -61,13 +54,14 @@ const Requests: React.FC = () => {
     fetchItems();
   }, [fetchItems]);
 
-  // Show all requests (new and repair)
-  const filteredRequests = requests.filter(r => {
-    return (
-      (statusFilter ? r.status === statusFilter : true) &&
-      (typeFilter ? r.type === typeFilter : true)
-    );
-  });
+  // Show only new item requests, sorted by latest first
+  const filteredRequests = requests
+    .filter(r => r.type === 'new' && (statusFilter ? r.status === statusFilter : true))
+    .sort((a, b) => {
+      // Use requested_at for new, created_at for repair, fallback to id
+      const getDate = (req: any) => new Date(req.requested_at || req.created_at || 0).getTime();
+      return getDate(b) - getDate(a);
+    });
 
   const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
   const paginatedRequests = filteredRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -205,12 +199,6 @@ const Requests: React.FC = () => {
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           options={statusOptions}
-        />
-        <Select
-          label="Type"
-          value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value)}
-          options={typeOptions}
         />
       </div>
       <Table

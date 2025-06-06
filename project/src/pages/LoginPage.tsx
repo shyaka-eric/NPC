@@ -1,26 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import LoginForm from '../components/LoginForm';
-import logisticsImage from '../images/logistics.jpg';
+
+const ORG_NAME_KEY = 'orgName';
+const ORG_LOGO_KEY = 'orgLogo';
 
 const LoginPage: React.FC = () => {
-  return (
-    <div className="min-h-screen text-white flex flex-col relative">
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src={logisticsImage} 
-          alt="Logistics Operations" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 to-slate-900/80"></div>
-      </div>
+  const [orgName, setOrgName] = useState(localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics');
+  const [orgLogo, setOrgLogo] = useState(localStorage.getItem(ORG_LOGO_KEY));
 
+  useEffect(() => {
+    const handleStorage = () => {
+      setOrgName(localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics');
+      setOrgLogo(localStorage.getItem(ORG_LOGO_KEY));
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  return (
+    <div className="min-h-screen text-slate-800 bg-white flex flex-col relative">
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Header */}
         <header className="flex justify-between items-center py-2 px-6">
-          <div className="text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-            NPC Logistics
+          <div className="flex items-center gap-2">
+            {orgLogo ? (
+              <img src={orgLogo} alt="Logo" className="h-8 w-8 rounded object-contain bg-white" />
+            ) : null}
+            <div className="text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
+              {orgName}
+            </div>
           </div>
           <div></div>
         </header>
@@ -30,10 +39,10 @@ const LoginPage: React.FC = () => {
           {/* Left Section */}
           <section className="hidden md:block md:w-1/2 py-16 px-12">
             <div className="max-w-xl">
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent leading-tight mb-6">
+              <h1 className="text-4xl md:text-5xl font-bold text-blue-600 leading-tight mb-6">
                 Streamlining Logistics for a Smarter Tomorrow
               </h1>
-              <p className="text-lg text-slate-200 leading-relaxed mb-8">
+              <p className="text-lg text-slate-700 leading-relaxed mb-8">
                 NPC Logistics is your trusted platform to manage, track, and optimize inventory and supply chains within national operations.
               </p>
               <div className="grid grid-cols-2 gap-6">
@@ -41,34 +50,38 @@ const LoginPage: React.FC = () => {
                   {
                     title: 'Real-time Tracking',
                     description: 'Monitor your shipments and inventory in real-time',
-                    color: 'from-blue-500 to-blue-600'
+                    color: 'from-blue-500 to-blue-600',
+                    iconBg: 'bg-blue-500'
                   },
                   {
                     title: 'Smart Analytics',
                     description: 'Make data-driven decisions with advanced insights',
-                    color: 'from-green-500 to-green-600'
+                    color: 'from-green-500 to-green-600',
+                    iconBg: 'bg-green-500'
                   },
                   {
                     title: 'Secure Platform',
                     description: 'Enterprise-grade security for your operations',
-                    color: 'from-amber-500 to-amber-600'
+                    color: 'from-amber-500 to-amber-600',
+                    iconBg: 'bg-amber-500'
                   },
                   {
                     title: '24/7 Support',
                     description: 'Round-the-clock assistance for your needs',
-                    color: 'from-emerald-500 to-emerald-600'
+                    color: 'from-emerald-500 to-emerald-600',
+                    iconBg: 'bg-emerald-500'
                   }
                 ].map((feature, i) => (
-                  <div key={i} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:border-blue-500/50 transition-all duration-300">
+                  <div key={i} className="bg-white shadow rounded-xl p-4 border border-slate-200 hover:border-blue-400 transition-all duration-300">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className={`p-2 rounded-lg bg-gradient-to-r ${feature.color}`}>
+                      <div className={`p-2 rounded-lg ${feature.iconBg}`}>
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-white">{feature.title}</h3>
+                      <h3 className="font-semibold text-slate-800">{feature.title}</h3>
                     </div>
-                    <p className="text-sm text-slate-300">{feature.description}</p>
+                    <p className="text-sm text-slate-600">{feature.description}</p>
                   </div>
                 ))}
               </div>
@@ -85,7 +98,7 @@ const LoginPage: React.FC = () => {
 
         {/* Footer */}
         <footer className="text-center p-6 text-slate-300">
-          <div>© 2025 NPC Logistics. All rights reserved.</div>
+          <div>© 2025 {orgName}. All rights reserved.</div>
         </footer>
       </div>
     </div>

@@ -9,6 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import npcLogo from '../images/npclogo.jpeg';
 
+const ORG_NAME_KEY = 'orgName';
+const ORG_LOGO_KEY = 'orgLogo';
+
 const LoginForm: React.FC = () => {
   const { login } = useAuthStore();
   const [email, setEmail] = useState('');
@@ -16,6 +19,8 @@ const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noUsers, setNoUsers] = useState(false);
+  const [orgName, setOrgName] = useState(localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics');
+  const [orgLogo, setOrgLogo] = useState(localStorage.getItem(ORG_LOGO_KEY));
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +32,15 @@ const LoginForm: React.FC = () => {
         }
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setOrgName(localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics');
+      setOrgLogo(localStorage.getItem(ORG_LOGO_KEY));
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -46,18 +60,27 @@ const LoginForm: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 p-8 rounded-lg shadow-md border border-gray-700">
+      <div className="max-w-md w-full space-y-8 p-8 rounded-lg shadow-md border border-slate-200 bg-white">
         <div className="text-center">
           <div className="flex justify-center">
-            <img
-              src={npcLogo}
-              alt="NPC Logo"
-              className="h-16 w-16 object-contain rounded-full shadow"
-              style={{ background: 'white' }}
-            />
+            {orgLogo ? (
+              <img
+                src={orgLogo}
+                alt="Organization Logo"
+                className="h-16 w-16 object-contain rounded-full shadow"
+                style={{ background: 'white' }}
+              />
+            ) : (
+              <img
+                src={npcLogo}
+                alt="NPC Logo"
+                className="h-16 w-16 object-contain rounded-full shadow"
+                style={{ background: 'white' }}
+              />
+            )}
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-white">NPC Logistics</h2>
-          <p className="mt-2 text-sm text-gray-300">Sign in to access the logistics system</p>
+          <h2 className="mt-6 text-3xl font-bold text-slate-800">{orgName}</h2>
+          <p className="mt-2 text-sm text-slate-500">Sign in to access the logistics system</p>
         </div>
 
         {error && (

@@ -82,8 +82,12 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'npc_db',  # Change to your desired database name
+        'USER': 'npc_user',  # Change to your desired username
+        'PASSWORD': 'npc_password',  # Change to your desired password
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

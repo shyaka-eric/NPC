@@ -13,7 +13,7 @@ interface ItemsState {
   fetchItems: () => Promise<void>;
   addItem: (item: Omit<ItemModel, 'id' | 'created_at' | 'updated_at'>) => Promise<ItemModel>;
   updateItem: (id: string, updates: Partial<ItemModel>) => Promise<ItemModel>;
-  deleteItem: (id: string) => Promise<void>;
+  deleteItem: (id: string, reason?: string) => Promise<void>;
   
   // Additional operations
   updateItemStatus: (id: string, status: ItemStatus, assignedTo?: string) => Promise<ItemModel>;
@@ -65,10 +65,11 @@ export const useItemsStore = create<ItemsState>()((set, get) => ({
     }
   },
 
-  deleteItem: async (id) => {
+  deleteItem: async (id, reason) => {
     set({ isLoading: true, error: null });
     try {
-      await api.delete(`items/${id}/`);
+      // Soft delete: PATCH status to 'deleted' and send reason
+      await api.patch(`items/${id}/`, { status: 'deleted', deletion_reason: reason });
       set(state => ({
         items: state.items.filter(item => item.id !== id),
         isLoading: false

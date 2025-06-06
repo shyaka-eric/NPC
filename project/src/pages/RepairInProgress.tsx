@@ -7,6 +7,8 @@ import Button from '../components/ui/Button';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { API_URL } from '../config';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 interface RepairRequest {
   id: number;
@@ -89,11 +91,10 @@ const RepairInProgress: React.FC = () => {
 
   const columns = [
     { header: 'Request Date', accessor: (r: RepairRequest) => format(new Date(r.created_at), 'MMM dd, yyyy') },
-    { header: 'Category', accessor: (r: RepairRequest) => r.issued_item?.item_category || r.issued_item?.item?.category || '-' },
-    { header: 'Item Name', accessor: (r: RepairRequest) => r.issued_item?.item_name || r.issued_item?.item?.name || '-' },
+    { header: 'Category', accessor: (r: RepairRequest) => r.issued_item?.item?.category || '-' },
+    { header: 'Item Name', accessor: (r: RepairRequest) => r.issued_item?.item?.name || '-' },
     { header: 'Serial Number', accessor: (r: RepairRequest) => r.issued_item?.serial_number || '-' },
     { header: 'Requested By', accessor: (r: RepairRequest) => r.requested_by_name },
-    { header: 'Description', accessor: (r: RepairRequest) => r.description },
     { header: 'Status', accessor: (r: RepairRequest) => r.status },
     {
       header: 'Actions',
@@ -120,6 +121,33 @@ const RepairInProgress: React.FC = () => {
   // Only show 'repair-in-process' items for everyone (not just logistic officers)
   const visibleRequests = repairRequests.filter(r => r.status === 'repair-in-process');
 
+  // Pagination logic (10 per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(visibleRequests.length / ITEMS_PER_PAGE);
+  const paginatedRequests = visibleRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const handleExportExcel = () => {
+    const wsData = [
+      ['Request Date', 'Category', 'Item Name', 'Serial Number', 'Requested By', 'Status', 'Description'],
+      ...repairRequests.map(r => [
+        format(new Date(r.created_at), 'yyyy-MM-dd'),
+        r.issued_item?.item?.category || '-',
+        r.issued_item?.item?.name || '-',
+        r.issued_item?.serial_number || '-',
+        r.requested_by_name,
+        r.status,
+        r.description
+      ])
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Repair In Progress');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    saveAs(blob, 'repair_in_progress_report.xlsx');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -145,9 +173,12 @@ const RepairInProgress: React.FC = () => {
           : "View items currently undergoing repair."}
       />
       <div className="mt-8">
+        <div className="flex gap-2 mb-4">
+          <Button variant="success" onClick={handleExportExcel}>Export to Excel</Button>
+        </div>
         <Table
           columns={columns}
-          data={visibleRequests}
+          data={paginatedRequests}
           keyExtractor={keyExtractor}
           isLoading={isLoading}
           emptyMessage="No items currently in repair."
@@ -176,6 +207,36 @@ const RepairInProgress: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Pagination Controls */}
+      <div className="flex justify-center mt-6">
+        {totalPages > 1 && (
+          <nav className="inline-flex -space-x-px">
+            <button
+              className="px-3 py-1 border rounded-l disabled:opacity-50"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            {[...Array(totalPages)].map((_, idx) => (
+              <button
+                key={idx}
+                className={`px-3 py-1 border-t border-b ${currentPage === idx + 1 ? 'bg-gray-200 font-bold' : ''}`}
+                onClick={() => setCurrentPage(idx + 1)}
+              >
+                {idx + 1}
+              </button>
+            ))}
+            <button
+              className="px-3 py-1 border rounded-r disabled:opacity-50"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </nav>
+        )}
+      </div>
     </div>
   );
 };

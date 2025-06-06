@@ -89,7 +89,7 @@ class ItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Item
-        fields = ['id', 'name', 'category', 'quantity', 'status', 'expiration_date', 'last_updated', 'assigned_to_id', 'assigned_to', 'assigned_quantity', 'assigned_date']
+        fields = ['id', 'name', 'category', 'quantity', 'status', 'expiration_date', 'last_updated', 'assigned_to_id', 'assigned_to', 'assigned_quantity', 'assigned_date', 'deletion_reason']
 
     def get_assigned_quantity(self, obj):
         # Get the most recent issued request for this item
@@ -162,7 +162,7 @@ class RepairRequestSerializer(serializers.ModelSerializer):
         model = RepairRequest
         fields = [
             'id', 'item', 'issued_item', 'issued_item_id', 'requested_by', 'requested_by_name',
-            'status', 'description', 'picture', 'serial_number', 'created_at', 'updated_at', 'type',
+            'status', 'reason', 'picture', 'serial_number', 'created_at', 'updated_at', 'type',
             'item_name', 'item_category'
         ]
         read_only_fields = ['requested_by', 'serial_number', 'created_at', 'updated_at']

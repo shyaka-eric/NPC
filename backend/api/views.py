@@ -71,7 +71,30 @@ class ItemViewSet(viewsets.ModelViewSet):
         assigned_to = self.request.query_params.get('assigned_to')
         if assigned_to:
             queryset = queryset.filter(assigned_to_id=assigned_to)
-        return queryset
+        # Exclude deleted items by default
+        return queryset.exclude(status='deleted')
+
+    @action(detail=False, methods=['get'], url_path='deleted', permission_classes=[IsAuthenticated])
+    def deleted_items(self, request):
+        # Only allow system-admins
+        if not request.user.is_authenticated or request.user.role != 'system-admin':
+            return Response({'detail': 'Not authorized.'}, status=403)
+        deleted_items = Item.objects.filter(status='deleted')
+        page = self.paginate_queryset(deleted_items)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(deleted_items, many=True)
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        reason = request.data.get('deletion_reason') or request.data.get('reason')
+        instance.status = 'deleted'
+        if reason:
+            instance.deletion_reason = reason
+        instance.save()
+        return Response({'detail': 'Item soft deleted.'}, status=200)
 
 class RequestViewSet(viewsets.ModelViewSet):
     queryset = Request.objects.select_related('item').all()
@@ -85,7 +108,9 @@ class RequestViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        request = serializer.save(requested_by=self.request.user)
+        # Default to 'new' type if not provided
+        request_type = self.request.data.get('type', 'new')
+        request = serializer.save(requested_by=self.request.user, type=request_type)
         notify_request_submitted(request)
         # Log the action
         log_action(self.request.user, 'Requested Item', f"Requested {request.quantity} x {request.item.name}")
@@ -287,7 +312,7 @@ class AllPendingRequestsView(APIView):
                 r['item_name'] = r.get('item_name', '-')
                 r['category'] = r.get('category', '-')
             r['quantity'] = 1  # Repairs are always quantity 1
-            r['purpose'] = r.get('description', '')
+            r['purpose'] = r.get('reason', '')
             r['requested_at'] = r.get('created_at')
             # Keep status, requested_by, requested_by_name, etc.
 

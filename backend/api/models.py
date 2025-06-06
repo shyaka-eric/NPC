@@ -28,6 +28,7 @@ class Item(models.Model):
         ('in-use', 'In Use'),
         ('maintenance', 'Maintenance'),
         ('retired', 'Retired'),
+        ('deleted', 'Deleted'),  # Added for soft delete
     ]
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='available')
     name = models.CharField(max_length=100)
@@ -36,6 +37,7 @@ class Item(models.Model):
     expiration_date = models.DateField(blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
     assigned_to = models.ForeignKey('User', null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_items')
+    deletion_reason = models.TextField(blank=True, null=True)
 
 # 3. Request
 class Request(models.Model):
@@ -148,7 +150,7 @@ class RepairRequest(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='repair_requests')
     requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='repair_requests')
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='pending')
-    description = models.TextField(blank=True, null=True)
+    reason = models.TextField(blank=True, null=True)
     picture = models.ImageField(upload_to='repair_pictures/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

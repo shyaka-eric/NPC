@@ -8,7 +8,16 @@ import StatusBadge from './ui/StatusBadge';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
 
-const RecentRequests: React.FC = () => {
+interface RecentRequestsProps {
+  rangeType: 'daily' | 'weekly' | 'monthly' | 'custom';
+  customStart: string;
+  customEnd: string;
+  inRange: (dateVal: string | Date | undefined) => boolean;
+}
+
+const RecentRequests: React.FC<RecentRequestsProps> = ({
+  rangeType, customStart, customEnd, inRange
+}) => {
   const { user } = useAuthStore();
   const { requests, fetchRequests } = useRequestsStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -43,45 +52,8 @@ const RecentRequests: React.FC = () => {
 
   // Get recent requests based on user role
   const getRecentRequests = () => {
-    let filteredRequests: typeof requests = [];
-
-    switch (user.role) {
-      case 'unit-leader':
-        // For unit leaders, show their own requests
-        filteredRequests = requests.filter(req => String(req.requested_by) === String(user.id));
-        break;
-      case 'admin':
-        // For admins, prioritize pending requests
-        filteredRequests = requests.filter(req => req.status === 'pending');
-        if (filteredRequests.length < 5) {
-          // If we have less than 5 pending, add some recent ones of other statuses
-          const otherRequests = requests
-            .filter(req => req.status !== 'pending')
-            .slice(0, 5 - filteredRequests.length);
-          filteredRequests = [...filteredRequests, ...otherRequests];
-        }
-        break;
-      case 'logistics-officer':
-        // For logistics officers, show approved requests that need to be issued
-        filteredRequests = requests.filter(req => req.status === 'approved');
-        if (filteredRequests.length < 5) {
-          // If we have less than 5 approved, add some recently issued
-          const issuedRequests = requests
-            .filter(req => req.status === 'issued')
-            .slice(0, 5 - filteredRequests.length);
-          filteredRequests = [...filteredRequests, ...issuedRequests];
-        }
-        break;
-      case 'system-admin':
-        // For system admins, show most recent requests of any status
-        filteredRequests = requests;
-        break;
-      default:
-        filteredRequests = [];
-    }
-
-    // Sort by most recent and take the top 5
-    return filteredRequests
+    // Removed filtering logic for recent requests
+    return requests
       .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
       .slice(0, 5);
   };

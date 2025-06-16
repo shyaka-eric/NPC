@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { API_URL } from '../config';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { useSearchParams } from 'react-router-dom';
 
 interface DamagedItem {
     id: number;
@@ -39,16 +40,59 @@ const DamagedItems: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { isAuthenticated } = useAuthStore();
+    const [searchParams] = useSearchParams();
+
+    // Get range parameters from URL
+    const rangeType = (searchParams.get('rangeType') as 'daily' | 'weekly' | 'monthly' | 'custom') || 'daily';
+    const customStart = searchParams.get('customStart') || '';
+    const customEnd = searchParams.get('customEnd') || '';
+    const today = new Date();
+
+    // Helper to get date range
+    const getRange = () => {
+      switch (rangeType) {
+        case 'daily':
+          return { start: startOfDay(today), end: endOfDay(today) };
+        case 'weekly':
+          return { start: startOfWeek(today), end: endOfWeek(today) };
+        case 'monthly':
+          return { start: startOfMonth(today), end: endOfMonth(today) };
+        case 'custom':
+          if (customStart && customEnd) {
+            return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
+          }
+          return { start: startOfDay(today), end: endOfDay(today) };
+        default:
+          return { start: startOfDay(today), end: endOfDay(today) };
+      }
+    };
+    const { start, end } = getRange();
+  
+    // Helper to check if a date is in range (accepts string or Date)
+    const inRange = (dateVal: string | Date | undefined) => {
+      if (!dateVal) return false;
+      let date: Date;
+      if (typeof dateVal === 'string') {
+        date = parseISO(dateVal);
+      } else {
+        date = dateVal;
+      }
+      return isWithinInterval(date, { start, end });
+    };
 
     // Pagination state (must be at top level, not inside render)
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
-    const totalPages = Math.ceil(damagedItems.length / ITEMS_PER_PAGE);
-    const paginatedItems = damagedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+    // Filter damaged items based on the date range
+    const filteredDamagedItems = damagedItems.filter(item => inRange(item.reported_date));
+
+    const totalPages = Math.ceil(filteredDamagedItems.length / ITEMS_PER_PAGE);
+    const paginatedItems = filteredDamagedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     useEffect(() => {
         fetchDamagedItems();
-    }, []);
+    }, [rangeType, customStart, customEnd]); // Added range dependencies
 
     const fetchDamagedItems = async () => {
         try {
@@ -96,7 +140,7 @@ const DamagedItems: React.FC = () => {
     const handleExportExcel = () => {
       const wsData = [
         ['Reported Date', 'Category', 'Item Name', 'Serial Number', 'Reported By', 'Status', 'Damage Description'],
-        ...damagedItems.map(item => [
+        ...filteredDamagedItems.map(item => [
           format(new Date(item.reported_date), 'yyyy-MM-dd'),
           item.item_category || item.issued_item?.item_category || '-',
           item.item_name || item.issued_item?.item_name || item.issued_item?.item?.name || '-',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRequestsStore } from '../store/requestsStore';
 import { useAuthStore } from '../store/authStore';
 import { useItemsStore } from '../store/itemsStore';
@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { CheckCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { useSearchParams } from 'react-router-dom';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 
 const IssueItems: React.FC = () => {
   const { user } = useAuthStore();
@@ -18,6 +20,46 @@ const IssueItems: React.FC = () => {
   const { items, fetchItems, updateItem } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
   const [confirmRequest, setConfirmRequest] = useState<any | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams] = useSearchParams();
+
+  // Get range parameters from URL
+  const rangeType = (searchParams.get('rangeType') as 'daily' | 'weekly' | 'monthly' | 'custom') || 'daily';
+  const customStart = searchParams.get('customStart') || '';
+  const customEnd = searchParams.get('customEnd') || '';
+  const today = new Date();
+
+  // Helper to get date range
+  const getRange = () => {
+    switch (rangeType) {
+      case 'daily':
+        return { start: startOfDay(today), end: endOfDay(today) };
+      case 'weekly':
+        return { start: startOfWeek(today), end: endOfWeek(today) };
+      case 'monthly':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'custom':
+        if (customStart && customEnd) {
+          return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
+        }
+        return { start: startOfDay(today), end: endOfDay(today) };
+      default:
+        return { start: startOfDay(today), end: endOfDay(today) };
+    }
+  };
+  const { start, end } = getRange();
+
+  // Helper to check if a date is in range (accepts string or Date)
+  const inRange = (dateVal: string | Date | undefined) => {
+    if (!dateVal) return false;
+    let date: Date;
+    if (typeof dateVal === 'string') {
+      date = parseISO(dateVal);
+    } else {
+      date = dateVal;
+    }
+    return isWithinInterval(date, { start, end });
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -27,7 +69,7 @@ const IssueItems: React.FC = () => {
       setIsLoading(false);
     };
     load();
-  }, [fetchRequests, fetchItems]);
+  }, [fetchRequests, fetchItems, rangeType, customStart, customEnd]); // Added range dependencies
 
   const getItem = (itemId: any) => items.find(i => String(i.id) === String(itemId));
 
@@ -62,16 +104,15 @@ const IssueItems: React.FC = () => {
   const visibleRequests = requests
     .filter(request => {
       const status = request.status?.toLowerCase();
-      return status === 'approved' || status === 'issued';
+      return (status === 'approved' || status === 'issued') && inRange(request.requestedAt || request.createdAt);
     })
     .sort((a, b) => {
-      // Use requested_at for new, created_at for repair, fallback to id
-      const getDate = (req: any) => new Date(req.requested_at || req.created_at || 0).getTime();
+      // Use requestedAt for new, createdAt for repair, fallback to id
+      const getDate = (req: any) => new Date(req.requestedAt || req.createdAt || 0).getTime();
       return getDate(b) - getDate(a);
     });
 
   // Pagination logic (10 per page)
-  const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const totalPages = Math.ceil(visibleRequests.length / ITEMS_PER_PAGE);
   const paginatedRequests = visibleRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -79,7 +120,7 @@ const IssueItems: React.FC = () => {
   const columns = [
     {
       header: 'Request Date',
-      accessor: (request: any) => formatDate(request.requested_at)
+      accessor: (request: any) => formatDate(request.requestedAt || request.createdAt)
     },
     {
       header: 'Category',
@@ -95,7 +136,7 @@ const IssueItems: React.FC = () => {
     },
     {
       header: 'Requested By',
-      accessor: (request: any) => request.requested_by_name
+      accessor: (request: any) => request.requestedByName
     },
     {
       header: 'Status',
@@ -121,11 +162,11 @@ const IssueItems: React.FC = () => {
     const wsData = [
       ['Request Date', 'Category', 'Item Name', 'Quantity', 'Requested By', 'Status'],
       ...visibleRequests.map(r => [
-        formatDate(r.requestedAt),
-        getItem(r.itemId)?.category || '-',
-        getItem(r.itemId)?.name || '-',
+        formatDate(r.requested_at || r.created_at),
+        getItem(r.item)?.category || '-',
+        getItem(r.item)?.name || '-',
         r.quantity,
-        r.requestedByName,
+        r.requested_by_name,
         r.status
       ])
     ];

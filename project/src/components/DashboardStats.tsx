@@ -6,21 +6,25 @@ import { useAuthStore } from '../store/authStore';
 import StatCard from './StatCard';
 import { formatNumber } from '../utils/formatters';
 import { useNavigate } from 'react-router-dom';
-import { fetchRepairRequests } from '../services/api';
 import { API_URL } from '../config';
 import { api } from '../api';
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
-const DashboardStats: React.FC = () => {
-  const { items, issuedItems = [], fetchIssuedItems } = useItemsStore();
+interface DashboardStatsProps {
+  rangeType: 'daily' | 'weekly' | 'monthly' | 'custom';
+  setRangeType: React.Dispatch<React.SetStateAction<'daily' | 'weekly' | 'monthly' | 'custom'>>;
+  customStart: string;
+  setCustomStart: React.Dispatch<React.SetStateAction<string>>;
+  customEnd: string;
+  setCustomEnd: React.Dispatch<React.SetStateAction<string>>;
+  inRange: (dateVal: string | Date | undefined) => boolean;
+}
+
+const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType, customStart, setCustomStart, customEnd, setCustomEnd, inRange }) => {
+  const { issuedItems = [], fetchIssuedItems } = useItemsStore();
   const { requests } = useRequestsStore();
-  const { user, users, fetchUsers } = useAuthStore();
+  const { user, fetchUsers } = useAuthStore();
   const navigate = useNavigate();
-  const [pendingRepairCount, setPendingRepairCount] = useState<number>(0);
-  const [usersCount, setUsersCount] = useState<number>(0);
-  const [rangeType, setRangeType] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('daily');
-  const [customStart, setCustomStart] = useState<string>('');
-  const [customEnd, setCustomEnd] = useState<string>('');
   const today = new Date();
 
   useEffect(() => {
@@ -30,44 +34,13 @@ const DashboardStats: React.FC = () => {
     }
   }, [fetchIssuedItems, fetchUsers, user]);
 
-  useEffect(() => {
-    // Fetch pending repair requests for the logged-in user
-    const fetchPendingRepairs = async () => {
-      if (!user) return;
-      try {
-        const data = await fetchRepairRequests();
-        const pending = (data as any[]).filter(r => r.status === 'pending' && r.type === 'repair' && r.requested_by === user.id);
-        setPendingRepairCount(pending.length);
-      } catch (err) {
-        setPendingRepairCount(0);
-      }
-    };
-    fetchPendingRepairs();
-  }, [user]);
-
-  useEffect(() => {
-    // Fetch user count for the Users card
-    const fetchUsersCount = async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || API_URL}/api/users/`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await response.json();
-        setUsersCount(Array.isArray(data) ? data.length : 0);
-      } catch {
-        setUsersCount(0);
-      }
-    };
-    fetchUsersCount();
-  }, []);
-
   // Helper to get date range
   const getRange = () => {
     switch (rangeType) {
       case 'daily':
         return { start: startOfDay(today), end: endOfDay(today) };
       case 'weekly':
-        return { start: startOfWeek(today), end: endOfWeek(today) };
+        return { start: startOfWeek(today, { weekStartsOn: 1 }), end: endOfWeek(today, { weekStartsOn: 1 }) }; // Week starts on Monday
       case 'monthly':
         return { start: startOfMonth(today), end: endOfMonth(today) };
       case 'custom':
@@ -81,34 +54,33 @@ const DashboardStats: React.FC = () => {
   };
   const { start, end } = getRange();
 
-  // Helper to check if a date is in range (accepts string or Date)
-  const inRange = (dateVal: string | Date | undefined) => {
-    if (!dateVal) return false;
-    let date: Date;
-    if (typeof dateVal === 'string') {
-      date = parseISO(dateVal);
-    } else {
-      date = dateVal;
-    }
-    return isWithinInterval(date, { start, end });
-  };
+  // Add debug logs to inspect weekly range calculations
+  console.log('Weekly range start:', start, 'Weekly range end:', end);
 
-  // Filtered data helpers (handle possible missing created_at/requestedAt/assigned_date fields)
-  const filteredRequests = requests.filter(r => inRange(r.created_at));
-  const filteredItems = items.filter(i => inRange(i.createdAt));
+  // Updated filtering logic to ensure correct range filtering
+  const filteredRequests = requests.filter(req => {
+    const dateToCheck = req.requestedAt || req.created_at;
+    if (!dateToCheck) {
+      console.warn('Request with no valid date field:', req);
+      return false;
+    }
+    const requestDate = new Date(dateToCheck);
+    return requestDate >= start && requestDate <= end;
+  });
   const filteredIssuedItems = issuedItems.filter(i => inRange(i.assigned_date));
 
   // Fix: use correct status value for available items (should match AnalysisCard logic)
-  const availableItems = filteredItems.filter(item => item.quantity > 0).reduce((sum, item) => sum + item.quantity, 0);
-  const inUseItems = filteredIssuedItems
-    .filter(item => String(item.assigned_to) === String(user?.id))
-    .length;
-  const damagedItems = filteredItems.filter(item => item.status === 'damaged').reduce((sum, item) => sum + item.quantity, 0);
-  const pendingRequests = filteredRequests.filter(
-    req => req.status === 'pending' && req.requested_by === user?.id
-  ).length;
-  const totalUsers = user?.role === 'system-admin' ? users.length : 42; // Use real count for system-admin
-  const inStockItems = filteredItems.filter(item => item.quantity > 0).reduce((sum, item) => sum + item.quantity, 0);
+  const repairInProcessCount = filteredRequests.filter(req => String(req.status) === 'repair-in-process').length;
+  const approvedCount = filteredRequests.filter(req => String(req.status) === 'approved').length;
+
+  // Add debug logs to inspect filteredRequests and rangeType
+  console.log('Range type:', rangeType);
+  console.log('Filtered requests:', filteredRequests);
+
+  // Updated navigation logic to pass range parameters
+  const navigateToPage = (path: string) => {
+    navigate(`${path}?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`);
+  };
 
   // Update renderCards to use filtered data for all roles
   function renderCards() {
@@ -120,22 +92,22 @@ const DashboardStats: React.FC = () => {
             <StatCard
               title="In-Use Items"
               value={formatNumber(filteredIssuedItems.filter(item => String(item.assigned_to) === String(user.id)).length)}
-              icon={<Package size={24} />}
-              onClick={() => navigate('/in-use-items')}
+              icon={<Package size={24} className="text-blue-500" />} // Blue color for In-Use Items
+              onClick={() => navigate(`/in-use-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl"
             />
             <StatCard
               title="My Item Requests"
               value={formatNumber(filteredRequests.filter(req => req.requested_by === user.id && req.type === 'new').length)}
-              icon={<ClipboardList size={24} />}
-              onClick={() => navigate('/my-requests')}
+              icon={<ClipboardList size={24} className="text-green-500" />} // Green color for My Item Requests
+              onClick={() => navigateToPage('/my-requests')}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
             <StatCard
               title="My Repair Requests"
               value={formatNumber(filteredRequests.filter(req => req.requested_by === user.id && req.type === 'repair').length)}
-              icon={<AlertTriangle size={24} />}
-              onClick={() => navigate('/my-repair-requests')}
+              icon={<AlertTriangle size={24} className="text-amber-500" />} // Amber color for My Repair Requests
+              onClick={() => navigateToPage('/my-repair-requests')}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
           </>
@@ -144,25 +116,18 @@ const DashboardStats: React.FC = () => {
         return (
           <>
             <StatCard
-              title="Available Items"
-              value={formatNumber(filteredItems.filter(item => item.quantity > 0).reduce((sum, item) => sum + item.quantity, 0))}
-              icon={<Package size={32} />}
-              className="flex-1 w-full h-32 text-2xl cursor-pointer"
-              onClick={() => navigate('/stock-availability')}
-            />
-            <StatCard
               title="Item Requests"
-              value={formatNumber(filteredRequests.filter(req => req.type === 'new').length)}
-              icon={<ClipboardList size={32} />}
+              value={formatNumber(filteredRequests.filter(req => req.type === 'new' && inRange(req.requestedAt || req.created_at)).length)}
+              icon={<ClipboardList size={32} className="text-green-500" />} // Purple color for Item Requests
               className="flex-1 w-full h-32 text-2xl cursor-pointer"
-              onClick={() => navigate('/requests')}
+              onClick={() => navigate(`/requests?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
             />
             <StatCard
               title="Repair Requests"
-              value={formatNumber(filteredRequests.filter(req => req.type === 'repair').length)}
-              icon={<AlertTriangle size={32} />}
+              value={formatNumber(filteredRequests.filter(req => req.type === 'repair' && inRange(req.requestedAt || req.created_at)).length)}
+              icon={<AlertTriangle size={32} className="text-yellow-500" />} // Red color for Repair Requests
               className="flex-1 w-full h-32 text-2xl cursor-pointer"
-              onClick={() => navigate('/repair-items')}
+              onClick={() => navigateToPage('/repair-items')}
             />
           </>
         );
@@ -187,9 +152,6 @@ const DashboardStats: React.FC = () => {
           };
           fetchDamagedItems();
         }, []);
-        // Some APIs may return status as enum or string, so use loose comparison
-        const repairInProcessCount = filteredRequests.filter(req => String(req.status) === 'repair-in-process').length;
-        const approvedCount = filteredRequests.filter(req => String(req.status) === 'approved').length;
         return (
           <>
             <StatCard
@@ -244,7 +206,7 @@ const DashboardStats: React.FC = () => {
               <StatCard
                 icon={<Users size={32} />}
                 title="Users"
-                value={formatNumber(usersCount)}
+                value={formatNumber(deletedCount)}
                 onClick={() => navigate('/users')}
                 className="w-full h-32 text-2xl cursor-pointer"
               />

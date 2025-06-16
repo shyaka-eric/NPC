@@ -29,9 +29,10 @@ const Navbar: React.FC = () => {
     { name: 'System Admin Report', path: '/reports/system-admin', roles: ['system-admin'] },
     { name: 'Settings', path: '/settings', roles: ['system-admin'] },
     { name: 'Logs', path: '/logs', roles: ['system-admin'] },
-    { name: 'Reports', path: '/reports/admin', roles: ['admin'] },
-    { name: 'Report', path: '/reports/unit-leader', roles: ['unit-leader'] },
+    { name: 'Stock Availability', path: '/stock-availability', roles: ['admin'] },
   ].filter(link => link.roles.includes(user.role));
+
+  const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
 
   return (
     <nav className="bg-white shadow-sm border-b border-slate-200">
@@ -112,11 +113,11 @@ const Navbar: React.FC = () => {
                           className="h-8 w-8 rounded-full object-cover"
                         />
                       ) : (
-                        user.name.charAt(0)
+                        userName.charAt(0)
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-sm font-medium text-slate-700">{user.name}</span>
+                      <span className="text-sm font-medium text-slate-700">{userName}</span>
                       <ChevronDown size={16} />
                     </div>
                   </div>
@@ -126,7 +127,7 @@ const Navbar: React.FC = () => {
               {isProfileMenuOpen && (
                 <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
                   <div className="px-4 py-2 border-b border-slate-200">
-                    <p className="text-sm font-medium text-slate-900">{user.name}</p>
+                    <p className="text-sm font-medium text-slate-900">{userName}</p>
                     <Badge variant="primary" className="mt-1 capitalize">
                       {user.role.replace('-', ' ')}
                     </Badge>
@@ -203,11 +204,11 @@ const Navbar: React.FC = () => {
                     className="h-8 w-8 rounded-full object-cover"
                   />
                 ) : (
-                  user.name.charAt(0)
+                  userName.charAt(0)
                 )}
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-slate-900">{user.name}</p>
+                <p className="text-sm font-medium text-slate-900">{userName}</p>
               </div>
             </div>
             <Badge variant="primary" className="mt-2 capitalize">

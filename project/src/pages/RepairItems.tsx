@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useRequestsStore } from '../store/requestsStore';
 import { useItemsStore } from '../store/itemsStore';
 import PageHeader from '../components/PageHeader';
 import Table from '../components/ui/Table';
@@ -9,30 +8,75 @@ import SimpleModal from '../components/ui/SimpleModal';
 import { fetchRepairRequests } from '../services/api';
 import axios from 'axios';
 import { API_URL } from '../config';
-import { useAuthStore } from '../store/authStore';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { useSearchParams } from 'react-router-dom';
+import Toggle from '../components/ui/Toggle';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 const RepairItems: React.FC = () => {
-  const { approveRequest, denyRequest } = useRequestsStore();
   const { items, fetchItems } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
   const [repairRequests, setRepairRequests] = useState<any[]>([]);
   const [photoModal, setPhotoModal] = useState<{ open: boolean; url: string | null }>({ open: false, url: null });
+  const [searchParams] = useSearchParams();
+  const [isFilteredView, setIsFilteredView] = useState(true);
+
+  const rangeType = searchParams.get('rangeType') || 'daily';
+  const customStart = searchParams.get('customStart') || '';
+  const customEnd = searchParams.get('customEnd') || '';
+
+  const today = new Date();
+
+  const getRange = () => {
+    switch (rangeType) {
+      case 'daily':
+        return { start: startOfDay(today), end: endOfDay(today) };
+      case 'weekly':
+        return { start: startOfWeek(today, { weekStartsOn: 1 }), end: endOfWeek(today, { weekStartsOn: 1 }) };
+      case 'monthly':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'custom':
+        if (customStart && customEnd) {
+          return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
+        }
+        return { start: startOfDay(today), end: endOfDay(today) };
+      default:
+        return { start: startOfDay(today), end: endOfDay(today) };
+    }
+  };
+
+  const { start, end } = getRange();
 
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      const repairRequestsData = await fetchRepairRequests();
-      setRepairRequests(repairRequestsData);
+      const repairRequestsData: any[] = await fetchRepairRequests();
+      const filteredRepairRequests = isFilteredView
+        ? repairRequestsData.filter((req: any) => {
+            const dateToCheck = req.requestedAt || req.created_at;
+            if (!dateToCheck) return false;
+            const requestDate = new Date(dateToCheck);
+            return requestDate >= start && requestDate <= end;
+          })
+        : repairRequestsData; // Show all requests when toggle is off
+      setRepairRequests(filteredRepairRequests);
       await fetchItems();
       setIsLoading(false);
     };
     load();
-  }, []);
+  }, [rangeType, customStart, customEnd, isFilteredView]);
 
   const refreshRepairRequests = async () => {
     setIsLoading(true);
-    const repairRequestsData = await fetchRepairRequests();
-    setRepairRequests(repairRequestsData);
+    const repairRequestsData: any[] = await fetchRepairRequests();
+    const filteredRepairRequests = repairRequestsData.filter((req: any) => {
+      const dateToCheck = req.requestedAt || req.created_at;
+      if (!dateToCheck) return false;
+      const requestDate = new Date(dateToCheck);
+      return requestDate >= start && requestDate <= end;
+    });
+    setRepairRequests(filteredRepairRequests);
     setIsLoading(false);
   };
 
@@ -57,16 +101,6 @@ const RepairItems: React.FC = () => {
     } catch (error) {
       toast.error('Failed to move request to repair in process.');
       await refreshRepairRequests();
-    }
-  };
-
-  const handleDeny = async (request: any) => {
-    try {
-      await denyRequest(request.id, '', 'Denied by admin');
-      toast.success('Request denied.');
-      await refreshRepairRequests();
-    } catch {
-      toast.error('Failed to deny request.');
     }
   };
 
@@ -189,9 +223,48 @@ const RepairItems: React.FC = () => {
     }
   ];
 
+  const exportToExcel = () => {
+    const worksheetData = repairRequests.map((r) => ({
+      'Request Date': r.created_at ? new Date(r.created_at).toLocaleDateString() : '-',
+      'Category': r.item_category || r.issued_item?.item_category || r.category || (items.find((i) => i.id === r.item)?.category || '-'),
+      'Item': r.item_name || r.issued_item?.item_name || (items.find((i) => i.id === r.item)?.name || '-'),
+      'Requested By': r.requested_by_name || '-',
+      'Reason': r.reason || r.description || '-',
+      'Status': getRealStatus(r),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet([]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Repair Items');
+
+    const exportedDate = new Date().toLocaleDateString();
+    const title = `Repair Items Report (${exportedDate})`;
+    XLSX.utils.sheet_add_aoa(worksheet, [[title]], { origin: 'A1' });
+    XLSX.utils.sheet_add_aoa(worksheet, [['Exported Date:', exportedDate]], { origin: 'A2' });
+    XLSX.utils.sheet_add_json(worksheet, worksheetData, { origin: 'A4' });
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(blob, `Repair_Items_Report_${exportedDate}.xlsx`);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <PageHeader title="Repair Items" description="View all repair item requests, including serial number and picture." />
+      <div className="mt-4 flex justify-between items-center">
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={exportToExcel}
+        >
+          Export Report
+        </Button>
+        <Toggle
+          label="Filtered View"
+          isChecked={isFilteredView}
+          onChange={() => setIsFilteredView(!isFilteredView)}
+        />
+      </div>
       <div className="mt-8">
         <Table
           columns={columns}

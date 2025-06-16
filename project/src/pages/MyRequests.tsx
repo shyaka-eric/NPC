@@ -1,112 +1,113 @@
 import React, { useEffect, useState } from 'react';
 import { useRequestsStore } from '../store/requestsStore';
-import { useAuthStore } from '../store/authStore';
-import { useItemsStore } from '../store/itemsStore';
 import PageHeader from '../components/PageHeader';
-import Table from '../components/ui/Table';
 import StatusBadge from '../components/ui/StatusBadge';
-import { formatDate } from '../utils/formatters';
-import Pagination from '../components/Pagination';
-import SimpleModal from '../components/ui/SimpleModal';
-import Button from '../components/ui/Button';
 import { toast } from 'sonner';
-
-const ITEMS_PER_PAGE = 15;
+import { formatDate } from '../utils/formatters';
+import Table from '../components/ui/Table';
+import { parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { useSearchParams } from 'react-router-dom';
+import Button from '../components/ui/Button';
+import * as XLSX from 'xlsx';
+import Toggle from '../components/ui/Toggle';
 
 const MyRequests: React.FC = () => {
-  const { user } = useAuthStore();
   const { requests, fetchRequests } = useRequestsStore();
-  const { items, fetchItems } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [combinedRequests, setCombinedRequests] = useState<any[]>([]);
+  const [searchParams] = useSearchParams();
+  const [isFilteredView, setIsFilteredView] = useState(true);
+
+  const rangeType = searchParams.get('rangeType') || 'daily';
+  const customStart = searchParams.get('customStart') || '';
+  const customEnd = searchParams.get('customEnd') || '';
 
   useEffect(() => {
+    console.log('Range type updated:', rangeType);
     const loadRequests = async () => {
       setIsLoading(true);
       try {
-        await fetchItems();
-        await fetchRequests(); // updates the store
-        setCombinedRequests(requests); // Use only the requests from the store
+        await fetchRequests();
+        console.log('Fetched requests:', requests);
+
+        // Clear combinedRequests before filtering
+        setCombinedRequests([]);
+
+        const filteredRequests = filterRequestsByRange(requests.filter((request) => request.type === 'new'));
+        setCombinedRequests(filteredRequests);
       } catch (error) {
+        console.error('Error loading requests:', error);
         toast.error('Failed to load requests');
       } finally {
         setIsLoading(false);
       }
     };
     loadRequests();
-  }, [fetchRequests, fetchItems, requests]);
+  }, [fetchRequests, requests, rangeType, customStart, customEnd]);
 
-  // Filter requests for the current user and only show new item requests
-  const myRequests = combinedRequests
-    .filter(request => request.requested_by === user?.id && request.type === 'new')
-    .sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime());
-  const totalPages = Math.ceil(myRequests.length / ITEMS_PER_PAGE);
-  const paginatedRequests = myRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  const handleViewRequest = (request: any) => {
-    setSelectedRequest(request);
-    setIsViewModalOpen(true);
-  };
-
-  // Helper to safely format dates
-  const safeFormatDate = (date: any) => {
-    if (!date) return '-';
-    try {
-      return formatDate(date);
-    } catch {
-      return '-';
+  const getRange = () => {
+    const today = new Date();
+    console.log('Selected range type:', rangeType);
+    switch (rangeType) {
+      case 'daily':
+        return { start: startOfDay(today), end: endOfDay(today) };
+      case 'weekly':
+        // Adjust weekly range to start from Monday and include all days up to Sunday
+        return { start: startOfWeek(today, { weekStartsOn: 1 }), end: endOfWeek(today, { weekStartsOn: 1 }) };
+      case 'monthly':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'custom':
+        if (customStart && customEnd) {
+          return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
+        }
+        return { start: startOfDay(today), end: endOfDay(today) };
+      default:
+        return { start: startOfDay(today), end: endOfDay(today) };
     }
   };
 
+  // Corrected debug logs to reference range returned by getRange
+  const { start, end } = getRange();
+  console.log('Weekly range start:', start, 'Weekly range end:', end);
+
+  // Ensure filtering logic includes all items within the weekly range
+  const filterRequestsByRange = (requests: any[]) => {
+    const { start, end } = getRange();
+    console.log('Filtering requests with range:', { start, end });
+
+    return requests.filter((request) => {
+      const dateToCheck = request.requestedAt || request.requested_at;
+      if (!dateToCheck) {
+        console.warn('Request with undefined date field:', request);
+        return false;
+      }
+      const requestedDate = new Date(dateToCheck);
+      console.log('Request date:', requestedDate, 'Start:', start, 'End:', end);
+      return requestedDate >= start && requestedDate <= end;
+    });
+  };
+
+  // Add debug logs to inspect combinedRequests state
+  console.log('Combined requests:', combinedRequests);
+
+  // Add debug logs to inspect data passed to Table component
+  console.log('Table data:', combinedRequests);
+
+  // Add debug logs to inspect each item passed to Table
+  combinedRequests.forEach((item, index) => console.log(`Item ${index}:`, item));
+
+  // Fix duplication issue by ensuring requestsToDisplay is derived directly from the toggle state
+  const requestsToDisplay = isFilteredView
+    ? filterRequestsByRange(requests.filter(request => request.type === 'new'))
+    : requests.filter(request => request.type === 'new');
+
+  // Ensure `Requested At` column explicitly extracts and displays only the date
   const columns = [
-    {
-      header: 'Request Date',
-      accessor: (request: any) => safeFormatDate(request.requested_at)
-    },
-    {
-      header: 'Type',
-      accessor: (request: any) =>
-        request.type
-          ? request.type.charAt(0).toUpperCase() + request.type.slice(1)
-          : '-'
-    },
-    {
-      header: 'Category',
-      accessor: (request: any) => {
-        const item = items.find(i => String(i.id) === String(request.item));
-        return item?.category || '-';
-      }
-    },
-    {
-      header: 'Item',
-      accessor: (request: any) => {
-        const item = items.find(i => String(i.id) === String(request.item));
-        return item?.name || '-';
-      }
-    },
-    {
-      header: 'Quantity',
-      accessor: 'quantity'
-    },
-    {
-      header: 'Status',
-      accessor: (request: any) => <StatusBadge status={request.status} />
-    },
-    {
-      header: 'Actions',
-      accessor: (request: any) => (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => handleViewRequest(request)}
-        >
-          View Details
-        </Button>
-      )
-    }
+    { header: 'Requested At', accessor: (item: any) => item.requestedAt, render: (date: string) => date.split('T')[0] },
+    { header: 'Item Name', accessor: (item: any) => item.itemName || item.item_name, render: (itemName: string) => itemName },
+    { header: 'Category', accessor: (item: any) => item.category, render: (category: string) => category },
+    { header: 'Quantity', accessor: (item: any) => item.quantity, render: (quantity: number) => quantity.toString() },
+    { header: 'Status', accessor: (item: any) => item.status, render: (status: string) => <StatusBadge status={status} /> },
   ];
 
   return (
@@ -116,68 +117,62 @@ const MyRequests: React.FC = () => {
         description="View and track your item and repair requests"
       />
 
-      <div className="mt-8">
-        <Table
-          columns={columns}
-          data={paginatedRequests}
-          keyExtractor={request => request.id}
-          isLoading={isLoading}
-          emptyMessage="You haven't made any requests yet."
-        />
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          className="mt-6"
+      <div className="mt-4 flex justify-between items-center">
+        <Button
+          onClick={() => {
+            const exportedData = requestsToDisplay.map(request => ({
+              RequestedAt: request.requestedAt,
+              ItemName: request.itemName,
+              Quantity: request.quantity,
+              Status: request.status,
+            }));
+            const worksheet = XLSX.utils.json_to_sheet([]);
+
+            // Add title and exported date as headers
+            XLSX.utils.sheet_add_aoa(worksheet, [
+              [`Report Title: My Requests`],
+              [`Exported Date: ${new Date().toLocaleString()}`],
+            ], { origin: 'A1' });
+
+            // Add table data below the headers
+            XLSX.utils.sheet_add_json(worksheet, exportedData, { origin: 'A3', skipHeader: false });
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'MyRequests');
+            XLSX.writeFile(workbook, `MyRequests_${new Date().toISOString()}.xlsx`);
+          }}
+          className="mb-4"
+        >
+          Export Report
+        </Button>
+        <Toggle
+          label="Filtered View"
+          isChecked={isFilteredView}
+          onChange={() => setIsFilteredView(!isFilteredView)}
         />
       </div>
 
-      <SimpleModal
-        open={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
-        title="Request Details"
-      >
-        {selectedRequest && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Request Type</h3>
-                <p className="mt-1">{selectedRequest.type.charAt(0).toUpperCase() + selectedRequest.type.slice(1)}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                <p className="mt-1"><StatusBadge status={selectedRequest.status} /></p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Category</h3>
-                <p className="mt-1">{(() => { const item = items.find(i => String(i.id) === String(selectedRequest.item)); return item?.category || '-'; })()}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Item Name</h3>
-                <p className="mt-1">{(() => { const item = items.find(i => String(i.id) === String(selectedRequest.item)); return item?.name || '-'; })()}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Quantity</h3>
-                <p className="mt-1">{selectedRequest.quantity}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Request Date</h3>
-                <p className="mt-1">{safeFormatDate(selectedRequest.requested_at)}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Last Updated</h3>
-                <p className="mt-1">{safeFormatDate(selectedRequest.updated_at)}</p>
-              </div>
+      <div className="mt-8">
+        {isLoading ? (
+          <div className="h-64 flex items-center justify-center">
+            <div className="animate-pulse flex space-x-2 items-center">
+              <div className="h-4 w-4 bg-slate-300 rounded-full"></div>
+              <div className="h-4 w-20 bg-slate-300 rounded"></div>
+              <span className="text-sm text-slate-500">Loading...</span>
             </div>
-            {selectedRequest.notes && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Notes</h3>
-                <p className="mt-1">{selectedRequest.notes}</p>
-              </div>
-            )}
           </div>
+        ) : requestsToDisplay.length === 0 ? (
+          <div className="py-6 text-center text-sm text-slate-500">
+            No requests found for the selected range.
+          </div>
+        ) : (
+          <Table
+            data={requestsToDisplay}
+            columns={columns}
+            keyExtractor={(item) => `${item.id}-${item.itemName}`} // Use a combination of id and itemName for uniqueness
+          />
         )}
-      </SimpleModal>
+      </div>
     </div>
   );
 };

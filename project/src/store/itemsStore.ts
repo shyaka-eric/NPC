@@ -32,8 +32,10 @@ export const useItemsStore = create<ItemsState>()((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await api.get('items/');
+      console.log('API response for items:', response.data); // Debugging log
       set({ items: response.data, isLoading: false });
     } catch (error: any) {
+      console.error('Error fetching items:', error); // Debugging log
       set({ error: error.message, isLoading: false });
     }
   },

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfWeek, startOfMonth, endOfDay, isWithinInterval, parseISO } from 'date-fns';
 import PageHeader from '../components/PageHeader';
 import Table from '../components/ui/Table';
 import { useAuthStore } from '../store/authStore';
 import { API_URL } from '../config';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import { startOfWeek, endOfMonth } from 'date-fns';
+import Toggle from '../components/ui/Toggle';
 
 interface IssuedItem {
   id: number;
@@ -32,24 +35,62 @@ interface RepairRequest {
 const MyRepairRequests: React.FC = () => {
   const [groupedRequests, setGroupedRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [isFilteredView, setIsFilteredView] = useState(true);
+
+  // Get range parameters from URL
+  const rangeType = (searchParams.get('rangeType') as 'daily' | 'weekly' | 'monthly' | 'custom') || 'daily';
+  const customStart = searchParams.get('customStart') || '';
+  const customEnd = searchParams.get('customEnd') || '';
+  const today = new Date();
+
+  // Helper to get date range
+  const getRange = () => {
+    switch (rangeType) {
+      case 'daily':
+        return { start: startOfDay(today), end: endOfDay(today) };
+      case 'weekly':
+        return { start: startOfWeek(today), end: endOfWeek(today) };
+      case 'monthly':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'custom':
+        if (customStart && customEnd) {
+          return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
+        }
+        return { start: startOfDay(today), end: endOfDay(today) };
+      default:
+        return { start: startOfDay(today), end: endOfDay(today) };
+    }
+  };
+  const { start, end } = getRange();
+
+  // Helper to check if a date is in range (accepts string or Date)
+  const inRange = (dateVal: string | Date | undefined) => {
+    if (!dateVal) return false;
+    let date: Date;
+    if (typeof dateVal === 'string') {
+      date = parseISO(dateVal);
+    } else {
+      date = dateVal;
+    }
+    return isWithinInterval(date, { start, end });
+  };
 
   useEffect(() => {
     fetchMyRepairRequests();
-    // eslint-disable-next-line
-  }, []);
+  }, [user, rangeType, customStart, customEnd]); // Added range dependencies and user
 
   // Helper to get grouped value safely
   const getFirst = (g: any, key: string) => (g.requests && g.requests.length > 0 && g.requests[0][key]) ? g.requests[0][key] : '-';
 
+  // Ensure all repair requests are fetched when the toggle is off
   const fetchMyRepairRequests = async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token || !user) {
-        setError('Authentication token not found. Please log in again.');
         setIsLoading(false);
         return;
       }
@@ -59,16 +100,20 @@ const MyRepairRequests: React.FC = () => {
         },
         params: { requested_by: user.id },
       });
-      // Group by item_name + category from the request itself
+
+      const responseData = isFilteredView
+        ? response.data.filter(req => inRange(req.created_at))
+        : response.data; // Fetch all repair requests when toggle is off
+
       const grouped: { [key: string]: any } = {};
-      response.data.forEach(req => {
+      responseData.forEach(req => {
         const key = `${req.item_name}|||${req.category}`;
         if (!grouped[key]) {
           grouped[key] = {
             item_name: req.item_name,
             item_category: req.category,
-            serial_numbers: req.issued_item ? [req.issued_item.serial_number] : [], // Handle null issued_item
-            descriptions: req.description ? [req.description] : [], // Handle null description
+            serial_numbers: req.issued_item ? [req.issued_item.serial_number] : [],
+            descriptions: req.description ? [req.description] : [],
             statuses: [req.status],
             created_ats: [req.created_at],
             // Store individual request details for the modal if needed later
@@ -88,9 +133,7 @@ const MyRepairRequests: React.FC = () => {
         }
       });
       setGroupedRequests(Object.values(grouped));
-      setError(null);
     } catch (err) {
-      setError('Failed to fetch your repair requests');
       console.error('Error fetching my repair requests:', err);
     } finally {
       setIsLoading(false);
@@ -116,28 +159,59 @@ const MyRepairRequests: React.FC = () => {
 
   const keyExtractor = (g: any) => `${g.item_name}|||${g.item_category}`;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-800"></div>
-      </div>
-    );
-  }
+  // Fix logic to ensure all items are displayed when the toggle is off
+  const repairRequestsToDisplay = isFilteredView
+    ? groupedRequests.filter(request => {
+        if (!request.created_ats || request.created_ats.length === 0) return false; // Ensure created_ats is defined and not empty
+        const isInRange = isWithinInterval(parseISO(request.created_ats[0]), getRange());
+        return isInRange;
+      })
+    : groupedRequests; // Show all grouped requests when toggle is off
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500">{error}</div>
-      </div>
-    );
-  }
-
+  // Add export report button
   return (
     <div className="container mx-auto px-4 py-8">
       <PageHeader
         title="My Repair Requests"
         description="Track the status of your repair requests."
       />
+      <div className="mt-4 flex justify-between items-center">
+        <button
+          onClick={() => {
+            // Ensure all columns are populated in the exported report
+            const exportedData = repairRequestsToDisplay.map(request => ({
+              CreatedAt: request.created_ats[0] || '-',
+              SerialNumber: request.serial_numbers[0] || '-',
+              ItemName: request.item_name || '-',
+              Category: request.item_category || getFirst(request, 'item_category') || '-',
+              Quantity: request.requests.reduce((sum: number, r: any) => sum + (r.quantity || 1), 0),
+              Status: request.statuses[0] || '-',
+            }));
+            const worksheet = XLSX.utils.json_to_sheet([]);
+
+            // Add title and exported date as headers
+            XLSX.utils.sheet_add_aoa(worksheet, [
+              [`Report Title: My Repair Requests`],
+              [`Exported Date: ${new Date().toLocaleString()}`],
+            ], { origin: 'A1' });
+
+            // Add table data below the headers
+            XLSX.utils.sheet_add_json(worksheet, exportedData, { origin: 'A3', skipHeader: false });
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'MyRepairRequests');
+            XLSX.writeFile(workbook, `MyRepairRequests_${new Date().toISOString()}.xlsx`);
+          }}
+          className="mb-4 px-4 py-2 rounded bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition-colors duration-150"
+        >
+          Export Report
+        </button>
+        <Toggle
+          label="Filtered View"
+          isChecked={isFilteredView}
+          onChange={() => setIsFilteredView(!isFilteredView)}
+        />
+      </div>
       <div className="mt-8">
         <Table
           columns={columns}

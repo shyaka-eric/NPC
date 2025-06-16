@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { PlusCircle } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
@@ -9,11 +9,49 @@ import AnalysisCard from '../components/AnalysisCard';
 import RecentActivityLog from '../components/RecentActivityLog';
 import { useNavigate } from 'react-router-dom';
 import { useLogsStore } from '../store/logsStore';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { fetchLogs } = useLogsStore();
+
+  const [rangeType, setRangeType] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('daily');
+  const [customStart, setCustomStart] = useState<string>('');
+  const [customEnd, setCustomEnd] = useState<string>('');
+  const today = new Date();
+
+  // Helper to get date range
+  const getRange = () => {
+    switch (rangeType) {
+      case 'daily':
+        return { start: startOfDay(today), end: endOfDay(today) };
+      case 'weekly':
+        return { start: startOfWeek(today), end: endOfWeek(today) };
+      case 'monthly':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'custom':
+        if (customStart && customEnd) {
+          return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
+        }
+        return { start: startOfDay(today), end: endOfDay(today) };
+      default:
+        return { start: startOfDay(today), end: endOfDay(today) };
+    }
+  };
+  const { start, end } = getRange();
+
+  // Helper to check if a date is in range (accepts string or Date)
+  const inRange = (dateVal: string | Date | undefined) => {
+    if (!dateVal) return false;
+    let date: Date;
+    if (typeof dateVal === 'string') {
+      date = parseISO(dateVal);
+    } else {
+      date = dateVal;
+    }
+    return isWithinInterval(date, { start, end });
+  };
 
   useEffect(() => {
     if (user?.role === 'system-admin') {
@@ -65,14 +103,15 @@ const Dashboard: React.FC = () => {
   const getGreeting = () => {
     const hour = new Date().getHours();
     let greeting = 'Good evening';
-    
+
     if (hour < 12) {
       greeting = 'Good morning';
     } else if (hour < 18) {
       greeting = 'Good afternoon';
     }
-    
-    return `${greeting}, ${user.name}`;
+
+    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    return `${greeting}, ${fullName}`;
   };
 
   return (
@@ -83,11 +122,33 @@ const Dashboard: React.FC = () => {
         actions={renderActionButton()}
       />
       
-      <DashboardStats />
+      <DashboardStats 
+        rangeType={rangeType}
+        setRangeType={setRangeType}
+        customStart={customStart}
+        setCustomStart={setCustomStart}
+        customEnd={customEnd}
+        setCustomEnd={setCustomEnd}
+        inRange={inRange}
+      />
       
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {user.role === 'system-admin' ? <RecentActivityLog /> : <RecentRequests />}
-        <AnalysisCard />
+        {user.role === 'system-admin' ? (
+          <RecentActivityLog />
+        ) : (
+          <RecentRequests 
+            rangeType={rangeType} 
+            customStart={customStart} 
+            customEnd={customEnd} 
+            inRange={inRange}
+          />
+        )}
+        <AnalysisCard 
+          rangeType={rangeType}
+          customStart={customStart}
+          customEnd={customEnd}
+          inRange={inRange}
+        />
       </div>
     </div>
   );

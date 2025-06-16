@@ -10,6 +10,11 @@ import Pagination from '../components/Pagination';
 import Button from '../components/ui/Button';
 import { toast } from 'sonner';
 import SimpleModal from '../components/ui/SimpleModal';
+import { useSearchParams } from 'react-router-dom';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import Toggle from '../components/ui/Toggle';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
@@ -35,33 +40,71 @@ const Requests: React.FC = () => {
   }>({ open: false, request: null, action: null });
   const [actionLoading, setActionLoading] = useState(false);
   const [editQuantity, setEditQuantity] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+  const [isFilteredView, setIsFilteredView] = useState(true);
+
+  // Get range parameters from URL
+  const rangeType = (searchParams.get('rangeType') as 'daily' | 'weekly' | 'monthly' | 'custom') || 'daily';
+  const customStart = searchParams.get('customStart') || '';
+  const customEnd = searchParams.get('customEnd') || '';
+  const today = new Date();
+
+  // Helper to get date range
+  const getRange = () => {
+    switch (rangeType) {
+      case 'daily':
+        return { start: startOfDay(today), end: endOfDay(today) };
+      case 'weekly': {
+        const start = startOfWeek(today, { weekStartsOn: 1 });
+        const end = endOfWeek(today, { weekStartsOn: 1 });
+        const previousWeekStart = new Date(start.setDate(start.getDate() - 7));
+        const previousWeekEnd = new Date(end.setDate(end.getDate() - 7));
+        console.log('Previous weekly range start:', previousWeekStart, 'Previous weekly range end:', previousWeekEnd);
+        return { start: previousWeekStart, end: previousWeekEnd };
+      }
+      case 'monthly':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'custom':
+        if (customStart && customEnd) {
+          return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
+        }
+        return { start: startOfDay(today), end: endOfDay(today) };
+      default:
+        return { start: startOfDay(today), end: endOfDay(today) };
+    }
+  };
+  const { start, end } = getRange();
 
   useEffect(() => {
     const loadRequests = async () => {
       setIsLoading(true);
       try {
-        await fetchRequests();
+        // Fetch both requests and items
+        await Promise.all([
+          fetchRequests(),
+          fetchItems() // Ensure items are fetched as well
+        ]);
       } catch (error) {
-        // handle error
+        console.error('Failed to fetch data:', error);
       } finally {
         setIsLoading(false);
       }
     };
     loadRequests();
-  }, [fetchRequests]);
+  }, [fetchRequests, fetchItems, rangeType, customStart, customEnd, isFilteredView]); // Added range dependencies
 
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  console.log('Requests data:', requests);
 
-  // Show only new item requests, sorted by latest first
-  const filteredRequests = requests
-    .filter(r => r.type === 'new' && (statusFilter ? r.status === statusFilter : true))
-    .sort((a, b) => {
-      // Use requested_at for new, created_at for repair, fallback to id
-      const getDate = (req: any) => new Date(req.requested_at || req.created_at || 0).getTime();
-      return getDate(b) - getDate(a);
-    });
+  // Filter requests by date range
+  const filteredRequests = isFilteredView
+    ? requests.filter(request => {
+        const dateToCheck = request.requestedAt || request.created_at;
+        const requestDate = typeof dateToCheck === 'string' ? parseISO(dateToCheck) : dateToCheck;
+        const isInRange = isWithinInterval(requestDate, { start, end });
+        const isNewRequest = request.type === 'new';
+        return isInRange && isNewRequest;
+      })
+    : requests.filter(request => request.type === 'new');
 
   const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
   const paginatedRequests = filteredRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -104,12 +147,37 @@ const Requests: React.FC = () => {
     }
   };
 
+  const exportReport = () => {
+    const workbook = XLSX.utils.book_new();
+    const sheetData = [
+      ['Requests Report'],
+      [`Exported Date: ${formatDate(new Date())}`],
+      ['Request Date', 'Type', 'Category', 'Item', 'Quantity', 'Requested By', 'Status', 'Available Stock'],
+      ...filteredRequests.map(request => [
+        safeFormatDate(request.requestedAt || request.created_at),
+        request.type.charAt(0).toUpperCase() + request.type.slice(1),
+        request.type === 'repair' ? request.item_category || (request.issued_item && request.issued_item.item_category) || '-' : items.find(i => String(i.id) === String(request.itemId))?.category || request.category || '-',
+        request.type === 'repair' ? request.item_name || (request.issued_item && request.issued_item.item_name) || '-' : items.find(i => String(i.id) === String(request.itemId))?.name || request.item_name || '-',
+        request.type === 'repair' ? 1 : request.quantity,
+        request.requestedByName || request.requestedBy || '-',
+        request.status,
+        request.type === 'repair' ? '-' : items.find(i => String(i.id) === String(request.itemId))?.quantity || '-'
+      ])
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Requests');
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(blob, `Requests_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   const columns = [
     {
       header: 'Request Date',
       accessor: (request: any) => {
-        // Use requested_at for new, created_at for repair
-        const date = request.requested_at || request.created_at;
+        const date = request.requestedAt || request.createdAt;
         return safeFormatDate(date);
       }
     },
@@ -119,32 +187,19 @@ const Requests: React.FC = () => {
     },
     {
       header: 'Category',
-      accessor: (request: any) => {
-        if (request.type === 'repair') {
-          return request.item_category || (request.issued_item && request.issued_item.item_category) || '-';
-        }
-        const item = items.find(i => String(i.id) === String(request.item));
-        return item?.category || request.category || '-';
-      }
+      accessor: (request: any) => request.category || '-'
     },
     {
       header: 'Item',
-      accessor: (request: any) => {
-        if (request.type === 'repair') {
-          return request.item_name || (request.issued_item && request.issued_item.item_name) || '-';
-        }
-        const item = items.find(i => String(i.id) === String(request.item));
-        return item?.name || request.item_name || '-';
-      },
-      className: 'font-medium'
+      accessor: (request: any) => request.item_name || '-'
     },
     {
       header: 'Quantity',
-      accessor: (request: any) => request.type === 'repair' ? 1 : request.quantity
+      accessor: (request: any) => request.quantity
     },
     {
       header: 'Requested By',
-      accessor: (request: any) => request.requested_by_name || request.requested_by || '-'
+      accessor: (request: any) => request.requested_by_name || '-'
     },
     {
       header: 'Status',
@@ -153,7 +208,6 @@ const Requests: React.FC = () => {
     {
       header: 'Available Stock',
       accessor: (request: any) => {
-        if (request.type === 'repair') return '-';
         const item = items.find(i => String(i.id) === String(request.item));
         return item ? item.quantity : '-';
       }
@@ -193,7 +247,20 @@ const Requests: React.FC = () => {
         title="Requests"
         description="View and filter all item and repair requests"
       />
-      <div className="flex gap-4 mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="primary"
+            onClick={exportReport}
+          >
+            Export Report
+          </Button>
+          <Toggle
+            label="Filtered View"
+            isChecked={isFilteredView}
+            onChange={() => setIsFilteredView(!isFilteredView)}
+          />
+        </div>
         <Select
           label="Status"
           value={statusFilter}

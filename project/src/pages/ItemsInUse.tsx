@@ -7,10 +7,13 @@ import Pagination from '../components/Pagination';
 import Button from '../components/ui/Button';
 import { toast } from 'sonner';
 import { IssuedItemModel } from '../models/item.model';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import SimpleModal from '../components/ui/SimpleModal';
 import Input from '../components/ui/Input';
 import { requestRepair } from '../services/api';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import * as XLSX from 'xlsx';
+import Toggle from '../components/ui/Toggle';
 
 const ITEMS_PER_PAGE = 10; // Changed to 10 items per page
 
@@ -31,8 +34,47 @@ const ItemsInUse: React.FC = () => {
   const [reason, setReason] = useState('');
   const [picture, setPicture] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFilteredView, setIsFilteredView] = useState(true);
 
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Get range parameters from URL
+  const rangeType = (searchParams.get('rangeType') as 'daily' | 'weekly' | 'monthly' | 'custom') || 'daily';
+  const customStart = searchParams.get('customStart') || '';
+  const customEnd = searchParams.get('customEnd') || '';
+  const today = new Date();
+
+  // Helper to get date range
+  const getRange = () => {
+    switch (rangeType) {
+      case 'daily':
+        return { start: startOfDay(today), end: endOfDay(today) };
+      case 'weekly':
+        return { start: startOfWeek(today), end: endOfWeek(today) };
+      case 'monthly':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'custom':
+        if (customStart && customEnd) {
+          return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
+        }
+        return { start: startOfDay(today), end: endOfDay(today) };
+      default:
+        return { start: startOfDay(today), end: endOfDay(today) };
+    }
+  };
+  const { start, end } = getRange();
+
+  // Helper to check if a date is in range (accepts string or Date)
+  const inRange = (dateVal: string | Date | undefined) => {
+    if (!dateVal) return false;
+    let date: Date;
+    if (typeof dateVal === 'string') {
+      date = parseISO(dateVal);
+    } else {
+      date = dateVal;
+    }
+    return isWithinInterval(date, { start, end });
+  };
 
   useEffect(() => {
     const loadIssuedItems = async () => {
@@ -46,25 +88,20 @@ const ItemsInUse: React.FC = () => {
       }
     };
     loadIssuedItems();
-  }, [fetchIssuedItems]);
+  }, [fetchIssuedItems, rangeType, customStart, customEnd]); // Added range dependencies
 
-  // Filter issued items for the current user (force string comparison for robustness)
-  React.useEffect(() => {
-    if (issuedItems && user) {
-      console.log('User ID:', user.id);
-      console.log('Issued Items:', issuedItems.map(item => ({ id: item.id, assigned_to: item.assigned_to })));
-    }
-  }, [issuedItems, user]);
-
-  // Update filtering logic to use `assigned_to` instead of `assigned_to_id`
-  const itemsInUse = (issuedItems || []).filter(item => {
-    const isAssignedToUser = String(item.assigned_to) === String(user?.id);
-    return isAssignedToUser;
-  });
+  // Filter issued items for the current user and by date range
+  const itemsToDisplay = isFilteredView
+    ? (issuedItems || []).filter(item => {
+        const isAssignedToUser = String(item.assigned_to) === String(user?.id);
+        const isInRange = inRange(item.assigned_date);
+        return isAssignedToUser && isInRange;
+      })
+    : issuedItems || [];
 
   // Remove grouping: show each issued item individually
-  const paginatedItems = itemsInUse.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  const totalPages = Math.ceil(itemsInUse.length / ITEMS_PER_PAGE);
+  const paginatedItems = itemsToDisplay.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(itemsToDisplay.length / ITEMS_PER_PAGE);
 
   const handleRequestRepair = (item: IssuedItemModel) => {
     setSelectedItem(item);
@@ -148,6 +185,41 @@ const ItemsInUse: React.FC = () => {
         title="Items in Use"
         description="View items currently assigned to you"
       />
+      <div className="mt-4 flex justify-between items-center">
+        {/* Wrap the toggle and export button in a flex container to align them on the same line */}
+        <Button
+          onClick={() => {
+            const exportedData = itemsToDisplay.map(item => ({
+              SerialNumber: item.serial_number,
+              ItemName: item.item_name,
+              Category: item.item_category,
+              AssignedDate: item.assigned_date,
+            }));
+            const worksheet = XLSX.utils.json_to_sheet([]);
+
+            // Add title and exported date as headers
+            XLSX.utils.sheet_add_aoa(worksheet, [
+              [`Report Title: Items In Use`],
+              [`Exported Date: ${new Date().toLocaleString()}`],
+            ], { origin: 'A1' });
+
+            // Add table data below the headers
+            XLSX.utils.sheet_add_json(worksheet, exportedData, { origin: 'A3', skipHeader: false });
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Items In Use');
+            XLSX.writeFile(workbook, 'ItemsInUseReport.xlsx');
+          }}
+          className="mb-4"
+        >
+          Export Report
+        </Button>
+        <Toggle
+          label="Filtered View"
+          isChecked={isFilteredView}
+          onChange={() => setIsFilteredView(!isFilteredView)}
+        />
+      </div>
       <div className="mt-8">
         <Table
           columns={columns}

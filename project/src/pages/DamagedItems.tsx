@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfDay, endOfWeek, startOfMonth, endOfMonth, endOfDay, isWithinInterval, parseISO } from 'date-fns';
 import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { API_URL } from '../config';
@@ -54,9 +54,9 @@ const DamagedItems: React.FC = () => {
         case 'daily':
           return { start: startOfDay(today), end: endOfDay(today) };
         case 'weekly':
-          return { start: startOfWeek(today), end: endOfWeek(today) };
+          return { start: startOfDay(today), end: endOfWeek(today) };
         case 'monthly':
-          return { start: startOfMonth(today), end: endOfMonth(today) };
+          return { start: startOfDay(today), end: endOfMonth(today) };
         case 'custom':
           if (customStart && customEnd) {
             return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
@@ -84,8 +84,16 @@ const DamagedItems: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
 
-    // Filter damaged items based on the date range
-    const filteredDamagedItems = damagedItems.filter(item => inRange(item.reported_date));
+    // Range filter toggle state
+    const [filteredView, setFilteredView] = useState(true);
+
+    // Filter damaged items based on the date range (toggle logic)
+    const filteredDamagedItems = filteredView
+      ? damagedItems.filter(item => {
+          const damagedDate = item.reported_date || item.marked_at;
+          return inRange(damagedDate);
+        })
+      : damagedItems;
 
     const totalPages = Math.ceil(filteredDamagedItems.length / ITEMS_PER_PAGE);
     const paginatedItems = filteredDamagedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -138,19 +146,35 @@ const DamagedItems: React.FC = () => {
     });
 
     const handleExportExcel = () => {
+      const exportDate = format(new Date(), 'yyyy-MM-dd');
       const wsData = [
-        ['Reported Date', 'Category', 'Item Name', 'Serial Number', 'Reported By', 'Status', 'Damage Description'],
-        ...filteredDamagedItems.map(item => [
-          format(new Date(item.reported_date), 'yyyy-MM-dd'),
-          item.item_category || item.issued_item?.item_category || '-',
-          item.item_name || item.issued_item?.item_name || item.issued_item?.item?.name || '-',
-          item.issued_item?.item?.serial_number || '-',
-          item.issued_item?.issued_to?.name || '-',
-          item.status,
-          item.damage_description
-        ])
+        ['Damaged Items Report'],
+        [`Exported: ${exportDate}`],
+        ['Reported Date', 'Category', 'Item Name', 'Serial Number'],
+        ...filteredDamagedItems.map(item => {
+          const dateStr = item.reported_date || item.marked_at;
+          let formattedDate = '-';
+          if (dateStr) {
+            try {
+              formattedDate = format(new Date(dateStr), 'yyyy-MM-dd');
+            } catch {
+              formattedDate = dateStr;
+            }
+          }
+          return [
+            formattedDate,
+            item.item_category || item.issued_item?.item_category || '-',
+            item.item_name || item.issued_item?.item_name || item.issued_item?.item?.name || '-',
+            item.issued_item_serial_number || '-'
+          ];
+        })
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
+      // Merge title and export date rows across all columns
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }
+      ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Damaged Items');
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -189,10 +213,23 @@ const DamagedItems: React.FC = () => {
                 <div className="flex gap-2 mb-4">
                     <button
                         onClick={handleExportExcel}
-                        className="bg-green-500 text-white rounded px-4 py-2"
+                        className="bg-blue-500 text-white rounded px-4 py-2"
                     >
-                        Export to Excel
+                        Export Report
                     </button>
+                    <div className="flex items-center gap-2 ml-auto">
+                        <span>Filtered View</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={filteredView}
+                                onChange={e => setFilteredView(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all duration-200"></div>
+                            <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-md transition-transform duration-200 peer-checked:translate-x-5"></div>
+                        </label>
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">

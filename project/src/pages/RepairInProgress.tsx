@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import PageHeader from '../components/PageHeader';
 import Table from '../components/ui/Table';
 import Button from '../components/ui/Button';
@@ -43,6 +43,7 @@ const RepairInProgress: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<RepairRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchParams] = useSearchParams();
+  const [filteredView, setFilteredView] = useState(true);
 
   // Get range parameters from URL
   const rangeType = (searchParams.get('rangeType') as 'daily' | 'weekly' | 'monthly' | 'custom') || 'daily';
@@ -56,9 +57,9 @@ const RepairInProgress: React.FC = () => {
       case 'daily':
         return { start: startOfDay(today), end: endOfDay(today) };
       case 'weekly':
-        return { start: startOfWeek(today), end: endOfWeek(today) };
+        return { start: startOfDay(today), end: endOfWeek(today) };
       case 'monthly':
-        return { start: startOfMonth(today), end: endOfMonth(today) };
+        return { start: startOfDay(today), end: endOfMonth(today) };
       case 'custom':
         if (customStart && customEnd) {
           return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
@@ -167,8 +168,26 @@ const RepairInProgress: React.FC = () => {
 
   const keyExtractor = (r: RepairRequest) => r.id.toString();
 
-  // Only show 'repair-in-process' items for everyone (not just logistic officers)
-  const visibleRequests = repairRequests.filter(r => r.status === 'repair-in-process');
+  // Filtered View logic for repair-in-process requests
+  const allRepairRequests = repairRequests.filter(r => r.status === 'repair-in-process');
+  const visibleRequests = filteredView && start && end
+    ? allRepairRequests.filter(request => {
+        const dateVal = request.created_at;
+        if (!dateVal) return false;
+        let date: Date;
+        if (typeof dateVal === 'string') {
+          try {
+            date = parseISO(dateVal);
+            if (isNaN(date.getTime())) return false;
+          } catch {
+            return false;
+          }
+        } else {
+          date = dateVal;
+        }
+        return date >= start && date <= end;
+      })
+    : (filteredView ? [] : allRepairRequests);
 
   // Pagination logic (10 per page)
   const [currentPage, setCurrentPage] = useState(1);
@@ -244,8 +263,21 @@ const RepairInProgress: React.FC = () => {
           : "View items currently undergoing repair."}
       />
       <div className="mt-8">
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 items-center justify-between">
           <Button variant="success" onClick={handleExportExcel}>Export to Excel</Button>
+          <div className="flex items-center gap-2 ml-auto">
+            <span>Filtered View</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filteredView}
+                onChange={e => setFilteredView(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all duration-200"></div>
+              <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-md transition-transform duration-200 peer-checked:translate-x-5"></div>
+            </label>
+          </div>
         </div>
         <Table
           columns={columns}

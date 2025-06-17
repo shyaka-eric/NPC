@@ -12,7 +12,7 @@ import { CheckCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useSearchParams } from 'react-router-dom';
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { isWithinInterval, parseISO } from 'date-fns';
 
 const IssueItems: React.FC = () => {
   const { user } = useAuthStore();
@@ -22,62 +22,52 @@ const IssueItems: React.FC = () => {
   const [confirmRequest, setConfirmRequest] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams] = useSearchParams();
+  const [filteredView, setFilteredView] = useState(true);
 
-  // Get range parameters from URL
-  const rangeType = (searchParams.get('rangeType') as 'daily' | 'weekly' | 'monthly' | 'custom') || 'daily';
-  const customStart = searchParams.get('customStart') || '';
-  const customEnd = searchParams.get('customEnd') || '';
-  const today = new Date();
-
-  // Helper to get date range
-  const getRange = () => {
-    switch (rangeType) {
-      case 'daily':
-        return { start: startOfDay(today), end: endOfDay(today) };
-      case 'weekly':
-        return { start: startOfWeek(today), end: endOfWeek(today) };
-      case 'monthly':
-        return { start: startOfMonth(today), end: endOfMonth(today) };
-      case 'custom':
-        if (customStart && customEnd) {
-          return { start: startOfDay(parseISO(customStart)), end: endOfDay(parseISO(customEnd)) };
-        }
-        return { start: startOfDay(today), end: endOfDay(today) };
-      default:
-        return { start: startOfDay(today), end: endOfDay(today) };
-    }
-  };
-  const { start, end } = getRange();
-
-  // Helper to check if a date is in range (accepts string or Date)
-  const inRange = (dateVal: string | Date | undefined) => {
-    if (!dateVal) return false;
-    let date: Date;
-    if (typeof dateVal === 'string') {
-      date = parseISO(dateVal);
-    } else {
-      date = dateVal;
-    }
-    return isWithinInterval(date, { start, end });
-  };
+  // Get dashboard-driven range (from URL params only)
+  const urlStart = searchParams.get('customStart');
+  const urlEnd = searchParams.get('customEnd');
+  const rangeType = searchParams.get('rangeType');
+  let start = urlStart ? parseISO(urlStart) : null;
+  let end = urlEnd ? parseISO(urlEnd) : null;
+  if ((!start || !end) && rangeType === 'daily') {
+    const today = new Date();
+    start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+    end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  }
 
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      await fetchItems(); // Fetch items first
-      await fetchRequests(); // Then fetch requests
+      await fetchItems();
+      await fetchRequests();
       setIsLoading(false);
     };
     load();
-  }, [fetchRequests, fetchItems, rangeType, customStart, customEnd]); // Added range dependencies
+  }, [fetchRequests, fetchItems]); // Remove range dependencies
 
-  const getItem = (itemId: any) => items.find(i => String(i.id) === String(itemId));
+  const getItem = (itemId: any) => {
+    if (itemId === null || itemId === undefined) {
+      console.warn('getItem: itemId is null or undefined', itemId);
+      return undefined;
+    }
+    const idStr = String(itemId);
+    const item = items.find(i => String(i.id) === idStr);
+    if (!item) {
+      console.warn(`getItem: Item with ID ${itemId} not found in items`, items);
+    }
+    return item;
+  };
 
   const handleIssueItem = async (request: any) => {
     if (!user) return;
     setIsLoading(true); // Prevent double actions
     await fetchItems(); // Always get latest items before issuing
-    const item = getItem(request.item);
+    // Debug: print the full request object and possible item ID fields
+    console.log('DEBUG: request object', request);
+    const item = getItem(request.item); // FIX: use request.item
+    // Debug log quantities
+    console.log('DEBUG: item', item, 'item.quantity', item?.quantity, 'request.quantity', request.quantity);
     if (!item || item.quantity < request.quantity) {
       toast.error('Not enough stock to issue this item.');
       setIsLoading(false);
@@ -101,16 +91,35 @@ const IssueItems: React.FC = () => {
   };
 
   // Show both approved and issued requests (case-insensitive), sorted by latest first
-  const visibleRequests = requests
+  const allVisibleRequests = requests
     .filter(request => {
       const status = request.status?.toLowerCase();
-      return (status === 'approved' || status === 'issued') && inRange(request.requestedAt || request.createdAt);
+      return status === 'approved' || status === 'issued';
     })
     .sort((a, b) => {
-      // Use requestedAt for new, createdAt for repair, fallback to id
-      const getDate = (req: any) => new Date(req.requestedAt || req.createdAt || 0).getTime();
+      const getDate = (req: any) => new Date(req.requestedAt || req.createdAt || req.created_at || 0).getTime();
       return getDate(b) - getDate(a);
     });
+
+  // Filter by dashboard range only if Filtered View is ON
+  const visibleRequests = filteredView && start && end
+    ? allVisibleRequests.filter(request => {
+        const dateVal = request.requestedAt || request.created_at;
+        if (!dateVal) return false;
+        let date: Date;
+        if (typeof dateVal === 'string') {
+          try {
+            date = parseISO(dateVal);
+            if (isNaN(date.getTime())) return false;
+          } catch {
+            return false;
+          }
+        } else {
+          date = dateVal;
+        }
+        return date >= start && date <= end;
+      })
+    : (filteredView ? [] : allVisibleRequests);
 
   // Pagination logic (10 per page)
   const ITEMS_PER_PAGE = 10;
@@ -120,27 +129,33 @@ const IssueItems: React.FC = () => {
   const columns = [
     {
       header: 'Request Date',
-      accessor: (request: any) => formatDate(request.requestedAt || request.createdAt)
+      accessor: (request: any) => formatDate(request.requestedAt || request.createdAt || request.created_at || '-')
     },
     {
       header: 'Category',
-      accessor: (request: any) => getItem(request.item)?.category || ''
+      accessor: (request: any) => {
+        const item = getItem(request.itemId);
+        return item?.category || request.category || '-';
+      }
     },
     {
       header: 'Item',
-      accessor: (request: any) => getItem(request.item)?.name || ''
+      accessor: (request: any) => {
+        const item = getItem(request.itemId);
+        return item?.name || request.item_name || '-';
+      }
     },
     {
       header: 'Quantity',
-      accessor: (request: any) => request.quantity
+      accessor: (request: any) => request.quantity ?? '-'
     },
     {
       header: 'Requested By',
-      accessor: (request: any) => request.requestedByName
+      accessor: (request: any) => request.requestedByName || '-'
     },
     {
       header: 'Status',
-      accessor: (request: any) => <StatusBadge status={request.status} />
+      accessor: (request: any) => <StatusBadge status={request.status || '-'} />
     },
     {
       header: 'Actions',
@@ -159,18 +174,37 @@ const IssueItems: React.FC = () => {
   ];
 
   const handleExportExcel = () => {
+    // Prepare header rows
+    const exportDate = formatDate(new Date());
     const wsData = [
-      ['Request Date', 'Category', 'Item Name', 'Quantity', 'Requested By', 'Status'],
-      ...visibleRequests.map(r => [
-        formatDate(r.requested_at || r.created_at),
-        getItem(r.item)?.category || '-',
-        getItem(r.item)?.name || '-',
-        r.quantity,
-        r.requested_by_name,
-        r.status
-      ])
+      ['Issued Items Report'],
+      [`Exported: ${exportDate}`],
+      [
+        'Request Date',
+        'Category',
+        'Item',
+        'Quantity',
+        'Requested By',
+        'Status'
+      ],
+      ...visibleRequests.map(r => {
+        const item = getItem(r.itemId);
+        return [
+          formatDate(r.requestedAt || r.created_at),
+          item?.category || '-',
+          item?.name || r.itemName || '-',
+          r.quantity ?? '-',
+          r.requestedByName || '-',
+          r.status || '-'
+        ];
+      })
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
+    // Merge title and export date rows across all columns
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }
+    ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Issued Items');
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -184,9 +218,29 @@ const IssueItems: React.FC = () => {
         title="Issue Items"
         description="Process and issue approved requests"
       />
-      <div className="flex gap-2 mb-4">
-        <Button variant="success" onClick={handleExportExcel}>Export to Excel</Button>
+      <div className="flex gap-2 mb-4 items-center justify-between">
+        {/* Export button left-aligned and blue */}
+        <Button variant="primary" onClick={handleExportExcel} className="mr-4">Export Report</Button>
+        <div className="flex items-center gap-2 ml-auto">
+          <span>Filtered View</span>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filteredView}
+              onChange={e => setFilteredView(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all duration-200"></div>
+            <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-md transition-transform duration-200 peer-checked:translate-x-5"></div>
+          </label>
+        </div>
       </div>
+      {/* Remove local range selection UI */}
+      {/* {filteredView && (
+        <div className="flex gap-4 mb-4 items-center">
+          ...range UI...
+        </div>
+      )} */}
       <div className="mt-8">
         <Table
           columns={columns}
@@ -201,7 +255,7 @@ const IssueItems: React.FC = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
             <h2 className="text-lg font-semibold mb-4">Confirm Issue</h2>
-            <p className="mb-6">Are you sure you want to issue <span className="font-bold">{getItem(confirmRequest.item)?.name}</span> (Qty: {confirmRequest.quantity}) to <span className="font-bold">{confirmRequest.requested_by_name}</span>?</p>
+            <p className="mb-6">Are you sure you want to issue <span className="font-bold">{getItem(confirmRequest.itemId)?.name}</span> (Qty: {confirmRequest.quantity}) to <span className="font-bold">{confirmRequest.requestedByName}</span>?</p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setConfirmRequest(null)}>
                 Cancel

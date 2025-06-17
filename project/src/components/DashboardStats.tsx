@@ -70,13 +70,48 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
   const filteredIssuedItems = issuedItems.filter(i => inRange(i.assigned_date));
 
   // Fix: use correct status value for available items (should match AnalysisCard logic)
-  const repairInProcessCount = filteredRequests.filter(req => String(req.status) === 'repair-in-process').length;
-  const approvedCount = filteredRequests.filter(req => String(req.status) === 'approved').length;
+  const repairInProcessCount = requests.filter(req => {
+    const status = req.status?.toLowerCase();
+    if (status !== 'repair-in-process') return false;
+    const dateVal = req.requestedAt || req.created_at;
+    if (!dateVal) return false;
+    let date: Date;
+    if (typeof dateVal === 'string') {
+      try {
+        date = parseISO(dateVal);
+        if (isNaN(date.getTime())) return false;
+      } catch {
+        return false;
+      }
+    } else {
+      date = dateVal;
+    }
+    return date >= start && date <= end;
+  }).length;
+  const approvedCount = requests.filter(req => {
+    const status = req.status?.toLowerCase();
+    if (status !== 'approved') return false;
+    const dateVal = req.requestedAt || req.created_at;
+    if (!dateVal) return false;
+    let date: Date;
+    if (typeof dateVal === 'string') {
+      try {
+        date = parseISO(dateVal);
+        if (isNaN(date.getTime())) return false;
+      } catch {
+        return false;
+      }
+    } else {
+      date = dateVal;
+    }
+    return date >= start && date <= end;
+  }).length;
 
   // Add debug logs to inspect filteredRequests and rangeType
   console.log('Range type:', rangeType);
   console.log('Filtered requests:', filteredRequests);
 
+  
   // Updated navigation logic to pass range parameters
   const navigateToPage = (path: string) => {
     navigate(`${path}?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`);
@@ -132,7 +167,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           </>
         );
       case 'logistics-officer': {
-        // Damaged items count is not filtered by date, as it is fetched from API
         const [damagedSerialCount, setDamagedSerialCount] = useState<number>(0);
         useEffect(() => {
           const fetchDamagedItems = async () => {
@@ -143,36 +177,43 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
                 headers: { Authorization: `Bearer ${token}` }
               });
               const data = await response.json();
-              // Count unique serial numbers
-              const serials = new Set((data || []).map((d: any) => d.issued_item_serial_number));
+
+              // Use correct date field for filtering: reported_date, marked_at, or fallback
+              const filteredData = (data || []).filter((d: any) => {
+                const damagedDate = d.reported_date || d.marked_at || d.damaged_date || d.created_at;
+                return damagedDate && inRange(damagedDate);
+              });
+
+              // Count unique serial numbers within the filtered data
+              const serials = new Set(filteredData.map((d: any) => d.issued_item_serial_number || d.issued_item?.serial_number));
               setDamagedSerialCount(serials.size);
             } catch {
               setDamagedSerialCount(0);
             }
           };
           fetchDamagedItems();
-        }, []);
+        }, [rangeType, customStart, customEnd, inRange]);
         return (
           <>
             <StatCard
               title="Repair In Process"
               value={formatNumber(repairInProcessCount)}
               icon={<Wrench size={24} />} // Changed icon to Wrench for Repair In Process
-              onClick={() => navigate('/repair-in-process')}
+              onClick={() => navigate(`/repair-in-process?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
             <StatCard
               title="Damaged Items"
               value={formatNumber(damagedSerialCount)}
               icon={<AlertTriangle size={24} />} // Kept AlertTriangle for Damaged Items
-              onClick={() => navigate('/damaged-items')}
+              onClick={() => navigate(`/damaged-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
             <StatCard
               title="Approved Items"
               value={formatNumber(approvedCount)}
               icon={<CheckCircle size={24} />} // Changed to CheckCircle for approved/issuing
-              onClick={() => navigate('/issue-items')}
+              onClick={() => navigate(`/issue-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
           </>

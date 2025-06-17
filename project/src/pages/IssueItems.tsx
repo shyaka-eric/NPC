@@ -67,7 +67,7 @@ const IssueItems: React.FC = () => {
     console.log('DEBUG: request object', request);
     const item = getItem(request.item); // FIX: use request.item
     // Debug log quantities
-    console.log('DEBUG: item', item, 'item.quantity', item?.quantity, 'request.quantity', request.quantity);
+    // console.log('DEBUG: item', item, 'item.quantity', item?.quantity, 'request.quantity', request.quantity);
     if (!item || item.quantity < request.quantity) {
       toast.error('Not enough stock to issue this item.');
       setIsLoading(false);

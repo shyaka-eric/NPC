@@ -26,9 +26,6 @@ const Navbar: React.FC = () => {
   const navigationLinks = [
     { name: 'Dashboard', path: '/', roles: ['system-admin', 'admin', 'logistics-officer', 'unit-leader'] },
     // { name: 'Users', path: '/users', roles: ['system-admin'] }, // Removed Users link for system-admin
-    { name: 'System Admin Report', path: '/reports/system-admin', roles: ['system-admin'] },
-    { name: 'Settings', path: '/settings', roles: ['system-admin'] },
-    { name: 'Logs', path: '/logs', roles: ['system-admin'] },
     { name: 'Stock Availability', path: '/stock-availability', roles: ['admin'] },
   ].filter(link => link.roles.includes(user.role));
 
@@ -139,6 +136,15 @@ const Navbar: React.FC = () => {
                   >
                     Profile
                   </Link>
+                  {user.role === 'system-admin' && (
+                    <Link
+                      to="/settings"
+                      className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      Settings
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       logout();

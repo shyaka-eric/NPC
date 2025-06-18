@@ -84,16 +84,6 @@ const Dashboard: React.FC = () => {
             Manage Stock
           </Button>
         );
-      case 'system-admin':
-        return (
-          <Button
-            variant="primary"
-            icon={<PlusCircle className="h-4 w-4" />}
-            onClick={() => navigate('/systemadminreport')}
-          >
-            Generate Report
-          </Button>
-        );
       default:
         return null;
     }
@@ -132,23 +122,22 @@ const Dashboard: React.FC = () => {
         inRange={inRange}
       />
       
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="mt-8 flex justify-center">
         {user.role === 'system-admin' ? (
-          <RecentActivityLog />
+          <div className="w-full max-w-4xl">
+            <RecentActivityLog />
+          </div>
         ) : (
-          <RecentRequests 
-            rangeType={rangeType} 
-            customStart={customStart} 
-            customEnd={customEnd} 
-            inRange={inRange}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RecentRequests 
+              rangeType={rangeType} 
+              customStart={customStart} 
+              customEnd={customEnd} 
+              inRange={inRange}
+            />
+            <AnalysisCard />
+          </div>
         )}
-        <AnalysisCard 
-          rangeType={rangeType}
-          customStart={customStart}
-          customEnd={customEnd}
-          inRange={inRange}
-        />
       </div>
     </div>
   );

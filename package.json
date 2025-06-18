@@ -1,4 +1,10 @@
 {
+  "name": "npc-frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd project && npm run build",
+    "start": "cd project && npm start"
+  },
   "dependencies": {
     "chart.js": "^4.4.9",
     "file-saver": "^2.0.5",

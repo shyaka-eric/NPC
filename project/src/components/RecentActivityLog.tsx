@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import { useLogsStore } from '../store/logsStore';
 import { useAuthStore } from '../store/authStore';
+import { useNavigate } from 'react-router-dom';
 import Card from './ui/Card';
 
 const RecentActivityLog: React.FC = () => {
   const { logs } = useLogsStore();
   const { users, fetchUsers } = useAuthStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchUsers();
@@ -31,7 +33,17 @@ const RecentActivityLog: React.FC = () => {
   const recentLogs = [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
 
   return (
-    <Card title="Recent Activity" className="h-full">
+    <Card className="h-full">
+      <div className="flex justify-between items-center px-2 pb-2">
+        <h3 className="text-lg font-medium text-slate-900">Recent Activity</h3>
+        <button
+          className="text-blue-700 text-sm font-semibold hover:underline focus:outline-none ml-auto"
+          style={{ minWidth: 100 }}
+          onClick={() => navigate('/logs')}
+        >
+          View All Logs
+        </button>
+      </div>
       <div className="flow-root">
         <ul className="-mb-8">
           {recentLogs.length === 0 ? (

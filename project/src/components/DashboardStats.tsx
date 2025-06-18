@@ -221,17 +221,41 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
       }
       case 'system-admin': {
         const [deletedCount, setDeletedCount] = useState(0);
+        const [userCount, setUserCount] = useState(0);
         useEffect(() => {
           const fetchDeletedCount = async () => {
             try {
               const res = await api.get('items/deleted/');
-              setDeletedCount(res.data.count !== undefined ? res.data.count : (Array.isArray(res.data) ? res.data.length : 0));
+              let items = res.data.results || res.data;
+              if (Array.isArray(items)) {
+                const filtered = items.filter((item: any) => {
+                  const deletedDate = item.deleted_at || item.updated_at || item.last_updated;
+                  if (!deletedDate) return false;
+                  const date = new Date(deletedDate);
+                  return date >= start && date <= end;
+                });
+                setDeletedCount(filtered.length);
+              } else {
+                setDeletedCount(0);
+              }
             } catch {
               setDeletedCount(0);
             }
           };
+          const fetchUserCount = async () => {
+            try {
+              const token = localStorage.getItem('token');
+              if (!token) return setUserCount(0);
+              const res = await api.get('users/', { headers: { Authorization: `Bearer ${token}` } });
+              let users = res.data;
+              setUserCount(Array.isArray(users) ? users.length : 0);
+            } catch {
+              setUserCount(0);
+            }
+          };
           fetchDeletedCount();
-        }, []);
+          fetchUserCount();
+        }, [rangeType, customStart, customEnd]);
         return (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 w-full">
@@ -240,15 +264,15 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
                 icon={<Trash size={32} />}
                 title="Deleted Items"
                 value={formatNumber(deletedCount)}
-                onClick={() => navigate('/deleted-items')}
+                onClick={() => navigate(`/deleted-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
                 className="w-full h-32 text-2xl cursor-pointer"
               />
               {/* Users Card */}
               <StatCard
                 icon={<Users size={32} />}
                 title="Users"
-                value={formatNumber(deletedCount)}
-                onClick={() => navigate('/users')}
+                value={formatNumber(userCount)}
+                onClick={() => navigate(`/users`)}
                 className="w-full h-32 text-2xl cursor-pointer"
               />
             </div>

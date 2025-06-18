@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: npc-backend
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn backend.wsgi:application"
+    envVars:
+      - key: SECRET_KEY
+        fromDatabase:
+          databaseName: npc-db
+          key: SECRET_KEY
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "*.render.com"
+      - key: DATABASE_URL
+        fromDatabase:
+          databaseName: npc-db
+          key: DATABASE_URL
+      - key: REDIS_URL
+        fromDatabase:
+          databaseName: npc-db
+          key: REDIS_URL
+    database:
+      name: npc-db
+      type: postgres
+      version: 14
+    redis:
+      name: npc-redis
+      version: 6
+
+  - type: static
+    name: npc-frontend
+    env: node
+    buildCommand: "npm install && npm run build"
+    startCommand: "serve -s build"
+    envVars:
+      - key: REACT_APP_API_URL
+        value: "https://npc-backend.onrender.com"
+    sourceDir: project

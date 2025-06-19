@@ -1,14 +1,15 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 # ... existing settings ...
 
@@ -60,14 +61,12 @@ WSGI_APPLICATION = 'npc.wsgi.application'
 
 # Database
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'npc_db',  # Change to your desired database name
-        'USER': 'npc_user',  # Change to your desired username
-        'PASSWORD': 'npc_password',  # Change to your desired password
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.parse(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql://npc_user:npc_password@localhost:5432/npc_db"
+        )
+    )
 }
 
 # Password validation
@@ -151,5 +150,5 @@ LOGGING = {
 
 # ... rest of the existing settings ...
 
-SECRET_KEY = 'django-insecure-CHANGE_THIS_TO_A_RANDOM_SECRET_KEY'
+SECRET_KEY = os.environ.get("SECRET_KEY", 'django-insecure-CHANGE_THIS_TO_A_RANDOM_SECRET_KEY')
 AUTH_USER_MODEL = 'api.User'

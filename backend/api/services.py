@@ -39,7 +39,7 @@ def send_notification(recipient_id, notification_type, message):
 
 def notify_request_submitted(request):
     """
-    Notify admins when a new request is submitted
+    Notify admins (not system-admins) when a new request is submitted
     """
     admins = User.objects.filter(role='admin')
     for admin in admins:
@@ -51,18 +51,15 @@ def notify_request_submitted(request):
 
 def notify_request_approved(request):
     """
-    Notify logistics and unit leader when a request is approved
+    Notify logistics-officer and unit leader when a request is approved
     """
-    # Notify logistics
-    logistics_users = User.objects.filter(role='logistics')
+    logistics_users = User.objects.filter(role='logistics-officer')
     for user in logistics_users:
         send_notification(
             user.id,
             'request_approved',
             f'Request for {request.item.name} has been approved'
         )
-
-    # Notify unit leader
     send_notification(
         request.requested_by.id,
         'request_approved',
@@ -83,19 +80,14 @@ def notify_item_issued(request):
     """
     Notify unit leader when their item is issued and assign IssuedItem to the request.
     """
-    # Create IssuedItem
-    for _ in range(request.quantity):  # Create multiple IssuedItem records based on quantity
+    for _ in range(request.quantity):
         issued_item = IssuedItem.objects.create(
             item=request.item,
             assigned_to=request.requested_by,
             assigned_date=timezone.now(),
         )
-
-    # Assign the last issued item to the request (for reference)
     request.issued_item = issued_item
     request.save()
-
-    # Send notification
     send_notification(
         request.requested_by.id,
         'item_issued',
@@ -108,3 +100,19 @@ def notify_repair_completed(repair_request):
         message=f'Your repair request for {repair_request.issued_item.item.name} (S/N: {repair_request.issued_item.serial_number}) has been completed.',
         notification_type='repair_completed'
     )
+
+def notify_item_deleted_by_logistics_officer(deleting_user, item):
+    """
+    Notify all system-admins when a logistics officer deletes an item from stock.
+    """
+    print(f"DEBUG: notify_item_deleted_by_logistics_officer called by {deleting_user} with role {getattr(deleting_user, 'role', None)}")
+    if getattr(deleting_user, 'role', None) == 'logistics-officer':
+        system_admins = User.objects.filter(role='system-admin')
+        print(f"DEBUG: Found system_admins: {[a.username for a in system_admins]}")
+        for admin in system_admins:
+            print(f"DEBUG: Sending notification to {admin.username}")
+            send_notification(
+                admin.id,
+                'item_deleted',
+                f'Logistics Officer {deleting_user.get_full_name() or deleting_user.username} deleted item: {item.name}'
+            )

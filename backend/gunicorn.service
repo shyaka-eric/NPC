@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn instance to serve npc
+After=network.target
+
+[Service]
+User=insaza
+Group=insaza
+WorkingDirectory=/home/insaza/NPC/backend
+Environment="PATH=/home/insaza/NPC/backend/venv/bin"
+ExecStart=/home/insaza/NPC/backend/venv/bin/gunicorn --workers 3 --bind unix:/home/insaza/NPC/backend/npc.sock backend.wsgi:application
+
+[Install]
+WantedBy=multi-user.target

@@ -94,6 +94,9 @@ class ItemViewSet(viewsets.ModelViewSet):
         if reason:
             instance.deletion_reason = reason
         instance.save()
+        # Notify system-admins if deleted by logistics officer
+        from .services import notify_item_deleted_by_logistics_officer
+        notify_item_deleted_by_logistics_officer(request.user, instance)
         return Response({'detail': 'Item soft deleted.'}, status=200)
 
     def create(self, request, *args, **kwargs):
@@ -107,6 +110,35 @@ class ItemViewSet(viewsets.ModelViewSet):
         item = serializer.save()
         headers = self.get_success_headers(serializer.data)
         return Response(self.get_serializer(item).data, status=201, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        old_status = instance.status
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        # Notify system-admins if status changed to 'deleted' by logistics officer
+        if old_status != 'deleted' and serializer.validated_data.get('status') == 'deleted':
+            from .services import notify_item_deleted_by_logistics_officer
+            notify_item_deleted_by_logistics_officer(request.user, instance)
+        # Always return context with request for correct profile_image URL
+        return Response(self.get_serializer(instance, context={'request': request}).data)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        old_status = instance.status
+        print(f"DEBUG: old_status={old_status}")
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        new_status = serializer.validated_data.get('status', instance.status)
+        print(f"DEBUG: new_status={new_status}")
+        # Notify system-admins if status changed to 'deleted' by logistics officer
+        if old_status != 'deleted' and new_status == 'deleted':
+            from .services import notify_item_deleted_by_logistics_officer
+            notify_item_deleted_by_logistics_officer(request.user, instance)
+        return Response(self.get_serializer(instance, context={'request': request}).data)
 
 class RequestViewSet(viewsets.ModelViewSet):
     queryset = Request.objects.select_related('item').all()

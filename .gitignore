@@ -35,8 +35,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # Large directories to exclude from deployment
-backend/
+#backend/
 project/data/
 project/uploads/
 project/logs/
 project/cache/
+node_modules
+node_modules

@@ -21,15 +21,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY")
+SECRET_KEY = os.environ.get('SECRET_KEY')  
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'           
 
-ALLOWED_HOSTS = [
-    'web-production-03d1c.up.railway.app',
-    'localhost',
-    '127.0.0.1',
-]
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split("")  
 
 
 # Application definition
@@ -82,18 +78,18 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-database_url= os.environ.get("DATABASE_URL")
+
 
 DATABASES = {
-    'default': dj_database_url.parse(
-        os.environ.get(database_url
-        )
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
+database_url = os.environ.get('DATABASE_URL')
 
-
-#DATABASES['default'] = dj_database_url.parse("postgresql://npc_db_user:zvGXmPjY09B8zG7xDRJNPjTT1nblkbZD@dpg-d19h0modl3ps73clk9mg-a.oregon-postgres.render.com/npc_db")
+DATABASES['default'] = dj_database_url.parse(database_url)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

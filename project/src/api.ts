@@ -1,8 +1,9 @@
 import axios from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from './store/authStore'
+import { toast } from 'sonner'
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/'
+export const API_URL = "https://logistics-backend-qh1y.onrender.com"
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -10,6 +11,8 @@ export const api = axios.create({
     'Accept': 'application/json',
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
+  timeout: 30000,
 })
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
@@ -26,15 +29,45 @@ api.interceptors.response.use(
   response => response,
   async (error) => {
     const { response, config } = error
-    if (response?.status === 401 && !config._retry) {
-      config._retry = true
-      try {
-        await useAuthStore.getState().refreshToken()
-        return api.request(config)
-      } catch {
-        useAuthStore.getState().logout()
-      }
+    
+    // Handle different error cases
+    if (!response) {
+      // Network error
+      toast.error('Network error. Please check your internet connection.')
+      return Promise.reject(error)
     }
+
+    if (response?.status === 401) {
+      // Token expired or invalid
+      if (!config._retry) {
+        config._retry = true
+        // Handle token refresh here if needed
+        try {
+          await useAuthStore.getState().refreshToken()
+          return api.request(config)
+        } catch {
+          useAuthStore.getState().logout()
+        }
+      }
+      toast.error('Session expired. Please login again.')
+      window.location.href = '/login'
+    }
+
+    if (response?.status === 403) {
+      toast.error('Access denied. You don\'t have permission to access this resource.')
+    }
+
+    if (response?.status === 404) {
+      toast.error('Resource not found.')
+    }
+
+    if (response?.status >= 500) {
+      toast.error('Server error occurred. Please try again later.')
+    }
+
+    // Return the error for other cases
     return Promise.reject(error)
   }
 )
+
+

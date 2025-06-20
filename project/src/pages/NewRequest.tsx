@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useItemsStore } from '../store/itemsStore';
+import { api } from '../api';
 import PageHeader from '../components/PageHeader';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -42,18 +43,8 @@ const NewRequest: React.FC = () => {
   useEffect(() => {
     const fetchStockItems = async () => {
       try {
-        const token = localStorage.getItem('token'); // Corrected key to 'token'
-        const response = await fetch('/api/items/', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        const text = await response.text(); // Log raw response text
-        console.log('Raw stock items response:', text);
-        const data = JSON.parse(text);
-        console.log('Fetched stock items:', data); // Debugging log
-        setStockItems(data);
+        const response = await api.get('items/');
+        setStockItems(response.data);
       } catch (error) {
         console.error('Failed to fetch stock items:', error);
       }

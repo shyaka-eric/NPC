@@ -45,11 +45,13 @@ INSTALLED_APPS = [
     'channels',
     'rest_framework_simplejwt.token_blacklist',
     'api',
+    'whitenoise.runserver_nostatic',  # Add whitenoise to installed apps
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be first
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add WhiteNoise middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

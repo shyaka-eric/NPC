@@ -135,7 +135,7 @@ const NewRequest: React.FC = () => {
         const form = new FormData();
         Object.entries(payload).forEach(([key, value]) => form.append(key, value as string));
         form.append('attachment', file);
-        response = await fetch('/api/requests/', {
+        response = await fetch(`${API_URL}/requests/`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -143,7 +143,7 @@ const NewRequest: React.FC = () => {
           body: form
         });
       } else {
-        response = await fetch('/api/requests/', {
+        response = await fetch(`${API_URL}/requests/`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -7,7 +7,8 @@ from .views import (
     RegisterView, UserDetailView, CustomTokenObtainPairView, has_users,
     IssuedItemListView, AllPendingRequestsView,
     NotificationListView, NotificationMarkAsReadView, NotificationMarkAllAsReadView,
-    DamagedItemViewSet, log_dashboard_access, RepairRequestViewSet
+    DamagedItemViewSet, log_dashboard_access, RepairRequestViewSet,
+    TestConnectionView
 )
 
 router = routers.DefaultRouter()
@@ -28,6 +29,7 @@ urlpatterns = [
     path('issued-items/', IssuedItemListView.as_view(), name='issued-items-list'),
     path('all-pending-requests/', AllPendingRequestsView.as_view(), name='all-pending-requests'),
     path('notifications/', NotificationListView.as_view(), name='notification-list'),
+    path('test/', TestConnectionView.as_view(), name='test-connection'),
     path('notifications/<int:pk>/mark_as_read/', NotificationMarkAsReadView.as_view(), name='notification-mark-as-read'),
     path('notifications/mark_all_as_read/', NotificationMarkAllAsReadView.as_view(), name='notification-mark-all-as-read'),
     path('log-dashboard-access/', log_dashboard_access, name='log_dashboard_access'),

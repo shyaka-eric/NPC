@@ -5,7 +5,7 @@ from .serializers import (
     NotificationSerializer, LogSerializer, SettingsSerializer, RepairRequestSerializer, IssuedItemSerializer,
     DamagedItemSerializer
 )
-from django.contrib.auth import get_user_model
+from django.contrib_auth import get_user_model
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -28,6 +28,28 @@ from rest_framework.views import APIView
 from rest_framework import status
 from .utils import log_action
 from rest_framework.exceptions import PermissionDenied
+
+# Test endpoint for frontend-backend connection
+class TestConnectionView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        return Response({
+            'status': 'success',
+            'message': 'Backend is responding',
+            'time': str(datetime.datetime.now()),
+            'environment': {
+                'is_production': not settings.DEBUG,
+                'allowed_origins': settings.CORS_ALLOWED_ORIGINS
+            }
+        })
+    
+    def post(self, request):
+        return Response({
+            'status': 'success',
+            'received_data': request.data,
+            'message': 'POST request received'
+        })
 from rest_framework.parsers import MultiPartParser, FormParser
 
 logger = logging.getLogger(__name__)

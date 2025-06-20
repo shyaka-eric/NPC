@@ -1,16 +1,10 @@
+import { API_URL } from '../config';
 import { api } from '../api';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const fetchRepairRequests = async () => {
   try {
-    const response = await fetch(`${API_URL}/api/repair-requests/`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch repair requests');
-    return await response.json();
+    const response = await api.get('repair-requests/');
+    return response.data;
   } catch (error) {
     console.error('Error fetching repair requests:', error);
     throw error;
@@ -19,13 +13,8 @@ export const fetchRepairRequests = async () => {
 
 export const fetchNewItemRequests = async () => {
   try {
-    const response = await fetch(`${API_URL}/api/requests/?type=new`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch new item requests');
-    return await response.json();
+    const response = await api.get('requests/?type=new');
+    return response.data;
   } catch (error) {
     console.error('Error fetching new item requests:', error);
     throw error;
@@ -37,7 +26,6 @@ export const updateUserProfile = async (
   data: any,
   isMultipart = false
 ) => {
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const headers: any = {
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
   };
@@ -55,7 +43,6 @@ export const updateUserProfile = async (
 
 export async function requestRepair(formData: FormData) {
   // Assumes the backend expects a POST to /api/repair-requests/ with multipart/form-data
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const token = localStorage.getItem('token');
   const response = await fetch(`${API_URL}/api/repair-requests/`, {
     method: 'POST',

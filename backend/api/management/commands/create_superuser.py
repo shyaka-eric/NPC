@@ -6,7 +6,7 @@ from django.core.exceptions import ImproperlyConfigured
 User = get_user_model()
 
 class Command(BaseCommand):
-    help = 'Creates a superuser non-interactively if it doesn't exist'
+    help = 'Creates a superuser non-interactively if it doesn\'t exist'
 
     def handle(self, *args, **options):
         if not settings.SUPERUSER_PASSWORD:

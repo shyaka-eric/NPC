@@ -19,11 +19,13 @@ class Command(BaseCommand):
         if not User.objects.filter(username='fatman').exists():
             try:
                 self.stdout.write(self.style.NOTICE('Creating superuser...'))
-                User.objects.create_superuser(
+                user = User.objects.create_superuser(
                     username='fatman',
                     email='kezafatman@gmail.com',
                     password=settings.SUPERUSER_PASSWORD
                 )
+                user.is_staff = True
+                user.save()
                 self.stdout.write(self.style.SUCCESS('Superuser created successfully'))
                 self.stdout.write(self.style.NOTICE('Superuser details:'))
                 self.stdout.write(self.style.NOTICE(f'Username: fatman'))

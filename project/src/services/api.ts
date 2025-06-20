@@ -44,7 +44,7 @@ export const updateUserProfile = async (
 export async function requestRepair(formData: FormData) {
   // Assumes the backend expects a POST to /api/repair-requests/ with multipart/form-data
   const token = localStorage.getItem('token');
-  const response = await fetch(`${API_URL}/api/repair-requests/`, {
+  const response = await fetch(`${API_URL}/repair-requests/`, {
     method: 'POST',
     body: formData,
     credentials: 'include',

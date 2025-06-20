@@ -32,7 +32,7 @@ export const updateUserProfile = async (
   if (!isMultipart) {
     headers['Content-Type'] = 'application/json';
   }
-  const response = await fetch(`${API_URL}/api/users/${userId}/`, {
+  const response = await fetch(`${API_URL}/users/${userId}/`, {
     method: 'PUT',
     headers,
     body: isMultipart ? data : JSON.stringify(data),

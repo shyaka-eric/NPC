@@ -41,4 +41,11 @@ project/uploads/
 project/logs/
 project/cache/
 node_modules
-node_modules
+
+# Deployment configurations
+fly.toml
+netlify.toml
+railway.toml
+render.yaml
+windsurf_deployment.yaml
+.nixpacks/

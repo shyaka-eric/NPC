@@ -96,7 +96,7 @@ const RepairInProgress: React.FC = () => {
         setIsLoading(false);
         return;
       }
-      const response = await axios.get<RepairRequest[]>(`${API_URL}/api/repair-requests/`, {
+      const response = await axios.get<RepairRequest[]>(`${API_URL}/repair-requests/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -123,7 +123,7 @@ const RepairInProgress: React.FC = () => {
         toast.error('Authentication token not found. Please log in again.');
         return;
       }
-      await axios.patch(`${API_URL}/api/repair-requests/${request.id}/mark_repaired/`, {}, {
+      await axios.patch(`${API_URL}/repair-requests/${request.id}/mark_repaired/`, {}, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -224,7 +224,7 @@ const RepairInProgress: React.FC = () => {
         return;
       }
 
-      await axios.put(`${API_URL}/api/repair-requests/${requestId}/`, 
+      await axios.put(`${API_URL}/repair-requests/${requestId}/`, 
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );

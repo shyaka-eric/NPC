@@ -88,10 +88,8 @@ const RepairItems: React.FC = () => {
         return;
       }
       // Call the correct endpoint for repair-in-process
-      await axios.patch(`${API_URL}/api/repair-requests/${request.id}/mark_repair_in_process/`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      await axios.patch(`${API_URL}/repair-requests/${request.id}/mark_repair_in_process/`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       toast.success('Request moved to repair in process.');
       setRepairRequests(repairRequests.map(r =>

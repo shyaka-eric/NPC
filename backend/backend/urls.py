@@ -18,8 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from backend.views import api_welcome
 
 urlpatterns = [
+    path('', api_welcome, name='api-welcome'),
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
 ]

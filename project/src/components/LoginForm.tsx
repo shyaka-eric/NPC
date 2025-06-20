@@ -49,14 +49,12 @@ const LoginForm: React.FC = () => {
     setError(null);
 
     try {
-      await login(email, password);
-      // Only navigate if login is successful, user is authenticated, and not deactivated
-      const { isAuthenticated, error } = useAuthStore.getState();
-      if (isAuthenticated && !error) {
+      const success = await login(email, password);
+      if (success) {
         navigate('/');
+      } else {
+        setError(useAuthStore.getState().error || 'Login failed');
       }
-    } catch (err) {
-      setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }

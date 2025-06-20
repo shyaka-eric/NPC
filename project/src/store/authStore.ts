@@ -7,7 +7,7 @@ interface AuthState {
   users: User[];
   isAuthenticated: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   register: (userData: Partial<User> & { password: string }) => Promise<void>;
   fetchUser: () => Promise<void>;
@@ -50,12 +50,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       if (!user.isActive) {
         set({ error: 'Your account has been deactivated. Please contact your system administrator.', isAuthenticated: false });
         localStorage.removeItem('token');
-        throw new Error('Your account has been deactivated. Please contact your system administrator.');
+        return false;
       }
       set({ user, isAuthenticated: true });
+      return true;
     } catch (error: any) {
       set({ error: error.response?.data?.detail || error.message, isAuthenticated: false });
-      throw error;
+      return false;
     }
   },
 

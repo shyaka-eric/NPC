@@ -427,7 +427,11 @@ class DamagedItemViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
+        print(f"[DEBUG] DamagedItemViewSet.create called with data: {request.data}")
         repair_request_id = request.data.get('repair_request')
+        if not repair_request_id:
+            print("[DEBUG] No repair_request ID provided in request data.")
+            return Response({'detail': 'repair_request ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
         existing_damaged = DamagedItem.objects.filter(repair_request__id=repair_request_id).first()
         if existing_damaged:
             return Response({
@@ -435,9 +439,9 @@ class DamagedItemViewSet(viewsets.ModelViewSet):
                 'damaged_at': existing_damaged.marked_at,
                 'marked_by': existing_damaged.marked_by.username if existing_damaged.marked_by else 'Unknown'
             }, status=status.HTTP_409_CONFLICT)
-
         try:
             repair_request = RepairRequest.objects.get(id=repair_request_id)
+            print(f"[DEBUG] Found repair_request: {repair_request}")
             repair_request.status = 'damaged'
             repair_request.save()
             # Decrement item quantity and unassign issued item
@@ -468,7 +472,8 @@ class DamagedItemViewSet(viewsets.ModelViewSet):
             self.perform_create(serializer)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except RepairRequest.DoesNotExist:
-            return Response({'detail': 'Repair request not found.'}, status=status.HTTP_404_NOT_FOUND)
+            print(f"[DEBUG] RepairRequest with id {repair_request_id} does not exist.")
+            return Response({'detail': f'Repair request with id {repair_request_id} not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             print(f"[DEBUG] Exception in DamagedItemViewSet.create: {e}")
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

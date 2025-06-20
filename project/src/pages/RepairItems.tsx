@@ -128,7 +128,7 @@ const RepairItems: React.FC = () => {
         damage_description: request.description,
       };
 
-      await axios.post(`${API_URL}/api/damaged-items/`, damagedItemData, {
+      await axios.post(`${API_URL}/damaged-items/`, damagedItemData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

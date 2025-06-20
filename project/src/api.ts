@@ -3,7 +3,7 @@ import type { InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from './store/authStore'
 import { toast } from 'sonner'
 
-export const API_URL = "https://logistics-backend-qh1y.onrender.com"
+export const API_URL = "https://logistics-backend-qh1y.onrender.com/api"
 
 export const api = axios.create({
   baseURL: API_URL,

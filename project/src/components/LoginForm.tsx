@@ -45,12 +45,15 @@ const LoginForm: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login form submitted', email, password);
     setIsLoading(true);
     setError(null);
 
     try {
       await login(email, password);
+      // Only navigate if login is successful and user is active
+      if (!useAuthStore.getState().error) {
+        navigate('/');
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {

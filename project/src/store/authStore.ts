@@ -46,7 +46,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       const userRes = await api.get('auth/user/', {
         headers: { Authorization: `Bearer ${access}` }
       });
-      set({ user: normalizeUser(userRes.data), isAuthenticated: true });
+      const user = normalizeUser(userRes.data);
+      if (!user.isActive) {
+        set({ error: 'Your account has been deactivated. Please contact your system administrator.', isAuthenticated: false });
+        localStorage.removeItem('token');
+        throw new Error('Your account has been deactivated. Please contact your system administrator.');
+      }
+      set({ user, isAuthenticated: true });
     } catch (error: any) {
       set({ error: error.response?.data?.detail || error.message, isAuthenticated: false });
       throw error;

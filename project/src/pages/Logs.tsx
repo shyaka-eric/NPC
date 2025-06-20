@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 interface Log {
   timestamp: string;
@@ -19,7 +20,7 @@ const Logs: React.FC = () => {
         if (!token) {
           throw new Error('No authentication token found.');
         }
-        const response = await axios.get('/api/logs', {
+        const response = await axios.get(`${API_URL}/logs/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (Array.isArray(response.data)) {

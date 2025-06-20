@@ -5,7 +5,7 @@ from .serializers import (
     NotificationSerializer, LogSerializer, SettingsSerializer, RepairRequestSerializer, IssuedItemSerializer,
     DamagedItemSerializer
 )
-from django.contrib_auth import get_user_model
+from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer

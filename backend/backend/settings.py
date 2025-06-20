@@ -214,6 +214,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'backend.middleware': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 

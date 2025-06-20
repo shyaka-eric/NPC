@@ -1,19 +1,38 @@
 from django.utils.deprecation import MiddlewareMixin
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 class LoginDebugMiddleware(MiddlewareMixin):
-    def process_request(self, request):
+    def process_view(self, request, view_func, view_args, view_kwargs):
         if request.path == '/admin/login/' and request.method == 'POST':
             username = request.POST.get('username', '')
             password = request.POST.get('password', '')
-            user = authenticate(request, username=username, password=password)
-            if user is None:
-                print(f"Login attempt failed for username: {username}")
-                print(f"Password length: {len(password)}")
-                print(f"User exists: {User.objects.filter(username=username).exists()}")
-                print(f"User is active: {User.objects.filter(username=username).first().is_active if User.objects.filter(username=username).exists() else False}")
-                print(f"User is superuser: {User.objects.filter(username=username).first().is_superuser if User.objects.filter(username=username).exists() else False}")
-                print(f"Password check: {User.objects.filter(username=username).first().check_password(password) if User.objects.filter(username=username).exists() else False}")
+            
+            # Log the login attempt
+            logger.info(f"Login attempt for username: {username}")
+            logger.info(f"Password length: {len(password)}")
+            
+            # Check if user exists
+            user_exists = User.objects.filter(username=username).exists()
+            logger.info(f"User exists: {user_exists}")
+            
+            if user_exists:
+                user = User.objects.get(username=username)
+                logger.info(f"User is active: {user.is_active}")
+                logger.info(f"User is superuser: {user.is_superuser}")
+                logger.info(f"User is staff: {user.is_staff}")
+                
+                # Check password
+                password_matches = user.check_password(password)
+                logger.info(f"Password check: {password_matches}")
+                
+                if not password_matches:
+                    logger.info("Password does not match")
+            else:
+                logger.info("User does not exist in database")
+            
+            return None

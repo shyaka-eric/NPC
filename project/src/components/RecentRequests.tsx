@@ -52,8 +52,9 @@ const RecentRequests: React.FC<RecentRequestsProps> = ({
 
   // Get recent requests based on user role
   const getRecentRequests = () => {
-    // Removed filtering logic for recent requests
+    // Only show requests created by the current user
     return requests
+      .filter(r => r.requestedBy === user.id || r.requested_by === user.id)
       .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
       .slice(0, 5);
   };
@@ -82,7 +83,7 @@ const RecentRequests: React.FC<RecentRequestsProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">
-                      {request.item_name || '-'}
+                      {request.itemName || '-'}
                     </p>
                     <div className="flex items-center mt-1">
                       <StatusBadge status={request.status} />

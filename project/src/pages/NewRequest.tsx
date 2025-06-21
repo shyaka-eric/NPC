@@ -10,8 +10,6 @@ import Button from '../components/ui/Button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import SimpleModal from '../components/ui/SimpleModal';
-import { saveAs } from 'file-saver';
-import * as XLSX from 'xlsx';
 import { API_URL } from '../config';
 
 const priorityOptions = [
@@ -32,7 +30,6 @@ const NewRequest: React.FC = () => {
     quantity: '',
     priority: '',
   });
-  const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [showValidationSummary, setShowValidationSummary] = useState(false);
   const [stockItems, setStockItems] = useState<any[]>([]); // State to store stock items
@@ -77,9 +74,6 @@ const NewRequest: React.FC = () => {
     return filteredItems.map((item: any) => ({ value: item.id, label: item.name }));
   }, [stockItems, formData.category]);
 
-  const fileAccept = '.xlsx,.xls';
-  const fileLabel = 'Attach Excel File (optional)';
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => {
@@ -96,14 +90,6 @@ const NewRequest: React.FC = () => {
       };
     });
     setErrors(prev => ({ ...prev, [name]: '' }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    } else {
-      setFile(null);
-    }
   };
 
   const validate = () => {
@@ -131,28 +117,14 @@ const NewRequest: React.FC = () => {
         priority: formData.priority,
         type: 'new', // Always send type for backend compatibility
       };
-      let response;
-      if (file) {
-        const form = new FormData();
-        Object.entries(payload).forEach(([key, value]) => form.append(key, value as string));
-        form.append('attachment', file);
-        response = await fetch(`${API_URL}/requests/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: form
-        });
-      } else {
-        response = await fetch(`${API_URL}/requests/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload)
-        });
-      }
+      const response = await fetch(`${API_URL}/requests/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || 'Failed to create request');
@@ -169,19 +141,6 @@ const NewRequest: React.FC = () => {
   const handleConfirmSubmit = () => {
     if (!validate()) return;
     setIsConfirmModalOpen(true);
-  };
-
-  const downloadTemplate = () => {
-    // Define the columns as per the request form
-    const wsData = [
-      ['Category', 'Item', 'Quantity', 'Priority']
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    saveAs(blob, 'item_request_template.xlsx');
   };
 
   const renderFormFields = () => {
@@ -254,21 +213,6 @@ const NewRequest: React.FC = () => {
           options={[{ value: '', label: 'Select Priority' }, ...priorityOptions.filter(opt => opt.value !== '')]}
           required
           error={errors.priority}
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          className="mb-2"
-          onClick={downloadTemplate}
-        >
-          Download Excel Template
-        </Button>
-        <Input
-          label={fileLabel}
-          name="attachment"
-          type="file"
-          accept={fileAccept}
-          onChange={handleFileChange}
         />
         <div className="flex justify-end gap-3 pt-4">
           <Button

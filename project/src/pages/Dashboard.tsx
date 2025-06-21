@@ -122,13 +122,13 @@ const Dashboard: React.FC = () => {
         inRange={inRange}
       />
       
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+      <div className="mt-8 flex justify-center w-full">
         {user.role === 'system-admin' ? (
-          <div className="w-full max-w-4xl">
+          <div className="w-full max-w-2xl mx-auto">
             <RecentActivityLog />
           </div>
         ) : (
-          <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
             <div className="w-full">
               <RecentRequests 
                 rangeType={rangeType} 
@@ -140,7 +140,7 @@ const Dashboard: React.FC = () => {
             <div className="w-full">
               <AnalysisCard />
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

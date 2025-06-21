@@ -64,6 +64,9 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           return;
         }
         let damagedItems = Array.isArray(data) ? data : (data.results || []);
+        // Debug: log items and date range
+        console.log('Damaged items from API:', damagedItems);
+        console.log('Dashboard date range:', start, end);
         // Apply the same date filtering as the Damaged Items page
         const filtered = damagedItems.filter((item: any) => {
           const damagedDate = item.reported_date || item.marked_at;
@@ -76,6 +79,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           }
           return date >= start && date <= end;
         });
+        console.log('Filtered damaged items for card:', filtered);
         setDamagedSerialCount(filtered.length);
       } catch (e) {
         setDamagedSerialCount(0);

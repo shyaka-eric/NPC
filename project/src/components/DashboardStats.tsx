@@ -37,24 +37,21 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
 
   useEffect(() => {
     if (user?.role !== 'logistics-officer') return;
+    // Get date range for filtering
+    const { start, end } = getRange();
     const fetchDamagedItems = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        // Always use single /api/damaged-items/ endpoint
         let baseUrl = import.meta.env.VITE_API_URL || API_URL;
-        // Remove trailing slash if present
         if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-        // Remove any trailing /api if present
         if (baseUrl.endsWith('/api')) baseUrl = baseUrl.slice(0, -4);
         const url = `${baseUrl}/api/damaged-items/`;
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const text = await response.text();
-        console.log('Damaged Items API raw response:', text);
         if (!response.ok) {
-          console.error('Damaged Items API error status:', response.status);
           setDamagedSerialCount(0);
           return;
         }
@@ -62,19 +59,30 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
         try {
           data = JSON.parse(text);
         } catch (e) {
-          console.error('Damaged Items API JSON parse error:', e);
           setDamagedSerialCount(0);
           return;
         }
         let damagedItems = Array.isArray(data) ? data : (data.results || []);
-        setDamagedSerialCount(damagedItems.length);
+        // Apply the same date filtering as the Damaged Items page
+        const filtered = damagedItems.filter((item: any) => {
+          const damagedDate = item.reported_date || item.marked_at;
+          if (!damagedDate) return false;
+          let date;
+          try {
+            date = typeof damagedDate === 'string' ? parseISO(damagedDate) : damagedDate;
+          } catch {
+            return false;
+          }
+          return date >= start && date <= end;
+        });
+        setDamagedSerialCount(filtered.length);
       } catch (e) {
-        console.error('Error fetching damaged items:', e);
         setDamagedSerialCount(0);
       }
     };
     fetchDamagedItems();
-  }, [user?.role]);
+    // Add all range dependencies
+  }, [user?.role, rangeType, customStart, customEnd]);
 
   // Helper to get date range
   const getRange = () => {

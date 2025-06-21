@@ -44,8 +44,21 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
         const response = await fetch(`${import.meta.env.VITE_API_URL || API_URL}/api/damaged-items/`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        const data = await response.json();
-        console.log('Damaged Items API response:', data); // Debug log
+        const text = await response.text();
+        console.log('Damaged Items API raw response:', text);
+        if (!response.ok) {
+          console.error('Damaged Items API error status:', response.status);
+          setDamagedSerialCount(0);
+          return;
+        }
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          console.error('Damaged Items API JSON parse error:', e);
+          setDamagedSerialCount(0);
+          return;
+        }
         let damagedItems = Array.isArray(data) ? data : (data.results || []);
         setDamagedSerialCount(damagedItems.length);
       } catch (e) {

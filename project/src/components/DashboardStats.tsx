@@ -44,8 +44,9 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
         const token = localStorage.getItem('token');
         if (!token) return;
         let baseUrl = import.meta.env.VITE_API_URL || API_URL;
+        // Remove trailing slash if present
         if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-        if (baseUrl.endsWith('/api')) baseUrl = baseUrl.slice(0, -4);
+        // DO NOT remove /api, always append /api/damaged-items/
         const url = `${baseUrl}/api/damaged-items/`;
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }

@@ -59,9 +59,8 @@ const RecentRequests: React.FC<RecentRequestsProps> = ({
         .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
         .slice(0, 5);
     } else if (user.role === 'admin' || user.role === 'logistics-officer') {
-      // Show all requests where the requester is a unit leader
+      // Show all recent requests (no filter)
       return requests
-        .filter(r => r.requestedByRole === 'unit-leader' || r.requested_by_role === 'unit-leader' || r.requestedByName?.toLowerCase().includes('unit leader'))
         .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
         .slice(0, 5);
     } else {

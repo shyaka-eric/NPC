@@ -198,21 +198,21 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
             <StatCard
               title="Repair In Process"
               value={formatNumber(repairInProcessCount)}
-              icon={<Wrench size={24} />} // Changed icon to Wrench for Repair In Process
+              icon={<Wrench size={24} className="text-blue-500" />} // Blue for Repair In Process
               onClick={() => navigate(`/repair-in-process?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
             <StatCard
               title="Damaged Items"
               value={formatNumber(damagedSerialCount)}
-              icon={<AlertTriangle size={24} />} // Kept AlertTriangle for Damaged Items
+              icon={<AlertTriangle size={24} className="text-red-500" />} // Red for Damaged Items
               onClick={() => navigate(`/damaged-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
             <StatCard
               title="Approved Items"
               value={formatNumber(approvedCount)}
-              icon={<CheckCircle size={24} />} // Changed to CheckCircle for approved/issuing
+              icon={<CheckCircle size={24} className="text-green-500" />} // Green for Approved Items
               onClick={() => navigate(`/issue-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
@@ -261,7 +261,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 w-full">
               {/* Deleted Items Card */}
               <StatCard
-                icon={<Trash size={32} />}
+                icon={<Trash size={32} className="text-red-500" />} // Red for Deleted Items
                 title="Deleted Items"
                 value={formatNumber(deletedCount)}
                 onClick={() => navigate(`/deleted-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
@@ -269,7 +269,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
               />
               {/* Users Card */}
               <StatCard
-                icon={<Users size={32} />}
+                icon={<Users size={32} className="text-blue-500" />} // Blue for Users
                 title="Users"
                 value={formatNumber(userCount)}
                 onClick={() => navigate(`/users`)}

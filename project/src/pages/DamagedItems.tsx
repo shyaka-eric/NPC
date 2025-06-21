@@ -107,7 +107,7 @@ const DamagedItems: React.FC = () => {
             const token = localStorage.getItem('token');
             if (!token) throw new Error('No authentication token found');
             
-            const response = await axios.get(`${API_URL}/api/damaged-items/`, {
+            const response = await axios.get(`${API_URL}/damaged-items/`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

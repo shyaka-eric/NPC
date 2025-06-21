@@ -47,18 +47,14 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
         const data = await response.json();
         // Support both paginated and array API responses
         let damagedItems = Array.isArray(data) ? data : (data.results || []);
-        // Use only 'marked_at' for filtering
-        const filteredData = (damagedItems || []).filter((d: any) => {
-          const damagedDate = d.marked_at;
-          return damagedDate && inRange(damagedDate);
-        });
-        setDamagedSerialCount(filteredData.length);
+        // Remove filtering: count all damaged items
+        setDamagedSerialCount(damagedItems.length);
       } catch {
         setDamagedSerialCount(0);
       }
     };
     fetchDamagedItems();
-  }, [user?.role, rangeType, customStart, customEnd, inRange]);
+  }, [user?.role]);
 
   // Helper to get date range
   const getRange = () => {

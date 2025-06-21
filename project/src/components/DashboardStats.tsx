@@ -46,7 +46,8 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
         let baseUrl = import.meta.env.VITE_API_URL || API_URL;
         // Remove trailing slash if present
         if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-        // DO NOT remove /api, always append /api/damaged-items/
+        // Remove trailing '/api' if present
+        if (baseUrl.endsWith('/api')) baseUrl = baseUrl.slice(0, -4);
         const url = `${baseUrl}/api/damaged-items/`;
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
@@ -64,9 +65,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           return;
         }
         let damagedItems = Array.isArray(data) ? data : (data.results || []);
-        // Debug: log items and date range
-        console.log('Damaged items from API:', damagedItems);
-        console.log('Dashboard date range:', start, end);
         // Apply the same date filtering as the Damaged Items page
         const filtered = damagedItems.filter((item: any) => {
           const damagedDate = item.reported_date || item.marked_at;
@@ -79,7 +77,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           }
           return date >= start && date <= end;
         });
-        console.log('Filtered damaged items for card:', filtered);
         setDamagedSerialCount(filtered.length);
       } catch (e) {
         setDamagedSerialCount(0);
@@ -108,9 +105,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
     }
   };
   const { start, end } = getRange();
-
-  // Add debug logs to inspect weekly range calculations
-  console.log('Weekly range start:', start, 'Weekly range end:', end);
 
   // Updated filtering logic to ensure correct range filtering
   const filteredRequests = requests.filter(req => {
@@ -161,11 +155,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
     }
     return date >= start && date <= end;
   }).length;
-
-  // Add debug logs to inspect filteredRequests and rangeType
-  console.log('Range type:', rangeType);
-  console.log('Filtered requests:', filteredRequests);
-
 
   // Updated navigation logic to pass range parameters
   const navigateToPage = (path: string) => {

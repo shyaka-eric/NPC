@@ -41,7 +41,14 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const response = await fetch(`${import.meta.env.VITE_API_URL || API_URL}/api/damaged-items/`, {
+        // Always use single /api/damaged-items/ endpoint
+        let baseUrl = import.meta.env.VITE_API_URL || API_URL;
+        // Remove trailing slash if present
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        // Remove any trailing /api if present
+        if (baseUrl.endsWith('/api')) baseUrl = baseUrl.slice(0, -4);
+        const url = `${baseUrl}/api/damaged-items/`;
+        const response = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const text = await response.text();

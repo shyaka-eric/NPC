@@ -26,6 +26,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
   const { user, fetchUsers } = useAuthStore();
   const navigate = useNavigate();
   const today = new Date();
+  const [damagedSerialCount, setDamagedSerialCount] = useState<number>(0);
 
   useEffect(() => {
     fetchIssuedItems();
@@ -33,6 +34,31 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
       fetchUsers();
     }
   }, [fetchIssuedItems, fetchUsers, user]);
+
+  useEffect(() => {
+    if (user?.role !== 'logistics-officer') return;
+    const fetchDamagedItems = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const response = await fetch(`${import.meta.env.VITE_API_URL || API_URL}/api/damaged-items/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        // Support both paginated and array API responses
+        let damagedItems = Array.isArray(data) ? data : (data.results || []);
+        // Use only 'marked_at' for filtering
+        const filteredData = (damagedItems || []).filter((d: any) => {
+          const damagedDate = d.marked_at;
+          return damagedDate && inRange(damagedDate);
+        });
+        setDamagedSerialCount(filteredData.length);
+      } catch {
+        setDamagedSerialCount(0);
+      }
+    };
+    fetchDamagedItems();
+  }, [user?.role, rangeType, customStart, customEnd, inRange]);
 
   // Helper to get date range
   const getRange = () => {
@@ -111,7 +137,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
   console.log('Range type:', rangeType);
   console.log('Filtered requests:', filteredRequests);
 
-  
+
   // Updated navigation logic to pass range parameters
   const navigateToPage = (path: string) => {
     navigate(`${path}?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`);
@@ -167,32 +193,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           </>
         );
       case 'logistics-officer': {
-        const [damagedSerialCount, setDamagedSerialCount] = useState<number>(0);
-        useEffect(() => {
-          const fetchDamagedItems = async () => {
-            try {
-              const token = localStorage.getItem('token');
-              if (!token) return;
-              const response = await fetch(`${import.meta.env.VITE_API_URL || API_URL}/api/damaged-items/`, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-              const data = await response.json();
-
-              // Support both paginated and array API responses
-              let damagedItems = Array.isArray(data) ? data : (data.results || []);
-              // Use only 'marked_at' for filtering
-              const filteredData = (damagedItems || []).filter((d: any) => {
-                const damagedDate = d.marked_at;
-                return damagedDate && inRange(damagedDate);
-              });
-              // Count unique issued_item IDs robustly (handle string, number, or object)
-              setDamagedSerialCount(filteredData.length);
-            } catch {
-              setDamagedSerialCount(0);
-            }
-          };
-          fetchDamagedItems();
-        }, [rangeType, customStart, customEnd, inRange]);
         return (
           <>
             <StatCard

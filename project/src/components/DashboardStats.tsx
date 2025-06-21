@@ -178,14 +178,16 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
               });
               const data = await response.json();
 
+              // Support both paginated and array API responses
+              let damagedItems = Array.isArray(data) ? data : (data.results || []);
               // Use only 'marked_at' for filtering
-              const filteredData = (data || []).filter((d: any) => {
+              const filteredData = (damagedItems || []).filter((d: any) => {
                 const damagedDate = d.marked_at;
                 return damagedDate && inRange(damagedDate);
               });
-
-              // Count unique damaged items by issued_item (not just serial number)
-              const uniqueIssuedItemIds = new Set(filteredData.map((d: any) => d.issued_item));
+              // Count unique issued_item IDs, but only if present and valid
+              const uniqueIssuedItemIds = new Set(filteredData.map((d: any) => d.issued_item).filter(Boolean));
+              console.log('DamagedItems API raw:', data, 'Filtered:', filteredData, 'Unique issued_item count:', uniqueIssuedItemIds.size);
               setDamagedSerialCount(uniqueIssuedItemIds.size);
             } catch {
               setDamagedSerialCount(0);

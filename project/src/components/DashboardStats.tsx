@@ -184,9 +184,9 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
                 return damagedDate && inRange(damagedDate);
               });
 
-              // Count unique serial numbers within the filtered data
-              const serials = new Set(filteredData.map((d: any) => d.issued_item_serial_number || d.issued_item?.serial_number));
-              setDamagedSerialCount(serials.size);
+              // Count unique damaged items by issued_item (not just serial number)
+              const uniqueIssuedItemIds = new Set(filteredData.map((d: any) => d.issued_item));
+              setDamagedSerialCount(uniqueIssuedItemIds.size);
             } catch {
               setDamagedSerialCount(0);
             }

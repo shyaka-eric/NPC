@@ -104,7 +104,7 @@ const RecentRequests: React.FC<RecentRequestsProps> = ({
                       </p>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">
-                      {request.type === 'new' ? 'New Request' : 'Repair Request'} by {request.requestedByName || '-'}
+                      {request.type === 'new' ? 'New Request' : 'Repair Request'} by <span className="font-semibold">{request.requestedByName || request.requested_by_name || request.requestedBy || '-'}</span>
                     </p>
                   </div>
                   <div className="ml-4">

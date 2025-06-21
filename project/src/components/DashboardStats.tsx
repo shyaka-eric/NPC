@@ -178,9 +178,9 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
               });
               const data = await response.json();
 
-              // Use correct date field for filtering: reported_date, marked_at, or fallback
+              // Use only 'marked_at' for filtering
               const filteredData = (data || []).filter((d: any) => {
-                const damagedDate = d.reported_date || d.marked_at || d.damaged_date || d.created_at;
+                const damagedDate = d.marked_at;
                 return damagedDate && inRange(damagedDate);
               });
 

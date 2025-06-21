@@ -4,7 +4,6 @@ import { useItemsStore } from '../store/itemsStore';
 import PageHeader from '../components/PageHeader';
 import Table from '../components/ui/Table';
 import StatusBadge from '../components/ui/StatusBadge';
-import Select from '../components/ui/Select';
 import { formatDate } from '../utils/formatters';
 import Pagination from '../components/Pagination';
 import Button from '../components/ui/Button';
@@ -16,22 +15,12 @@ import Toggle from '../components/ui/Toggle';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 
-const statusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'denied', label: 'Denied' },
-  { value: 'issued', label: 'Issued' },
-  { value: 'completed', label: 'Completed' }
-];
-
 const ITEMS_PER_PAGE = 15;
 
 const Requests: React.FC = () => {
   const { requests, fetchRequests, approveRequest, denyRequest } = useRequestsStore();
   const { items, fetchItems } = useItemsStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
@@ -255,18 +244,15 @@ const Requests: React.FC = () => {
           >
             Export Report
           </Button>
+        </div>
+        {/* Move Filtered View toggle to the right */}
+        <div className="flex items-center gap-4">
           <Toggle
             label="Filtered View"
             isChecked={isFilteredView}
             onChange={() => setIsFilteredView(!isFilteredView)}
           />
         </div>
-        <Select
-          label="Status"
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          options={statusOptions}
-        />
       </div>
       <Table
         columns={columns}

@@ -124,7 +124,7 @@ const Dashboard: React.FC = () => {
       
       <div className="mt-8 flex justify-center w-full">
         {user.role === 'system-admin' ? (
-          <div className="w-full max-w-2xl mx-auto">
+          <div className="w-full max-w-3xl mx-auto">
             <RecentActivityLog />
           </div>
         ) : (

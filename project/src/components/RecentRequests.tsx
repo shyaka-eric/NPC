@@ -52,11 +52,24 @@ const RecentRequests: React.FC<RecentRequestsProps> = ({
 
   // Get recent requests based on user role
   const getRecentRequests = () => {
-    // Only show requests created by the current user
-    return requests
-      .filter(r => r.requestedBy === user.id || r.requested_by === user.id)
-      .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
-      .slice(0, 5);
+    if (user.role === 'unit-leader') {
+      // Only show requests created by the current user
+      return requests
+        .filter(r => r.requestedBy === user.id || r.requested_by === user.id)
+        .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
+        .slice(0, 5);
+    } else if (user.role === 'admin' || user.role === 'logistics-officer') {
+      // Show all requests where the requester is a unit leader
+      return requests
+        .filter(r => r.requestedByRole === 'unit-leader' || r.requested_by_role === 'unit-leader' || r.requestedByName?.toLowerCase().includes('unit leader'))
+        .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
+        .slice(0, 5);
+    } else {
+      // Default: show all requests
+      return requests
+        .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
+        .slice(0, 5);
+    }
   };
 
   const recentRequests = getRecentRequests();

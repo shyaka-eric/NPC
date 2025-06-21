@@ -45,11 +45,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await response.json();
-        // Support both paginated and array API responses
+        console.log('Damaged Items API response:', data); // Debug log
         let damagedItems = Array.isArray(data) ? data : (data.results || []);
-        // Remove filtering: count all damaged items
         setDamagedSerialCount(damagedItems.length);
-      } catch {
+      } catch (e) {
+        console.error('Error fetching damaged items:', e);
         setDamagedSerialCount(0);
       }
     };

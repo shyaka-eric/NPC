@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { Request, RequestStatus, RequestType } from '../types';
 import { api } from '../api';
-import { useNotificationsStore } from './notificationsStore';
 import { useItemsStore } from './itemsStore';
 import { fetchNewItemRequests } from '../services/api';
 
@@ -38,26 +37,32 @@ export const useRequestsStore = create<RequestsState>()((set, get) => ({
       const newItemRequests = await fetchNewItemRequests();
       const repairRequestsResponse = await api.get('repair-requests/');
       const repairRequests = repairRequestsResponse.data;
+      const { items } = useItemsStore.getState();
 
-      console.log('Fetched new item requests:', newItemRequests);
-      console.log('Fetched repair requests:', repairRequests);
+      const resolveItemName = (req: any) => {
+        // Try all possible sources for item name
+        return (
+          req.itemName ||
+          req.item_name ||
+          (req.issued_item && (req.issued_item.item_name || req.issued_item.name)) ||
+          (items && req.item && items.find((it: any) => it.id === req.item)?.name) ||
+          '-'
+        );
+      };
 
       const combinedRequests = [
         ...newItemRequests.map((req: any) => ({ ...req, type: 'new' })),
         ...repairRequests.map((req: any) => ({ ...req, type: 'repair' })),
       ];
-      
-      console.log('Combined requests:', combinedRequests);
 
       const mappedRequests = combinedRequests.map((req: any) => ({
         ...req,
+        itemName: resolveItemName(req),
         requestedAt: req.requested_at,
         requestedBy: req.requested_by, // camelCase for frontend
         requested_by: req.requested_by, // keep original for compatibility
         requestedByName: req.requested_by_name || '-',
       }));
-
-      console.log('Mapped requests:', mappedRequests);
 
       set({ requests: mappedRequests, isLoading: false });
     } catch (error: any) {
@@ -130,17 +135,17 @@ export const useRequestsStore = create<RequestsState>()((set, get) => ({
     }
   },
 
-  approveRequest: async (id, approverId, modifiedQuantity) => {
+  approveRequest: async (id, _approverId, modifiedQuantity) => {
     // Custom logic for approval, update status and optionally quantity
     return get().updateRequest(id, { status: 'approved', quantity: modifiedQuantity });
   },
 
-  denyRequest: async (id, denierId, reason) => {
+  denyRequest: async (id, _denierId, reason) => {
     // Custom logic for denial, update status and add reason
     return get().updateRequest(id, { status: 'denied', reason: reason });
   },
 
-  issueRequest: async (id, issuerId) => {
+  issueRequest: async (id, _issuerId) => {
     // Custom logic for issuing, update status
     return get().updateRequest(id, { status: 'issued' });
   },

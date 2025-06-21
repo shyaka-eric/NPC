@@ -185,9 +185,15 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
                 const damagedDate = d.marked_at;
                 return damagedDate && inRange(damagedDate);
               });
-              // Count unique issued_item IDs, but only if present and valid
-              const uniqueIssuedItemIds = new Set(filteredData.map((d: any) => d.issued_item).filter(Boolean));
-              console.log('DamagedItems API raw:', data, 'Filtered:', filteredData, 'Unique issued_item count:', uniqueIssuedItemIds.size);
+              // Count unique issued_item IDs robustly (handle string, number, or object)
+              const uniqueIssuedItemIds = new Set(
+                filteredData.map((d: any) => {
+                  if (typeof d.issued_item === 'object' && d.issued_item !== null) {
+                    return d.issued_item.id || d.issued_item._id || JSON.stringify(d.issued_item);
+                  }
+                  return String(d.issued_item);
+                }).filter(Boolean)
+              );
               setDamagedSerialCount(uniqueIssuedItemIds.size);
             } catch {
               setDamagedSerialCount(0);

@@ -37,8 +37,6 @@ const LoginPage: React.FC = () => {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">
-        {/* Header (now handled by navbar) */}
-
         {/* Main */}
         <main className="flex-grow flex flex-col md:flex-row items-center justify-center">
           {/* Left Section */}
@@ -94,8 +92,16 @@ const LoginPage: React.FC = () => {
           </section>
 
           {/* Right Section - Login */}
-          <section className="w-full md:w-1/2 flex items-center justify-center">
-            <div className="w-full max-w-md">
+          <section className="w-full md:w-1/2 flex items-center justify-center min-h-[60vh] py-8 px-4">
+            <div className="w-full max-w-md flex flex-col items-center">
+              {/* Show logo and app name above form on mobile */}
+              <div className="md:hidden flex flex-col items-center mb-6">
+                {orgLogo ? (
+                  <img src={orgLogo} alt="Logo" className="h-14 w-14 rounded object-contain bg-white mb-2" />
+                ) : null}
+                <span className="text-2xl font-extrabold text-blue-700 tracking-wide mb-1">{orgName}</span>
+                <span className="text-base text-slate-500 font-medium">Sign in to access the logistics system</span>
+              </div>
               <LoginForm />
             </div>
           </section>

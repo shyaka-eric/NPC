@@ -32,9 +32,6 @@ CHANNEL_LAYERS = {
 }
 
 # CORS
-INSTALLED_APPS += ['corsheaders']
-MIDDLEWARE = ['corsheaders.middleware.CorsMiddleware'] + MIDDLEWARE
-
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'https://npc-tau.vercel.app',

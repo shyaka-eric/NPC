@@ -215,7 +215,7 @@ const MyRepairRequests: React.FC = () => {
       <div className="mt-8">
         <Table
           columns={columns}
-          data={groupedRequests}
+          data={repairRequestsToDisplay}
           keyExtractor={keyExtractor}
           isLoading={isLoading}
           emptyMessage="You have no repair requests."

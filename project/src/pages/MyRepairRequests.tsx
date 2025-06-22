@@ -97,13 +97,14 @@ const MyRepairRequests: React.FC = () => {
       const response = await axios.get<RepairRequest[]>(`${API_URL}/api/repair-requests/`, {
         headers: {
           Authorization: `Bearer ${token}`,
-        },
-        params: { requested_by: user.id },
+        }
       });
 
+      // Filter for current user in frontend to ensure match
+      const userRequests = response.data.filter(req => String(req.requested_by) === String(user.id));
       const responseData = isFilteredView
-        ? response.data.filter(req => inRange(req.created_at))
-        : response.data; // Fetch all repair requests when toggle is off
+        ? userRequests.filter(req => inRange(req.created_at))
+        : userRequests; // Fetch all repair requests when toggle is off
 
       const grouped: { [key: string]: any } = {};
       responseData.forEach(req => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import LoginForm from '../components/LoginForm';
 
 const ORG_NAME_KEY = 'orgName';
@@ -28,9 +29,9 @@ const LoginPage: React.FC = () => {
           <span className="text-xl font-extrabold text-white tracking-wide drop-shadow">{orgName}</span>
         </div>
         <div className="hidden md:flex gap-8 text-white font-medium text-base">
-          <a href="#features" className="hover:underline">Features</a>
-          <a href="#about" className="hover:underline">About</a>
-          <a href="#contact" className="hover:underline">Contact</a>
+          <Link to="/features" className="hover:underline">Features</Link>
+          <Link to="/about" className="hover:underline">About</Link>
+          <Link to="/contact" className="hover:underline">Contact</Link>
         </div>
       </nav>
 

@@ -159,7 +159,7 @@ const LoginPage: React.FC = () => {
               </div>
               <span className="text-base text-slate-500 font-medium mb-2 text-center">Sign in to access the logistics system</span>
             </div>
-            <div className="w-full max-w-md md:max-w-lg flex flex-col items-center">
+            <div className="w-full max-w-md md:max-w-xl flex flex-col items-center py-8 md:py-12">
               <LoginForm />
             </div>
           </section>

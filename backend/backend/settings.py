@@ -146,11 +146,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "https://npc-tau.vercel.app",  # Your Vercel domain
-    "http://localhost:3000",  # For local development
-    "http://127.0.0.1:3000",  # Alternative local development
-    'http://localhost:3500',
-    'http://127.0.0.1:3500',
+    "https://npc-tau.vercel.app",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [

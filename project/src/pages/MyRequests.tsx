@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRequestsStore } from '../store/requestsStore';
+import { useAuthStore } from '../store/authStore';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
 import { toast } from 'sonner';
@@ -13,6 +14,7 @@ import Toggle from '../components/ui/Toggle';
 
 const MyRequests: React.FC = () => {
   const { requests, fetchRequests } = useRequestsStore();
+  const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [combinedRequests, setCombinedRequests] = useState<any[]>([]);
   const [searchParams] = useSearchParams();
@@ -101,6 +103,9 @@ const MyRequests: React.FC = () => {
     ? filterRequestsByRange(requests.filter(request => request.type === 'new'))
     : requests.filter(request => request.type === 'new');
 
+  // Filter requests to only those made by the logged-in unit leader
+  const myRequests = requests.filter(req => req.requested_by === user?.id);
+
   // Ensure `Requested At` column explicitly extracts and displays only the date
   const columns = [
     { header: 'Requested At', accessor: (item: any) => item.requestedAt, render: (date: string) => date.split('T')[0] },
@@ -167,7 +172,7 @@ const MyRequests: React.FC = () => {
           </div>
         ) : (
           <Table
-            data={requestsToDisplay}
+            data={myRequests}
             columns={columns}
             keyExtractor={(item) => `${item.id}-${item.itemName}`} // Use a combination of id and itemName for uniqueness
           />

@@ -1,7 +1,11 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const AboutPage: React.FC = () => (
   <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-16">
+    <div className="w-full max-w-2xl mb-6 flex justify-start">
+      <Link to="/" className="text-blue-700 font-semibold hover:underline">← Home</Link>
+    </div>
     <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8 border border-slate-200">
       <h1 className="text-3xl font-bold text-blue-700 mb-4">About NPC Logistics</h1>
       <p className="text-lg text-slate-700 mb-4">

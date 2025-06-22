@@ -111,10 +111,10 @@ const MyRequests: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen flex flex-col">
       <PageHeader
         title="My Requests"
-        description="View and track your item and repair requests"
+        description="View and manage your item requests."
       />
 
       <div className="mt-4 flex justify-between items-center">

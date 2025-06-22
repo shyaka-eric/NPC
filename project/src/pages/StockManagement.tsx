@@ -281,7 +281,7 @@ const StockManagement: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen flex flex-col">
       {/* Hidden file input for Excel import */}
       <input
         type="file"
@@ -292,7 +292,7 @@ const StockManagement: React.FC = () => {
       />
       <PageHeader
         title="Stock Management"
-        description="Manage inventory items and track stock levels"
+        description="Manage your inventory and stock levels"
         actions={
           <div className="flex gap-2">
             <Button
@@ -319,7 +319,7 @@ const StockManagement: React.FC = () => {
         }
       />
 
-      <div className="mt-8">
+      <div className="mt-8 flex-1">
         <Table
           columns={columns}
           data={paginatedItems}

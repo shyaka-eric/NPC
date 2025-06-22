@@ -16,7 +16,7 @@ const Reports: React.FC = () => {
   if (currentUser.role !== 'system-admin') {
     const section = roleSections.find(r => r.key === currentUser.role);
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen flex flex-col">
         <PageHeader
           title="Reports"
           description={`View and generate reports for your role: ${section?.label}`}
@@ -32,12 +32,12 @@ const Reports: React.FC = () => {
   const [activeRole, setActiveRole] = useState('admin');
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen flex flex-col">
       <PageHeader
         title="Reports"
         description="View and generate reports for each user role."
       />
-      <div className="flex gap-4 mb-8">
+      <div className="flex gap-4 mb-8 flex-wrap">
         {roleSections.map(role => (
           <button
             key={role.key}

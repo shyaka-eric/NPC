@@ -49,11 +49,11 @@ const Users: React.FC = () => {
   });
 
   if (!users || users.length === 0) {
-    return <div className="p-8 text-center text-slate-500">No users found or failed to load users.</div>;
+    return <div className="p-8 text-center text-slate-500 min-h-screen flex items-center justify-center">No users found or failed to load users.</div>;
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen flex flex-col">
       <PageHeader
         title="Users Management"
         description="View, add, edit, and manage all users in the system."

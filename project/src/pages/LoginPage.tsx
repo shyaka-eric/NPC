@@ -19,20 +19,24 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen text-slate-800 bg-white flex flex-col relative">
+      {/* Navbar */}
+      <nav className="w-full bg-gradient-to-r from-blue-600 to-blue-800 shadow-md py-3 px-6 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2">
+          {orgLogo ? (
+            <img src={orgLogo} alt="Logo" className="h-8 w-8 rounded object-contain bg-white" />
+          ) : null}
+          <span className="text-xl font-extrabold text-white tracking-wide drop-shadow">{orgName}</span>
+        </div>
+        <div className="hidden md:flex gap-8 text-white font-medium text-base">
+          <a href="#features" className="hover:underline">Features</a>
+          <a href="#about" className="hover:underline">About</a>
+          <a href="#contact" className="hover:underline">Contact</a>
+        </div>
+      </nav>
+
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">
-        {/* Header */}
-        <header className="flex justify-between items-center py-2 px-6">
-          <div className="flex items-center gap-2">
-            {orgLogo ? (
-              <img src={orgLogo} alt="Logo" className="h-8 w-8 rounded object-contain bg-white" />
-            ) : null}
-            <div className="text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-              {orgName}
-            </div>
-          </div>
-          <div></div>
-        </header>
+        {/* Header (now handled by navbar) */}
 
         {/* Main */}
         <main className="flex-grow flex flex-col md:flex-row items-center justify-center">
@@ -97,7 +101,7 @@ const LoginPage: React.FC = () => {
         </main>
 
         {/* Footer */}
-        <footer className="text-center p-6 text-slate-300">
+        <footer className="text-center p-6 bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold shadow-inner mt-8">
           <div>© 2025 {orgName}. All rights reserved.</div>
         </footer>
       </div>

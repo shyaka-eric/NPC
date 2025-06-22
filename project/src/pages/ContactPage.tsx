@@ -16,7 +16,12 @@ const ContactPage: React.FC = () => {
           if (settings.admin_phone) setPhone(settings.admin_phone);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        // If 401 Unauthorized, ignore (public page)
+        if (err?.response?.status !== 401) {
+          // Optionally handle other errors
+        }
+      });
   }, []);
 
   return (

@@ -109,7 +109,7 @@ REST_FRAMEWORK = {
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'https://npc-tau.vercel.app',
-    'https://npc-frontend.onrender.com',
+    'https://logistics-backend-qh1y.onrender.com',
 ]
 CORS_ALLOW_HEADERS = [
     'accept',

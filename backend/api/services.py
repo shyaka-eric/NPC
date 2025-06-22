@@ -2,10 +2,12 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import Notification, User, IssuedItem
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
 
 def send_notification(recipient_id, notification_type, message):
     """
-    Send a notification to a specific user
+    Send a notification to a specific user and email the recipient
     """
     try:
         # Create notification in database (remove 'request' kwarg)
@@ -32,6 +34,21 @@ def send_notification(recipient_id, notification_type, message):
             f"user_{recipient_id}_notifications",
             notification_data
         )
+
+        # Send email notification
+        try:
+            user = User.objects.get(id=recipient_id)
+            if user.email:
+                send_mail(
+                    subject=f"Notification: {notification_type.replace('_', ' ').title()}",
+                    message=message,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@example.com'),
+                    recipient_list=[user.email],
+                    fail_silently=True,
+                )
+        except Exception as e:
+            print(f"Error sending notification email: {str(e)}")
+
         return notification
     except Exception as e:
         print(f"Error sending notification: {str(e)}")

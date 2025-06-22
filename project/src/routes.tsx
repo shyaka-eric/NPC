@@ -24,6 +24,9 @@ import LogisticOfficerReportPage from './pages/LogisticOfficerReportPage';
 import UnitLeaderReportPage from './pages/UnitLeaderReportPage';
 import RepairRequestDetails from './pages/RepairRequestDetails';
 import DamagedItemGroupDetails from './pages/DamagedItemGroupDetails';
+import FeaturesPage from './pages/FeaturesPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 
 export const AppRoutes = () => {
   return (
@@ -55,6 +58,9 @@ export const AppRoutes = () => {
       <Route path="/damaged-items/group/:itemName/:itemCategory" element={<DamagedItemGroupDetails />} />
       <Route path="/logistics-officer-report" element={<LogisticOfficerReportPage />} />
       <Route path="/systemadminreport" element={<SystemAdminReportPage />} />
+      <Route path="/features" element={<FeaturesPage />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
     </Routes>
   );
 };

@@ -31,6 +31,9 @@ import { AppRoutes } from "./routes";
 import useNotificationWebSocket from './hooks/useNotificationWebSocket';
 import LoginPage from './pages/LoginPage';
 import DeletedItems from './pages/DeletedItems';
+import FeaturesPage from './pages/FeaturesPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 
 // Route guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -89,6 +92,9 @@ const App: React.FC = () => {
               )
             } 
           />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route 
             path="/" 
             element={

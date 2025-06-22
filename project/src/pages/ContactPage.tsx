@@ -19,4 +19,8 @@ const ContactPage: React.FC = () => (
   </div>
 );
 
+// No changes needed to the component itself, but ensure the file is correctly exported and imported in routes.
+// If you are using hash routing, make sure your router is set up to handle /contact, /about, /features paths.
+// If not, you may need to use <Navigate> or <Redirect> in your router setup for legacy hash URLs.
+
 export default ContactPage;

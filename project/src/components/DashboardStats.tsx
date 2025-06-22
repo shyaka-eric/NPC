@@ -160,21 +160,21 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
               value={formatNumber(filteredIssuedItems.filter(item => String(item.assigned_to) === String(user.id)).length)}
               icon={<Package size={24} className="text-blue-500" />} // Blue color for In-Use Items
               onClick={() => navigate(`/in-use-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl"
+              className="w-full h-32 text-2xl"
             />
             <StatCard
               title="My Item Requests"
               value={formatNumber(filteredRequests.filter(req => req.requested_by === user.id && req.type === 'new').length)}
               icon={<ClipboardList size={24} className="text-green-500" />} // Green color for My Item Requests
               onClick={() => navigateToPage('/my-requests')}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
+              className="w-full h-32 text-2xl cursor-pointer"
             />
             <StatCard
               title="My Repair Requests"
               value={formatNumber(filteredRequests.filter(req => req.requested_by === user.id && req.type === 'repair').length)}
               icon={<AlertTriangle size={24} className="text-amber-500" />} // Amber color for My Repair Requests
               onClick={() => navigateToPage('/my-repair-requests')}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
+              className="w-full h-32 text-2xl cursor-pointer"
             />
           </>
         );
@@ -185,14 +185,14 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
               title="Item Requests"
               value={formatNumber(filteredRequests.filter(req => req.type === 'new' && inRange(req.requestedAt || req.created_at)).length)}
               icon={<ClipboardList size={32} className="text-green-500" />} // Purple color for Item Requests
-              className="flex-1 w-full h-32 text-2xl cursor-pointer"
+              className="w-full h-32 text-2xl cursor-pointer"
               onClick={() => navigate(`/requests?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
             />
             <StatCard
               title="Repair Requests"
               value={formatNumber(filteredRequests.filter(req => req.type === 'repair' && inRange(req.requestedAt || req.created_at)).length)}
               icon={<AlertTriangle size={32} className="text-yellow-500" />} // Red color for Repair Requests
-              className="flex-1 w-full h-32 text-2xl cursor-pointer"
+              className="w-full h-32 text-2xl cursor-pointer"
               onClick={() => navigateToPage('/repair-items')}
             />
           </>
@@ -205,21 +205,21 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
               value={formatNumber(repairInProcessCount)}
               icon={<Wrench size={24} className="text-blue-500" />} // Blue for Repair In Process
               onClick={() => navigate(`/repair-in-process?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
+              className="w-full h-32 text-2xl cursor-pointer"
             />
             <StatCard
               title="Damaged Items"
               value={damagedLoading ? '...' : formatNumber(damagedSerialCount)}
               icon={<AlertTriangle size={24} className="text-red-500" />} // Red for Damaged Items
               onClick={() => navigate(`/damaged-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
+              className="w-full h-32 text-2xl cursor-pointer"
             />
             <StatCard
               title="Approved Items"
               value={formatNumber(approvedCount)}
               icon={<CheckCircle size={24} className="text-green-500" />} // Green for Approved Items
               onClick={() => navigate(`/issue-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
-              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
+              className="w-full h-32 text-2xl cursor-pointer"
             />
           </>
         );
@@ -308,7 +308,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           </>
         )}
       </div>
-      <div className="flex flex-row justify-center items-center gap-8 w-full mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full mb-8">
         {renderCards()}
       </div>
     </div>

@@ -6,7 +6,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import { toast } from 'sonner';
 import { formatDate } from '../utils/formatters';
 import Table from '../components/ui/Table';
-import { parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import * as XLSX from 'xlsx';
@@ -25,31 +25,24 @@ const MyRequests: React.FC = () => {
   const customEnd = searchParams.get('customEnd') || '';
 
   useEffect(() => {
-    console.log('Range type updated:', rangeType);
     const loadRequests = async () => {
       setIsLoading(true);
       try {
         await fetchRequests();
-        console.log('Fetched requests:', requests);
-
-        // Clear combinedRequests before filtering
-        setCombinedRequests([]);
-
-        const filteredRequests = filterRequestsByRange(requests.filter((request) => request.type === 'new'));
+        // Only filter 'new' requests made by the logged-in user
+        const filteredRequests = filterRequestsByRange(requests.filter((request) => request.type === 'new' && request.requested_by === user?.id));
         setCombinedRequests(filteredRequests);
       } catch (error) {
-        console.error('Error loading requests:', error);
         toast.error('Failed to load requests');
       } finally {
         setIsLoading(false);
       }
     };
     loadRequests();
-  }, [fetchRequests, requests, rangeType, customStart, customEnd]);
+  }, [fetchRequests, requests, rangeType, customStart, customEnd, user?.id]);
 
   const getRange = () => {
     const today = new Date();
-    console.log('Selected range type:', rangeType);
     switch (rangeType) {
       case 'daily':
         return { start: startOfDay(today), end: endOfDay(today) };
@@ -70,12 +63,10 @@ const MyRequests: React.FC = () => {
 
   // Corrected debug logs to reference range returned by getRange
   const { start, end } = getRange();
-  console.log('Weekly range start:', start, 'Weekly range end:', end);
 
   // Ensure filtering logic includes all items within the weekly range
   const filterRequestsByRange = (requests: any[]) => {
     const { start, end } = getRange();
-    console.log('Filtering requests with range:', { start, end });
 
     return requests.filter((request) => {
       const dateToCheck = request.requestedAt || request.requested_at;
@@ -84,7 +75,6 @@ const MyRequests: React.FC = () => {
         return false;
       }
       const requestedDate = new Date(dateToCheck);
-      console.log('Request date:', requestedDate, 'Start:', start, 'End:', end);
       return requestedDate >= start && requestedDate <= end;
     });
   };
@@ -100,11 +90,8 @@ const MyRequests: React.FC = () => {
 
   // Fix duplication issue by ensuring requestsToDisplay is derived directly from the toggle state
   const requestsToDisplay = isFilteredView
-    ? filterRequestsByRange(requests.filter(request => request.type === 'new'))
-    : requests.filter(request => request.type === 'new');
-
-  // Filter requests to only those made by the logged-in unit leader
-  const myRequests = requests.filter(req => req.requested_by === user?.id);
+    ? filterRequestsByRange(requests.filter(request => request.type === 'new' && request.requested_by === user?.id))
+    : requests.filter(request => request.type === 'new' && request.requested_by === user?.id);
 
   // Ensure `Requested At` column explicitly extracts and displays only the date
   const columns = [
@@ -172,9 +159,9 @@ const MyRequests: React.FC = () => {
           </div>
         ) : (
           <Table
-            data={myRequests}
+            data={requestsToDisplay}
             columns={columns}
-            keyExtractor={(item) => `${item.id}-${item.itemName}`} // Use a combination of id and itemName for uniqueness
+            keyExtractor={(item) => `${item.id}-${item.itemName}`}
           />
         )}
       </div>

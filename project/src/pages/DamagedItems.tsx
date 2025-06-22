@@ -54,7 +54,7 @@ const DamagedItems: React.FC = () => {
         case 'daily':
           return { start: startOfDay(today), end: endOfDay(today) };
         case 'weekly':
-          return { start: start
+          return { start: startOfDay(today), end: endOfWeek(today) };
         case 'monthly':
           return { start: startOfDay(today), end: endOfMonth(today) };
         case 'custom':

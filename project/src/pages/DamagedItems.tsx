@@ -91,9 +91,18 @@ const DamagedItems: React.FC = () => {
     const filteredDamagedItems = filteredView
       ? damagedItems.filter(item => {
           const damagedDate = item.reported_date || item.marked_at;
-          return inRange(damagedDate);
+          if (!damagedDate) return false;
+          let date;
+          try {
+            date = typeof damagedDate === 'string' ? parseISO(damagedDate) : damagedDate;
+            if (isNaN(date.getTime())) return false;
+          } catch {
+            return false;
+          }
+          return date >= start && date <= end;
         })
       : damagedItems;
+    console.log('Filtered damaged items:', filteredDamagedItems);
 
     const totalPages = Math.ceil(filteredDamagedItems.length / ITEMS_PER_PAGE);
     const paginatedItems = filteredDamagedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -112,7 +121,9 @@ const DamagedItems: React.FC = () => {
                 }
             });
             // Fix: handle both array and paginated object
-            setDamagedItems(Array.isArray(response.data) ? response.data : (response.data.results || []));
+            const items = Array.isArray(response.data) ? response.data : (response.data.results || []);
+            console.log('Raw damaged items data:', items); // Debug log
+            setDamagedItems(items);
             setError(null);
         } catch (err) {
             setError('Failed to fetch damaged items');
@@ -232,7 +243,14 @@ const DamagedItems: React.FC = () => {
                     </div>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    {filteredDamagedItems.length === 0 ? (
+                        <div className="text-center text-gray-500 py-8 text-lg">
+                          {filteredView
+                            ? 'No damaged items found for the selected date range.'
+                            : 'No damaged items found.'}
+                        </div>
+                    ) : (
+                      <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -260,6 +278,7 @@ const DamagedItems: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                    )}
                 </div>
                 {/* Pagination Controls */}
                 <div className="flex justify-center mt-6">

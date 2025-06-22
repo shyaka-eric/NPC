@@ -94,7 +94,7 @@ const MyRepairRequests: React.FC = () => {
         setIsLoading(false);
         return;
       }
-      const response = await axios.get<RepairRequest[]>(`${API_URL}/api/repair-requests/`, {
+      const response = await axios.get<RepairRequest[]>(`${API_URL}/repair-requests/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         }

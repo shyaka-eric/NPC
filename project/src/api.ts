@@ -3,10 +3,11 @@ import type { InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from './store/authStore'
 import { toast } from 'sonner'
 
-export const API_URL = "https://logistics-backend-qh1y.onrender.com/api"
+// Use the same API_URL as config.ts and .env (no /api at the end)
+export const API_URL = "https://logistics-backend-qh1y.onrender.com"
 
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_URL}/api/`,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',

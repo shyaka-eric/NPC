@@ -189,9 +189,11 @@ const IssueItems: React.FC = () => {
       ],
       ...visibleRequests.map(r => {
         const item = getItem(r.itemId);
+        // Use the same logic as the table for category
+        const category = item?.category || r.category || '-';
         return [
-          formatDate(r.requestedAt || r.created_at),
-          item?.category || '-',
+          formatDate(r.requestedAt || r.createdAt || r.created_at || '-'),
+          category,
           item?.name || r.itemName || '-',
           r.quantity ?? '-',
           r.requestedByName || '-',

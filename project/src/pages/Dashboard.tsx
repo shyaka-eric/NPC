@@ -122,22 +122,6 @@ const Dashboard: React.FC = () => {
         inRange={inRange}
       />
       
-      {/* Dashboard Cards Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full mb-8">
-        {/* Card 1 */}
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center justify-center min-h-[120px] w-full">
-          {/* ...existing card 1 content... */}
-        </div>
-        {/* Card 2 */}
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center justify-center min-h-[120px] w-full">
-          {/* ...existing card 2 content... */}
-        </div>
-        {/* Card 3 */}
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center justify-center min-h-[120px] w-full">
-          {/* ...existing card 3 content... */}
-        </div>
-      </div>
-
       <div className="mt-8 flex justify-center w-full">
         {user.role === 'system-admin' ? (
           <div className="w-full max-w-3xl mx-auto">

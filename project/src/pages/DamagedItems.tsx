@@ -3,7 +3,7 @@ import axios from 'axios';
 import { format, startOfDay, endOfWeek, startOfMonth, endOfMonth, endOfDay, isWithinInterval, parseISO } from 'date-fns';
 import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { API_URL } from '../config';
+import { api } from '../api';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useSearchParams } from 'react-router-dom';
@@ -54,7 +54,7 @@ const DamagedItems: React.FC = () => {
         case 'daily':
           return { start: startOfDay(today), end: endOfDay(today) };
         case 'weekly':
-          return { start: startOfDay(today), end: endOfWeek(today) };
+          return { start: start
         case 'monthly':
           return { start: startOfDay(today), end: endOfMonth(today) };
         case 'custom':
@@ -115,13 +115,7 @@ const DamagedItems: React.FC = () => {
 
     const fetchDamagedItems = async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) throw new Error('No authentication token found');
-            const response = await axios.get(`${API_URL}/api/damaged-items/`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const response = await api.get('damaged-items/');
             // Fix: handle both array and paginated object
             const items = Array.isArray(response.data) ? response.data : (response.data.results || []);
             console.log('Raw damaged items data:', items); // Debug log

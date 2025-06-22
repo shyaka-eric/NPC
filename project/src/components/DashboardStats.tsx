@@ -209,9 +209,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
             />
             <StatCard
               title="Damaged Items"
-              value={damagedLoading ? (
-                <span className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full"></span>
-              ) : formatNumber(damagedSerialCount)}
+              value={damagedLoading ? '...' : formatNumber(damagedSerialCount)}
               icon={<AlertTriangle size={24} className="text-red-500" />} // Red for Damaged Items
               onClick={() => navigate(`/damaged-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"

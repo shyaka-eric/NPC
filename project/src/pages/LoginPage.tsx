@@ -8,6 +8,7 @@ const ORG_LOGO_KEY = 'orgLogo';
 const LoginPage: React.FC = () => {
   const [orgName, setOrgName] = useState(localStorage.getItem(ORG_NAME_KEY) || 'NPC Logistics');
   const [orgLogo, setOrgLogo] = useState(localStorage.getItem(ORG_LOGO_KEY));
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     const handleStorage = () => {
@@ -28,12 +29,29 @@ const LoginPage: React.FC = () => {
           ) : null}
           <span className="text-xl font-extrabold text-white tracking-wide drop-shadow">{orgName}</span>
         </div>
+        {/* Desktop links */}
         <div className="hidden md:flex gap-8 text-white font-medium text-base">
           <Link to="/features" className="hover:underline">Features</Link>
           <Link to="/about" className="hover:underline">About</Link>
           <Link to="/contact" className="hover:underline">Contact</Link>
         </div>
+        {/* Mobile menu button */}
+        <div className="md:hidden">
+          <button onClick={() => setShowMobileMenu(v => !v)} aria-label="Open menu" className="text-white focus:outline-none">
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
       </nav>
+      {/* Mobile nav links dropdown */}
+      {showMobileMenu && (
+        <div className="md:hidden bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-3 flex flex-col gap-3 text-white font-medium text-base z-30">
+          <Link to="/features" className="hover:underline" onClick={() => setShowMobileMenu(false)}>Features</Link>
+          <Link to="/about" className="hover:underline" onClick={() => setShowMobileMenu(false)}>About</Link>
+          <Link to="/contact" className="hover:underline" onClick={() => setShowMobileMenu(false)}>Contact</Link>
+        </div>
+      )}
 
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">
@@ -95,11 +113,16 @@ const LoginPage: React.FC = () => {
           <section className="w-full md:w-1/2 flex items-center justify-center min-h-[60vh] py-8 px-4">
             <div className="w-full max-w-md flex flex-col items-center">
               {/* Show logo and app name above form on mobile */}
-              <div className="md:hidden flex flex-col items-center mb-6">
+              <div className="md:hidden flex flex-col items-center mb-6 w-full">
                 {orgLogo ? (
                   <img src={orgLogo} alt="Logo" className="h-14 w-14 rounded object-contain bg-white mb-2" />
                 ) : null}
                 <span className="text-2xl font-extrabold text-blue-700 tracking-wide mb-1">{orgName}</span>
+                {/* Minimal intro for mobile */}
+                <h1 className="text-xl font-bold text-blue-600 leading-tight mb-2 text-center">Streamlining Logistics for a Smarter Tomorrow</h1>
+                <p className="text-sm text-slate-600 leading-relaxed mb-2 text-center">
+                  NPC Logistics is your trusted platform to manage, track, and optimize inventory and supply chains within national operations.
+                </p>
                 <span className="text-base text-slate-500 font-medium">Sign in to access the logistics system</span>
               </div>
               <LoginForm />

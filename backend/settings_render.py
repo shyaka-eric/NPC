@@ -1,9 +1,4 @@
-import os
-from pathlib import Path
-
 from .settings import *
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -32,21 +27,8 @@ CHANNEL_LAYERS = {
 }
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    'https://npc-tau.vercel.app',
-]
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'access-control-allow-origin',
+    'https://logistics-backend-qh1y.onrender.com',
 ]
 
 # Static files

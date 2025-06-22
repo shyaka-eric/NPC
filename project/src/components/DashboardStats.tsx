@@ -26,7 +26,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
   const { user, fetchUsers } = useAuthStore();
   const navigate = useNavigate();
   const [damagedSerialCount, setDamagedSerialCount] = useState<number>(0);
-  const [damagedRefreshKey, setDamagedRefreshKey] = useState(0); // Add refresh key
+  const [damagedLoading, setDamagedLoading] = useState(false);
 
   useEffect(() => {
     fetchIssuedItems();
@@ -37,20 +37,17 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
 
   useEffect(() => {
     if (user?.role !== 'logistics-officer') return;
-    // Get date range for filtering
     const { start, end } = getRange();
     const fetchDamagedItems = async () => {
+      setDamagedLoading(true);
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        // Use the shared axios api instance
         const response = await api.get('damaged-items/', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = response.data;
         let damagedItems = Array.isArray(data) ? data : (data.results || []);
-        console.log('Raw damaged items data:', damagedItems); // Debug log
-        // Apply the same date filtering as the Damaged Items page
         const filtered = damagedItems.filter((item: any) => {
           const damagedDate = item.reported_date || item.marked_at;
           if (!damagedDate) return false;
@@ -62,15 +59,15 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           }
           return date >= start && date <= end;
         });
-        console.log('Filtered damaged items count:', filtered.length); // Debug log
         setDamagedSerialCount(filtered.length);
       } catch (e) {
         setDamagedSerialCount(0);
+      } finally {
+        setDamagedLoading(false);
       }
     };
     fetchDamagedItems();
-    // Add all range dependencies
-  }, [user?.role, rangeType, customStart, customEnd, damagedRefreshKey]); // Add refresh key
+  }, [user?.role, rangeType, customStart, customEnd]);
 
   // Helper to get date range
   const getRange = () => {
@@ -207,22 +204,15 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
               onClick={() => navigate(`/repair-in-process?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
               className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <StatCard
-                title="Damaged Items"
-                value={formatNumber(damagedSerialCount)}
-                icon={<AlertTriangle size={24} className="text-red-500" />} // Red for Damaged Items
-                onClick={() => navigate(`/damaged-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
-                className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
-              />
-              <button
-                style={{ height: 32, width: 32, borderRadius: 16, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                title="Refresh Damaged Items Count"
-                onClick={() => setDamagedRefreshKey(k => k + 1)}
-              >
-                &#x21bb;
-              </button>
-            </div>
+            <StatCard
+              title="Damaged Items"
+              value={damagedLoading ? (
+                <span className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full"></span>
+              ) : formatNumber(damagedSerialCount)}
+              icon={<AlertTriangle size={24} className="text-red-500" />} // Red for Damaged Items
+              onClick={() => navigate(`/damaged-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
+              className="flex-1 min-w-[300px] max-w-[600px] h-32 text-2xl cursor-pointer"
+            />
             <StatCard
               title="Approved Items"
               value={formatNumber(approvedCount)}

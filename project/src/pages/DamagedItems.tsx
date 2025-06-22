@@ -106,13 +106,13 @@ const DamagedItems: React.FC = () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) throw new Error('No authentication token found');
-            
             const response = await axios.get(`${API_URL}/api/damaged-items/`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
-            setDamagedItems(response.data);
+            // Fix: handle both array and paginated object
+            setDamagedItems(Array.isArray(response.data) ? response.data : (response.data.results || []));
             setError(null);
         } catch (err) {
             setError('Failed to fetch damaged items');

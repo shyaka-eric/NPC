@@ -141,22 +141,20 @@ const Requests: React.FC = () => {
     const sheetData = [
       ['Requests Report'],
       [`Exported Date: ${formatDate(new Date())}`],
-      ['Request Date', 'Type', 'Category', 'Item', 'Quantity', 'Requested By', 'Status', 'Available Stock'],
+      // Remove 'Available Stock' from the header
+      ['Request Date', 'Type', 'Category', 'Item', 'Quantity', 'Requested By', 'Status'],
       ...filteredRequests.map(request => [
-        safeFormatDate(request.requestedAt || request.created_at),
+        safeFormatDate(request.requestedAt || request.createdAt),
         request.type.charAt(0).toUpperCase() + request.type.slice(1),
-        request.type === 'repair' ? request.item_category || (request.issued_item && request.issued_item.item_category) || '-' : items.find(i => String(i.id) === String(request.itemId))?.category || request.category || '-',
-        request.type === 'repair' ? request.item_name || (request.issued_item && request.issued_item.item_name) || '-' : items.find(i => String(i.id) === String(request.itemId))?.name || request.item_name || '-',
-        request.type === 'repair' ? 1 : request.quantity,
-        request.requestedByName || request.requestedBy || '-',
+        request.category || '-',
+        request.itemName || '-',
+        request.quantity,
+        request.requested_by_name || request.requestedByName || '-',
         request.status,
-        request.type === 'repair' ? '-' : items.find(i => String(i.id) === String(request.itemId))?.quantity || '-'
-      ])
+      ]),
     ];
-
     const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Requests');
-
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
     saveAs(blob, `Requests_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -193,13 +191,6 @@ const Requests: React.FC = () => {
     {
       header: 'Status',
       accessor: (request: any) => <StatusBadge status={request.status} />
-    },
-    {
-      header: 'Available Stock',
-      accessor: (request: any) => {
-        const item = items.find(i => String(i.id) === String(request.item));
-        return item ? item.quantity : '-';
-      }
     },
     {
       header: 'Actions',

@@ -38,6 +38,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
   useEffect(() => {
     if (user?.role !== 'logistics-officer') return;
     const { start, end } = getRange();
+    console.log('[DashboardStats] Date range:', start, end);
     const fetchDamagedItems = async () => {
       setDamagedLoading(true);
       try {
@@ -54,6 +55,8 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           let date;
           try {
             date = typeof damagedDate === 'string' ? parseISO(damagedDate) : damagedDate;
+            console.log('[DashboardStats] Item:', item, 'Parsed date:', date);
+            if (isNaN(date.getTime())) return false;
           } catch {
             return false;
           }

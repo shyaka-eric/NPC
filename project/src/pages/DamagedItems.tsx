@@ -67,6 +67,7 @@ const DamagedItems: React.FC = () => {
       }
     };
     const { start, end } = getRange();
+    console.log('[DamagedItems] Date range:', start, end);
   
     // Helper to check if a date is in range (accepts string or Date)
     const inRange = (dateVal: string | Date | undefined) => {
@@ -95,6 +96,7 @@ const DamagedItems: React.FC = () => {
           let date;
           try {
             date = typeof damagedDate === 'string' ? parseISO(damagedDate) : damagedDate;
+            console.log('[DamagedItems] Item:', item, 'Parsed date:', date);
             if (isNaN(date.getTime())) return false;
           } catch {
             return false;

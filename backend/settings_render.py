@@ -27,8 +27,25 @@ CHANNEL_LAYERS = {
 }
 
 # CORS
+INSTALLED_APPS += ['corsheaders']
+MIDDLEWARE = ['corsheaders.middleware.CorsMiddleware'] + MIDDLEWARE
+
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    'https://npc-frontend.onrender.com',
+    'https://npc-tau.vercel.app',
+    'https://logistics-backend-qh1y.onrender.com',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'access-control-allow-origin',
 ]
 
 # Static files

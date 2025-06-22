@@ -61,6 +61,7 @@ export const AppRoutes = () => {
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="*" element={<div className="text-center py-20 text-2xl text-slate-500">404 - Page Not Found</div>} />
     </Routes>
   );
 };

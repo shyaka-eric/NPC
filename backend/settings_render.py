@@ -1,4 +1,9 @@
+import os
+from pathlib import Path
+
 from .settings import *
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -33,7 +38,6 @@ MIDDLEWARE = ['corsheaders.middleware.CorsMiddleware'] + MIDDLEWARE
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'https://npc-tau.vercel.app',
-    'https://logistics-backend-qh1y.onrender.com',
 ]
 CORS_ALLOW_HEADERS = [
     'accept',

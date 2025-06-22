@@ -110,20 +110,56 @@ const LoginPage: React.FC = () => {
           </section>
 
           {/* Right Section - Login */}
-          <section className="w-full md:w-1/2 flex items-center justify-center min-h-[60vh] py-8 px-4">
-            <div className="w-full max-w-md flex flex-col items-center">
-              {/* Show logo and intro above form on mobile */}
-              <div className="md:hidden flex flex-col items-center mb-6 w-full">
-                {orgLogo ? (
-                  <img src={orgLogo} alt="Logo" className="h-14 w-14 rounded object-contain bg-white mb-2" />
-                ) : null}
-                <span className="text-2xl font-extrabold text-blue-700 tracking-wide mb-1">{orgName}</span>
-                <h1 className="text-2xl font-bold text-blue-600 leading-tight mb-2 text-center">Streamlining Logistics for a Smarter Tomorrow</h1>
-                <p className="text-base text-slate-700 leading-relaxed mb-3 text-center">
-                  NPC Logistics is your trusted platform to manage, track, and optimize inventory and supply chains within national operations.
-                </p>
-                <span className="text-base text-slate-500 font-medium">Sign in to access the logistics system</span>
+          <section className="w-full md:w-1/2 flex flex-col items-center justify-center min-h-[60vh] py-8 px-4">
+            {/* Show full intro and cards above form on mobile */}
+            <div className="md:hidden w-full flex flex-col items-center mb-8">
+              {orgLogo ? (
+                <img src={orgLogo} alt="Logo" className="h-14 w-14 rounded object-contain bg-white mb-2" />
+              ) : null}
+              <span className="text-2xl font-extrabold text-blue-700 tracking-wide mb-1">{orgName}</span>
+              <h1 className="text-3xl font-bold text-blue-600 leading-tight mb-4 text-center">Streamlining Logistics for a Smarter Tomorrow</h1>
+              <p className="text-base text-slate-700 leading-relaxed mb-6 text-center">
+                NPC Logistics is your trusted platform to manage, track, and optimize inventory and supply chains within national operations.
+              </p>
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 w-full max-w-md mb-6">
+                {[
+                  {
+                    title: 'Real-time Tracking',
+                    description: 'Monitor your shipments and inventory in real-time',
+                    iconBg: 'bg-blue-500'
+                  },
+                  {
+                    title: 'Smart Analytics',
+                    description: 'Make data-driven decisions with advanced insights',
+                    iconBg: 'bg-green-500'
+                  },
+                  {
+                    title: 'Secure Platform',
+                    description: 'Enterprise-grade security for your operations',
+                    iconBg: 'bg-amber-500'
+                  },
+                  {
+                    title: '24/7 Support',
+                    description: 'Round-the-clock assistance for your needs',
+                    iconBg: 'bg-emerald-500'
+                  }
+                ].map((feature, i) => (
+                  <div key={i} className="bg-white shadow rounded-xl p-4 border border-slate-200 hover:border-blue-400 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`p-2 rounded-lg ${feature.iconBg}`}>
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h3 className="font-semibold text-slate-800">{feature.title}</h3>
+                    </div>
+                    <p className="text-sm text-slate-600">{feature.description}</p>
+                  </div>
+                ))}
               </div>
+              <span className="text-base text-slate-500 font-medium mb-2 text-center">Sign in to access the logistics system</span>
+            </div>
+            <div className="w-full max-w-md flex flex-col items-center">
               <LoginForm />
             </div>
           </section>

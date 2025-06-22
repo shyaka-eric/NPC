@@ -263,24 +263,20 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
         }, [rangeType, customStart, customEnd]);
         return (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 w-full">
-              {/* Deleted Items Card */}
-              <StatCard
-                icon={<Trash size={32} className="text-red-500" />} // Red for Deleted Items
-                title="Deleted Items"
-                value={formatNumber(deletedCount)}
-                onClick={() => navigate(`/deleted-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
-                className="w-full h-32 text-2xl cursor-pointer"
-              />
-              {/* Users Card */}
-              <StatCard
-                icon={<Users size={32} className="text-blue-500" />} // Blue for Users
-                title="Users"
-                value={formatNumber(userCount)}
-                onClick={() => navigate(`/users`)}
-                className="w-full h-32 text-2xl cursor-pointer"
-              />
-            </div>
+            <StatCard
+              icon={<Trash size={32} className="text-red-500" />} // Red for Deleted Items
+              title="Deleted Items"
+              value={formatNumber(deletedCount)}
+              onClick={() => navigate(`/deleted-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}
+              className="w-full h-32 text-2xl cursor-pointer"
+            />
+            <StatCard
+              icon={<Users size={32} className="text-blue-500" />} // Blue for Users
+              title="Users"
+              value={formatNumber(userCount)}
+              onClick={() => navigate(`/users`)}
+              className="w-full h-32 text-2xl cursor-pointer"
+            />
           </>
         );
       }
@@ -308,7 +304,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
           </>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full mb-8">
         {renderCards()}
       </div>
     </div>

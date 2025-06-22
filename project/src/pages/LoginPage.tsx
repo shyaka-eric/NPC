@@ -112,15 +112,14 @@ const LoginPage: React.FC = () => {
           {/* Right Section - Login */}
           <section className="w-full md:w-1/2 flex items-center justify-center min-h-[60vh] py-8 px-4">
             <div className="w-full max-w-md flex flex-col items-center">
-              {/* Show logo and app name above form on mobile */}
+              {/* Show logo and intro above form on mobile */}
               <div className="md:hidden flex flex-col items-center mb-6 w-full">
                 {orgLogo ? (
                   <img src={orgLogo} alt="Logo" className="h-14 w-14 rounded object-contain bg-white mb-2" />
                 ) : null}
                 <span className="text-2xl font-extrabold text-blue-700 tracking-wide mb-1">{orgName}</span>
-                {/* Minimal intro for mobile */}
-                <h1 className="text-xl font-bold text-blue-600 leading-tight mb-2 text-center">Streamlining Logistics for a Smarter Tomorrow</h1>
-                <p className="text-sm text-slate-600 leading-relaxed mb-2 text-center">
+                <h1 className="text-2xl font-bold text-blue-600 leading-tight mb-2 text-center">Streamlining Logistics for a Smarter Tomorrow</h1>
+                <p className="text-base text-slate-700 leading-relaxed mb-3 text-center">
                   NPC Logistics is your trusted platform to manage, track, and optimize inventory and supply chains within national operations.
                 </p>
                 <span className="text-base text-slate-500 font-medium">Sign in to access the logistics system</span>

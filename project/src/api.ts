@@ -4,7 +4,7 @@ import { useAuthStore } from './store/authStore'
 import { toast } from 'sonner'
 
 // Use the same API_URL as config.ts and .env (no /api at the end)
-export const API_URL = "https://logistics-backend-qh1y.onrender.com/api"
+export const API_URL = "https://logistics-backend-qh1y.onrender.com"
 
 export const api = axios.create({
   baseURL: `${API_URL}/api/`,

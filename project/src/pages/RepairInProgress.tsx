@@ -197,15 +197,14 @@ const RepairInProgress: React.FC = () => {
 
   const handleExportExcel = () => {
     const wsData = [
-      ['Request Date', 'Category', 'Item Name', 'Serial Number', 'Requested By', 'Status', 'Description'],
+      ['Request Date', 'Category', 'Item Name', 'Serial Number', 'Requested By', 'Status'], // Removed 'Description'
       ...repairRequests.map(r => [
         format(new Date(r.created_at), 'yyyy-MM-dd'),
         r.category || r.issued_item?.item_category || '-',
         r.item_name || r.issued_item?.item_name || '-',
         r.issued_item?.serial_number || '-',
         r.requested_by_name,
-        r.status,
-        r.description || '-'
+        r.status
       ])
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);

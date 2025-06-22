@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import StatCard from './StatCard';
 import { formatNumber } from '../utils/formatters';
 import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../config';
+//import { API_URL } from '../config';
 import { api } from '../api';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
@@ -43,28 +43,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        let baseUrl = import.meta.env.VITE_API_URL || API_URL;
-        // Remove trailing slash if present
-        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-        // Remove trailing '/api' if present
-        if (baseUrl.endsWith('/api')) baseUrl = baseUrl.slice(0, -4);
-        const url = `${baseUrl}/api/damaged-items/`;
-        console.log('Damaged Items API URL:', url); // Debug log
-        const response = await fetch(url, {
+        // Use the shared axios api instance
+        const response = await api.get('damaged-items/', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        const text = await response.text();
-        if (!response.ok) {
-          setDamagedSerialCount(0);
-          return;
-        }
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          setDamagedSerialCount(0);
-          return;
-        }
+        const data = response.data;
         let damagedItems = Array.isArray(data) ? data : (data.results || []);
         console.log('Raw damaged items data:', damagedItems); // Debug log
         // Apply the same date filtering as the Damaged Items page

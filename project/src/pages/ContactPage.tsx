@@ -1,28 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../api';
 
 const ContactPage: React.FC = () => {
-  const [email, setEmail] = useState('admin@npc-logistics.com');
-  const [phone, setPhone] = useState('+1 (234) 567-890');
-
-  useEffect(() => {
-    // Fetch system admin contact info from backend settings endpoint
-    api.get('settings/')
-      .then(res => {
-        if (res.data && res.data.length > 0) {
-          const settings = res.data[0];
-          if (settings.admin_email) setEmail(settings.admin_email);
-          if (settings.admin_phone) setPhone(settings.admin_phone);
-        }
-      })
-      .catch((err) => {
-        // If 401 Unauthorized, ignore (public page)
-        if (err?.response?.status !== 401) {
-          // Optionally handle other errors
-        }
-      });
-  }, []);
+  const email = 'kezafatman@gmail.com';
+  const phone = '+250785678900';
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-16">

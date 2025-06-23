@@ -12,7 +12,7 @@ import { CheckCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useSearchParams } from 'react-router-dom';
-import { isWithinInterval, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 
 const IssueItems: React.FC = () => {
   const { user } = useAuthStore();
@@ -136,7 +136,7 @@ const IssueItems: React.FC = () => {
       header: 'Category',
       accessor: (request: any) => {
         const item = getItem(request.itemId);
-        return item?.category || '-';
+        return item?.category ? item.category : 'N/A';
       }
     },
     {
@@ -154,7 +154,7 @@ const IssueItems: React.FC = () => {
       header: 'Available Quantity',
       accessor: (request: any) => {
         const item = getItem(request.itemId);
-        return item?.quantity ?? '-';
+        return (item && typeof item.quantity === 'number') ? item.quantity : 'N/A';
       }
     },
     {

@@ -65,7 +65,7 @@ const IssueItems: React.FC = () => {
     await fetchItems(); // Always get latest items before issuing
     // Debug: print the full request object and possible item ID fields
     console.log('DEBUG: request object', request);
-    const item = getItem(request.item); // FIX: use request.item
+    const item = getItem(request.itemId ?? request.item); // Support both itemId and item
     // Debug log quantities
     // console.log('DEBUG: item', item, 'item.quantity', item?.quantity, 'request.quantity', request.quantity);
     if (!item || item.quantity < request.quantity) {
@@ -76,7 +76,7 @@ const IssueItems: React.FC = () => {
     try {
       await issueRequest(request.id, user.id);
       await updateItem(item.id, {
-        quantity: item.quantity - request.quantity,
+        quantity: item.quantity - (request.quantity ?? 1), // Deduct only the issued quantity
         status: 'in-use',
         assignedTo: request.requested_by
       });

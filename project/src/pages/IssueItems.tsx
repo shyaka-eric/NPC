@@ -66,17 +66,18 @@ const IssueItems: React.FC = () => {
     // Debug: print the full request object and possible item ID fields
     console.log('DEBUG: request object', request);
     const item = getItem(request.itemId ?? request.item); // Support both itemId and item
-    // Debug log quantities
-    // console.log('DEBUG: item', item, 'item.quantity', item?.quantity, 'request.quantity', request.quantity);
     if (!item || item.quantity < request.quantity) {
       toast.error('Not enough stock to issue this item.');
       setIsLoading(false);
       return;
     }
+    const originalQuantity = item.quantity; // Store the original quantity before issuing
     try {
       await issueRequest(request.id, user.id);
+      // After issuing, always use the original quantity minus the issued amount
+      const newQuantity = originalQuantity - (request.quantity ?? 1);
       await updateItem(item.id, {
-        quantity: item.quantity - (request.quantity ?? 1), // Deduct only the issued quantity
+        quantity: newQuantity,
         status: 'in-use',
         assignedTo: request.requested_by
       });
@@ -135,7 +136,7 @@ const IssueItems: React.FC = () => {
       header: 'Category',
       accessor: (request: any) => {
         const item = getItem(request.itemId);
-        return item?.category || request.category || '-';
+        return item?.category || '-';
       }
     },
     {
@@ -148,6 +149,13 @@ const IssueItems: React.FC = () => {
     {
       header: 'Quantity',
       accessor: (request: any) => request.quantity ?? '-'
+    },
+    {
+      header: 'Available Quantity',
+      accessor: (request: any) => {
+        const item = getItem(request.itemId);
+        return item?.quantity ?? '-';
+      }
     },
     {
       header: 'Requested By',
@@ -184,18 +192,19 @@ const IssueItems: React.FC = () => {
         'Category',
         'Item',
         'Quantity',
+        'Available Quantity',
         'Requested By',
         'Status'
       ],
       ...visibleRequests.map(r => {
         const item = getItem(r.itemId);
-        // Use the same logic as the table for category
-        const category = item?.category || r.category || '-';
+        const category = item?.category || '-';
         return [
-          formatDate(r.requestedAt || r.createdAt || r.created_at || '-'),
+          formatDate(r.requestedAt || r.created_at || '-'),
           category,
           item?.name || r.itemName || '-',
           r.quantity ?? '-',
+          item?.quantity ?? '-',
           r.requestedByName || '-',
           r.status || '-'
         ];
@@ -204,8 +213,8 @@ const IssueItems: React.FC = () => {
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     // Merge title and export date rows across all columns
     ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Issued Items');

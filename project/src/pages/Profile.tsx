@@ -65,6 +65,11 @@ const Profile: React.FC = () => {
         form.append('email', user.email);
         form.append('role', user.role);
         form.append('phone_number', formData.phoneNumber);
+        form.append('first_name', user.first_name || '');
+        form.append('last_name', user.last_name || '');
+        form.append('unit', user.unit || '');
+        form.append('rank', user.rank || '');
+        form.append('birth_date', user.birth_date || '');
         form.append('profile_image', formData.profileImageFile);
         form.append('is_active', 'true');
         if (formData.password) form.append('password', formData.password);
@@ -76,6 +81,11 @@ const Profile: React.FC = () => {
           email: user.email,
           role: user.role,
           phone_number: formData.phoneNumber,
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          unit: user.unit || '',
+          rank: user.rank || '',
+          birth_date: user.birth_date || '',
           profile_image: formData.profileImage,
           is_active: true,
         };
@@ -131,7 +141,7 @@ const Profile: React.FC = () => {
               {imagePreview ? (
                 <img src={imagePreview} alt="Profile" className="h-20 w-20 rounded-full object-cover" />
               ) : (
-                user.name.charAt(0)
+                (user.first_name ? user.first_name.charAt(0) : user.username.charAt(0))
               )}
             </div>
             <input
@@ -150,8 +160,8 @@ const Profile: React.FC = () => {
         )}
         <Input
           label="Full Name"
-          name="name"
-          value={user.name}
+          name="full_name"
+          value={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name || user.last_name || user.username || user.email}
           readOnly
           fullWidth
         />

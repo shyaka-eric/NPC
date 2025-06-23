@@ -17,10 +17,10 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.NOTICE(f'SUPERUSER_PASSWORD is set: {"Yes" if settings.SUPERUSER_PASSWORD else "No"}'))
             
-        if not User.objects.filter(username='fatman').exists():
+        # Check for existing user by username or email
+        if not User.objects.filter(username='fatman').exists() and not User.objects.filter(email='kezafatman@gmail.com').exists():
             try:
                 self.stdout.write(self.style.NOTICE('Creating superuser...'))
-                # Create superuser with properly hashed password
                 user = User.objects.create(
                     username='fatman',
                     email='kezafatman@gmail.com',
@@ -30,7 +30,6 @@ class Command(BaseCommand):
                 )
                 user.set_password(settings.SUPERUSER_PASSWORD)
                 user.save()
-                
                 self.stdout.write(self.style.SUCCESS('Superuser created successfully'))
                 self.stdout.write(self.style.NOTICE('Superuser details:'))
                 self.stdout.write(self.style.NOTICE(f'Username: fatman'))
@@ -42,15 +41,14 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f'Error creating superuser: {str(e)}'))
                 raise
         else:
-            self.stdout.write(self.style.NOTICE('Superuser already exists'))
-            user = User.objects.get(username='fatman')
+            self.stdout.write(self.style.NOTICE('Superuser already exists (username or email)'))
+            user = User.objects.filter(username='fatman').first() or User.objects.filter(email='kezafatman@gmail.com').first()
             self.stdout.write(self.style.NOTICE('Superuser details:'))
             self.stdout.write(self.style.NOTICE(f'Username: {user.username}'))
             self.stdout.write(self.style.NOTICE(f'Email: {user.email}'))
             self.stdout.write(self.style.NOTICE(f'Is superuser: {user.is_superuser}'))
             self.stdout.write(self.style.NOTICE(f'Is staff: {user.is_staff}'))
             self.stdout.write(self.style.NOTICE(f'Is active: {user.is_active}'))
-            
             # Update password if it's different
             if not user.check_password(settings.SUPERUSER_PASSWORD):
                 self.stdout.write(self.style.NOTICE('Updating password...'))

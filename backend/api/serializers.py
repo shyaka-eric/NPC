@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User, Item, Request, Notification, Log, Settings, RepairRequest, IssuedItem, DamagedItem
+import re
 
 class IssuedItemSerializer(serializers.ModelSerializer):
     item_name = serializers.CharField(source='item.name', read_only=True)
@@ -80,6 +81,41 @@ class UserSerializer(serializers.ModelSerializer):
         if 'profile_image' not in ret:
             ret['profile_image'] = None
         return ret
+
+    def validate(self, data):
+        errors = {}
+        # First Name: only letters, spaces, hyphens
+        if not data.get('first_name') or not re.match(r'^[A-Za-z\s\-]+$', data['first_name'].strip()):
+            errors['first_name'] = 'First name should only contain letters, spaces, or hyphens.'
+        # Last Name: only letters, spaces, hyphens
+        if not data.get('last_name') or not re.match(r'^[A-Za-z\s\-]+$', data['last_name'].strip()):
+            errors['last_name'] = 'Last name should only contain letters, spaces, or hyphens.'
+        # Email: basic email pattern
+        if not data.get('email') or not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', data['email'].strip()):
+            errors['email'] = 'Invalid email address.'
+        # Phone: only digits, optionally starts with +
+        if not data.get('phone_number') or not re.match(r'^(\+?\d{7,15})$', data['phone_number'].strip()):
+            errors['phone_number'] = 'Phone number should contain only digits and may start with +.'
+        # Unit: only letters, numbers, spaces, hyphens
+        if not data.get('unit') or not re.match(r'^[A-Za-z0-9\s\-]+$', data['unit'].strip()):
+            errors['unit'] = 'Unit should only contain letters, numbers, spaces, or hyphens.'
+        # Username: only letters, numbers, underscores, hyphens
+        if not data.get('username') or not re.match(r'^[A-Za-z0-9_\-]+$', data['username'].strip()):
+            errors['username'] = 'Username should only contain letters, numbers, underscores, or hyphens.'
+        # Password: at least 6 chars
+        if not data.get('password') or len(data['password']) < 6:
+            errors['password'] = 'Password should be at least 6 characters long.'
+        # Role: must be one of allowed roles
+        allowed_roles = ['unit-leader', 'admin', 'logistics-officer', 'system-admin']
+        if not data.get('role') or data['role'] not in allowed_roles:
+            errors['role'] = 'Invalid role selected.'
+        # Rank: must be one of allowed ranks (if not empty)
+        allowed_ranks = ['', 'PC', 'CPL', 'SGT', 'S/SGT', 'C/SGT', 'OC', 'AIP', 'IP', 'CIP', 'SP', 'SSP', 'CSP', 'ACP', 'CP', 'DCG', 'CG']
+        if data.get('rank') and data['rank'] not in allowed_ranks:
+            errors['rank'] = 'Invalid rank selected.'
+        if errors:
+            raise serializers.ValidationError(errors)
+        return data
 
 class ItemSerializer(serializers.ModelSerializer):
     assigned_to_id = serializers.PrimaryKeyRelatedField(source='assigned_to', read_only=True)

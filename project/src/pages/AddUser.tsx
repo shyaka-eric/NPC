@@ -53,6 +53,53 @@ const AddUser: React.FC = () => {
   });
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<any>({});
+
+  // Validation function for user input
+  const validateUserInput = (user: any) => {
+    const errors: any = {};
+    // First Name: only letters, spaces, hyphens
+    if (!/^[A-Za-z\s\-]+$/.test(user.first_name?.trim() || "")) {
+      errors.first_name = "First name should only contain letters, spaces, or hyphens.";
+    }
+    // Last Name: only letters, spaces, hyphens
+    if (!/^[A-Za-z\s\-]+$/.test(user.last_name?.trim() || "")) {
+      errors.last_name = "Last name should only contain letters, spaces, or hyphens.";
+    }
+    // Email: basic email pattern
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email?.trim() || "")) {
+      errors.email = "Invalid email address.";
+    }
+    // Phone: only digits, optionally starts with +
+    if (!/^(\+?\d{7,15})$/.test(user.phone_number?.trim() || "")) {
+      errors.phone_number = "Phone number should contain only digits and may start with +.";
+    }
+    // Unit: only letters, numbers, spaces, hyphens
+    if (!/^[A-Za-z0-9\s\-]+$/.test(user.unit?.trim() || "")) {
+      errors.unit = "Unit should only contain letters, numbers, spaces, or hyphens.";
+    }
+    // Username: only letters, numbers, underscores, hyphens
+    if (!/^[A-Za-z0-9_\-]+$/.test(user.username?.trim() || "")) {
+      errors.username = "Username should only contain letters, numbers, underscores, or hyphens.";
+    }
+    // Password: at least 6 chars
+    if ((user.password || "").length < 6) {
+      errors.password = "Password should be at least 6 characters long.";
+    }
+    // Role: must be one of allowed roles
+    const allowedRoles = ["unit-leader", "admin", "logistics-officer", "system-admin"];
+    if (!allowedRoles.includes(user.role)) {
+      errors.role = "Invalid role selected.";
+    }
+    // Rank: must be one of allowed ranks (if not empty)
+    const allowedRanks = [
+      '', 'PC', 'CPL', 'SGT', 'S/SGT', 'C/SGT', 'OC', 'AIP', 'IP', 'CIP', 'SP', 'SSP', 'CSP', 'ACP', 'CP', 'DCG', 'CG'
+    ];
+    if (user.rank && !allowedRanks.includes(user.rank)) {
+      errors.rank = "Invalid rank selected.";
+    }
+    return errors;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -72,7 +119,14 @@ const AddUser: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors = validateUserInput(form);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error('Please fix the errors in the form.');
+      return;
+    }
     setIsLoading(true);
+    setFormErrors({});
     try {
       let payload;
       // Always send is_active as true for both FormData and JSON
@@ -103,7 +157,7 @@ const AddUser: React.FC = () => {
           email: form.email,
           password: form.password,
           is_active: true,
-        };
+        } as any;
       }
       // Call addUser with only the payload (store now handles FormData or JSON)
       await addUser(payload);
@@ -124,16 +178,16 @@ const AddUser: React.FC = () => {
         description="Create a new user account."
       />
       <form onSubmit={handleSubmit} className="space-y-6 mt-8" encType="multipart/form-data">
-        <Select label="Rank" name="rank" value={form.rank} onChange={handleChange} options={rankOptions} required />
-        <Input label="First Name" name="first_name" value={form.first_name} onChange={handleChange} required />
-        <Input label="Last Name" name="last_name" value={form.last_name} onChange={handleChange} required />
+        <Select label="Rank" name="rank" value={form.rank} onChange={handleChange} options={rankOptions} required error={formErrors.rank} />
+        <Input label="First Name" name="first_name" value={form.first_name} onChange={handleChange} required error={formErrors.first_name} />
+        <Input label="Last Name" name="last_name" value={form.last_name} onChange={handleChange} required error={formErrors.last_name} />
         <Input label="Birth Date" name="birth_date" type="date" value={form.birth_date} onChange={handleChange} required />
-        <Select label="Role" name="role" value={form.role} onChange={handleChange} options={roleOptions} required />
-        <Input label="Unit" name="unit" value={form.unit} onChange={handleChange} required />
-        <Input label="Phone" name="phone_number" value={form.phone_number} onChange={handleChange} required />
-        <Input label="Username" name="username" value={form.username} onChange={handleChange} required />
-        <Input label="Email" name="email" value={form.email} onChange={handleChange} required type="email" />
-        <Input label="Password" name="password" value={form.password} onChange={handleChange} required type="password" />
+        <Select label="Role" name="role" value={form.role} onChange={handleChange} options={roleOptions} required error={formErrors.role} />
+        <Input label="Unit" name="unit" value={form.unit} onChange={handleChange} required error={formErrors.unit} />
+        <Input label="Phone" name="phone_number" value={form.phone_number} onChange={handleChange} required error={formErrors.phone_number} />
+        <Input label="Username" name="username" value={form.username} onChange={handleChange} required error={formErrors.username} />
+        <Input label="Email" name="email" value={form.email} onChange={handleChange} required type="email" error={formErrors.email} />
+        <Input label="Password" name="password" value={form.password} onChange={handleChange} required type="password" error={formErrors.password} />
         <Input label="Profile Image" name="profile_image" type="file" accept="image/*" onChange={handleImageChange} />
         {imagePreview && (
           <div className="flex justify-center mb-2">

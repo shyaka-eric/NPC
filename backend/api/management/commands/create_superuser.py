@@ -26,7 +26,8 @@ class Command(BaseCommand):
                     email='kezafatman@gmail.com',
                     is_superuser=True,
                     is_staff=True,
-                    is_active=True
+                    is_active=True,
+                    role='system-admin'  # Set default role as System Admin
                 )
                 user.set_password(settings.SUPERUSER_PASSWORD)
                 user.save()
@@ -49,9 +50,22 @@ class Command(BaseCommand):
             self.stdout.write(self.style.NOTICE(f'Is superuser: {user.is_superuser}'))
             self.stdout.write(self.style.NOTICE(f'Is staff: {user.is_staff}'))
             self.stdout.write(self.style.NOTICE(f'Is active: {user.is_active}'))
+            updated = False
             # Update password if it's different
             if not user.check_password(settings.SUPERUSER_PASSWORD):
                 self.stdout.write(self.style.NOTICE('Updating password...'))
                 user.set_password(settings.SUPERUSER_PASSWORD)
+                updated = True
+            # Ensure the user is system-admin
+            if user.role != 'system-admin':
+                user.role = 'system-admin'
+                self.stdout.write(self.style.NOTICE('User role updated to system-admin'))
+                updated = True
+            # Ensure the user is active
+            if not user.is_active:
+                user.is_active = True
+                self.stdout.write(self.style.NOTICE('User activated (is_active=True)'))
+                updated = True
+            if updated:
                 user.save()
-                self.stdout.write(self.style.SUCCESS('Password updated successfully'))
+                self.stdout.write(self.style.SUCCESS('Superuser updated successfully'))

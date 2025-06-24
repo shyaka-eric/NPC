@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useSearchParams } from 'react-router-dom';
 import { parseISO } from 'date-fns';
+import { ItemStatus } from '../types';
 
 const IssueItems: React.FC = () => {
   const { user } = useAuthStore();
@@ -61,28 +62,33 @@ const IssueItems: React.FC = () => {
 
   const handleIssueItem = async (request: any) => {
     if (!user) return;
-    setIsLoading(true); // Prevent double actions
-    await fetchItems(); // Always get latest items before issuing
-    // Debug: print the full request object and possible item ID fields
-    console.log('DEBUG: request object', request);
-    const item = getItem(request.itemId ?? request.item); // Support both itemId and item
-    if (!item || item.quantity < request.quantity) {
+    setIsLoading(true);
+    await fetchItems();
+    const item = getItem(request.itemId ?? request.item);
+    if (!item) {
+      toast.error('Item not found.');
+      setIsLoading(false);
+      return;
+    }
+    const requestedQty = Number(request.quantity) || 1;
+    if (item.quantity < requestedQty) {
       toast.error('Not enough stock to issue this item.');
       setIsLoading(false);
       return;
     }
-    const originalQuantity = item.quantity; // Store the original quantity before issuing
     try {
       await issueRequest(request.id, user.id);
-      // After issuing, always use the original quantity minus the issued amount
-      const newQuantity = originalQuantity - (request.quantity ?? 1);
+      // Reduce quantity by requested amount, never below zero
+      const newQuantity = Math.max(item.quantity - requestedQty, 0);
+      // Use only allowed ItemStatus values
+      let newStatus: ItemStatus = newQuantity === 0 ? 'in-use' : item.status;
       await updateItem(item.id, {
         quantity: newQuantity,
-        status: 'in-use',
+        status: newStatus,
         assignedTo: request.requested_by
       });
-      await fetchItems(); // Refresh items after update
-      await fetchRequests(); // Refresh requests after update
+      await fetchItems();
+      await fetchRequests();
       toast.success('Item issued successfully');
     } catch (error) {
       toast.error('Failed to issue item');

@@ -144,6 +144,7 @@ const StockForm: React.FC<StockFormProps> = ({ item, onClose }) => {
         type="date"
         value={formData.expirationDate}
         onChange={handleChange}
+        min={new Date().toISOString().split('T')[0]}
         fullWidth
       />
 

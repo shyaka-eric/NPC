@@ -145,9 +145,12 @@ const StockForm: React.FC<StockFormProps> = ({ item, onClose }) => {
         value={formData.expirationDate}
         onChange={handleChange}
         min={(() => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          return today.toISOString().split('T')[0];
+          // Always use the current date in the user's local timezone
+          const now = new Date();
+          now.setHours(0, 0, 0, 0);
+          const offset = now.getTimezoneOffset();
+          const localDate = new Date(now.getTime() - offset * 60 * 1000);
+          return localDate.toISOString().split('T')[0];
         })()}
         fullWidth
       />

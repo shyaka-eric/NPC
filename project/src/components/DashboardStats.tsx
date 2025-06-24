@@ -215,7 +215,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ rangeType, setRangeType
               className="w-full h-32 text-2xl cursor-pointer"
             />
             <StatCard
-              title="Approved Items"
+              title="Issue Items"
               value={formatNumber(approvedCount)}
               icon={<CheckCircle size={24} className="text-green-500" />} // Green for Approved Items
               onClick={() => navigate(`/issue-items?rangeType=${rangeType}&customStart=${customStart}&customEnd=${customEnd}`)}

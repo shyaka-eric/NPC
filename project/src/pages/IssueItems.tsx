@@ -135,15 +135,16 @@ const IssueItems: React.FC = () => {
     {
       header: 'Category',
       accessor: (request: any) => {
-        const item = getItem(request.itemId);
-        return item?.category ? item.category : 'N/A';
+        // Try both itemId and item fields for lookup
+        const item = getItem(request.itemId ?? request.item);
+        return item?.category || request.category || 'N/A';
       }
     },
     {
       header: 'Item',
       accessor: (request: any) => {
-        const item = getItem(request.itemId);
-        return item?.name || request.item_name || '-';
+        const item = getItem(request.itemId ?? request.item);
+        return item?.name || request.item_name || request.itemName || 'N/A';
       }
     },
     {
@@ -153,8 +154,8 @@ const IssueItems: React.FC = () => {
     {
       header: 'Available Quantity',
       accessor: (request: any) => {
-        const item = getItem(request.itemId);
-        return (item && typeof item.quantity === 'number') ? item.quantity : 'N/A';
+        const item = getItem(request.itemId ?? request.item);
+        return (item && typeof item.quantity !== 'undefined') ? item.quantity : (request.available_quantity ?? 'N/A');
       }
     },
     {

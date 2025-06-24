@@ -24,14 +24,34 @@ const StockForm: React.FC<StockFormProps> = ({ item, onClose }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate expiration date is not in the past
+    if (formData.expirationDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Ignore time
+      const expDate = new Date(formData.expirationDate);
+      if (expDate < today) {
+        toast.error('Expiration date cannot be in the past.');
+        return;
+      }
+    }
     setIsLoading(true);
 
     try {
+      // Convert expirationDate to Date if present
+      const payload = {
+        ...formData,
+        expirationDate: formData.expirationDate ? new Date(formData.expirationDate) : undefined
+      };
       if (item) {
-        await updateItem(item.id, formData);
+        await updateItem(item.id, payload);
         toast.success('Item updated successfully');
       } else {
-        await addItem(formData);
+        // Add createdAt and updatedAt for new items
+        await addItem({
+          ...payload,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
         toast.success('Item added successfully');
       }
       await fetchItems();

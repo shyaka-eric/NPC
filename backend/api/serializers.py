@@ -84,34 +84,35 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         errors = {}
+        # Only validate fields that are present in the data (for PATCH)
         # First Name: only letters, spaces, hyphens
-        if not data.get('first_name') or not re.match(r'^[A-Za-z\s\-]+$', data['first_name'].strip()):
+        if 'first_name' in data and (not data.get('first_name') or not re.match(r'^[A-Za-z\s\-]+$', data['first_name'].strip())):
             errors['first_name'] = 'First name should only contain letters, spaces, or hyphens.'
         # Last Name: only letters, spaces, hyphens
-        if not data.get('last_name') or not re.match(r'^[A-Za-z\s\-]+$', data['last_name'].strip()):
+        if 'last_name' in data and (not data.get('last_name') or not re.match(r'^[A-Za-z\s\-]+$', data['last_name'].strip())):
             errors['last_name'] = 'Last name should only contain letters, spaces, or hyphens.'
         # Email: basic email pattern
-        if not data.get('email') or not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', data['email'].strip()):
+        if 'email' in data and (not data.get('email') or not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', data['email'].strip())):
             errors['email'] = 'Invalid email address.'
         # Phone: only digits, optionally starts with +
-        if not data.get('phone_number') or not re.match(r'^(\+?\d{7,15})$', data['phone_number'].strip()):
+        if 'phone_number' in data and (not data.get('phone_number') or not re.match(r'^(\+?\d{7,15})$', data['phone_number'].strip())):
             errors['phone_number'] = 'Phone number should contain only digits and may start with +.'
         # Unit: only letters, numbers, spaces, hyphens
-        if not data.get('unit') or not re.match(r'^[A-Za-z0-9\s\-]+$', data['unit'].strip()):
+        if 'unit' in data and (not data.get('unit') or not re.match(r'^[A-Za-z0-9\s\-]+$', data['unit'].strip())):
             errors['unit'] = 'Unit should only contain letters, numbers, spaces, or hyphens.'
         # Username: only letters, numbers, underscores, hyphens
-        if not data.get('username') or not re.match(r'^[A-Za-z0-9_\-]+$', data['username'].strip()):
+        if 'username' in data and (not data.get('username') or not re.match(r'^[A-Za-z0-9_\-]+$', data['username'].strip())):
             errors['username'] = 'Username should only contain letters, numbers, underscores, or hyphens.'
         # Password: at least 6 chars
-        if not data.get('password') or len(data['password']) < 6:
+        if 'password' in data and (not data.get('password') or len(data['password']) < 6):
             errors['password'] = 'Password should be at least 6 characters long.'
         # Role: must be one of allowed roles
         allowed_roles = ['unit-leader', 'admin', 'logistics-officer', 'system-admin']
-        if not data.get('role') or data['role'] not in allowed_roles:
+        if 'role' in data and (not data.get('role') or data['role'] not in allowed_roles):
             errors['role'] = 'Invalid role selected.'
         # Rank: must be one of allowed ranks (if not empty)
         allowed_ranks = ['', 'PC', 'CPL', 'SGT', 'S/SGT', 'C/SGT', 'OC', 'AIP', 'IP', 'CIP', 'SP', 'SSP', 'CSP', 'ACP', 'CP', 'DCG', 'CG']
-        if data.get('rank') and data['rank'] not in allowed_ranks:
+        if 'rank' in data and data.get('rank') and data['rank'] not in allowed_ranks:
             errors['rank'] = 'Invalid rank selected.'
         if errors:
             raise serializers.ValidationError(errors)

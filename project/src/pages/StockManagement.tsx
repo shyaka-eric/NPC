@@ -361,7 +361,7 @@ const StockManagement: React.FC = () => {
           <Input label="Item Name" name="name" value={formData.name} onChange={handleChange} required />
           <Input label="Category" name="category" value={formData.category} onChange={handleChange} required />
           <Input label="Quantity" name="quantity" type="number" value={formData.quantity} onChange={handleChange} required />
-          <Input label="Expiration Date" name="expirationDate" type="date" value={formData.expirationDate} onChange={handleChange} />
+          <Input label="Expiration Date" name="expirationDate" type="date" value={formData.expirationDate} onChange={handleChange} min={(() => { const now = new Date(); now.setHours(0, 0, 0, 0); const offset = now.getTimezoneOffset(); const localDate = new Date(now.getTime() - offset * 60 * 1000); return localDate.toISOString().split('T')[0]; })()} />
         </form>
       </SimpleModal>
 
@@ -393,7 +393,7 @@ const StockManagement: React.FC = () => {
             <Input label="Item Name" name="name" value={editFormData.name} onChange={handleEditChange} required />
             <Input label="Category" name="category" value={editFormData.category} onChange={handleEditChange} required />
             <Input label="Quantity" name="quantity" type="number" value={editFormData.quantity} onChange={handleEditChange} required />
-            <Input label="Expiration Date" name="expirationDate" type="date" value={editFormData.expirationDate} onChange={handleEditChange} />
+            <Input label="Expiration Date" name="expirationDate" type="date" value={editFormData.expirationDate} onChange={handleEditChange} min={(() => { const now = new Date(); now.setHours(0, 0, 0, 0); const offset = now.getTimezoneOffset(); const localDate = new Date(now.getTime() - offset * 60 * 1000); return localDate.toISOString().split('T')[0]; })()} />
           </form>
         )}
       </SimpleModal>

@@ -71,7 +71,7 @@ const AnalysisCard: React.FC = () => {
     const repairRequests = requests.filter(req => req.type === 'repair' && req.status === 'pending' && req.requested_by === user.id).length;
 
     chartData = {
-      labels: ['In-Use Items', 'Item Requests', 'Repair Requests'],
+      labels: ['In-Use Items', 'Pending Item Requests', 'Pending Repair Requests'],
       datasets: [
         {
           label: 'Count',
